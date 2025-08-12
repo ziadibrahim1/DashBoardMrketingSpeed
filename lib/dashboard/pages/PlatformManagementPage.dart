@@ -91,7 +91,7 @@ class _PlatformManagementPageState extends State<PlatformManagementPage> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor:isDark ? Colors.grey[350] :  platform.color.withOpacity(0.8),
+                  backgroundColor:isDark ? Colors.grey[350] :  platform.color.withOpacity(0.2),
                   child: Icon(platform.icon, color: platform.color, size: 20),
                 ),
                 const SizedBox(width: 8),

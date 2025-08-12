@@ -132,8 +132,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       BottomNavigationBarItem(icon: Icon(Icons.subscriptions), label: widget.isArabic ? 'الاشتراكات' : 'Subscriptions'),
       BottomNavigationBarItem(icon: Icon(Icons.language), label: widget.isArabic ? 'المنصات' : 'Platforms'),
       BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: widget.isArabic ? 'محادثات' : 'Chats'),
-      BottomNavigationBarItem(icon: Icon(Icons.folder), label: widget.isArabic ? 'ملفات واتساب' : 'WhatsApp Files'),
-      BottomNavigationBarItem(icon: Icon(Icons.folder), label: widget.isArabic ? 'ملفات تليجرام' : 'Telegram Files'),
       BottomNavigationBarItem(icon: Icon(Icons.notifications), label: widget.isArabic ? 'إرسال إشعار' : 'Send Notification'),
       BottomNavigationBarItem(icon: Icon(Icons.settings), label: widget.isArabic ? 'إدارة منصات' : 'Manage Platforms'),
       BottomNavigationBarItem(icon: Icon(FontAwesomeIcons.userTie), label: widget.isArabic ? 'المسؤولين' : 'Admins'),
@@ -161,8 +159,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const SubscriptionsPage(), // الاشتراكات
       const SizedBox.shrink(), // منصات (غير مستخدمة مباشرة)
       const SizedBox.shrink(), // محادثات (منسدلة)
-      SelectUserScreen(), // ملفات واتساب
-      SelectUserScreentele(), // ملفات تليجرام
       const SendNotificationPage(), // إرسال إشعار
       const PlatformManagementPage(), // إدارة منصات
       const AdminManagementScreen(), // المسؤولين
