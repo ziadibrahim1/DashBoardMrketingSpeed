@@ -2,6 +2,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
+
+import '../../providers/app_providers.dart';
 
 class PaymentStatsDashboard extends StatefulWidget {
   const PaymentStatsDashboard({super.key});
@@ -15,12 +18,14 @@ class _PaymentStatsDashboardState extends State<PaymentStatsDashboard> {
   String _selectedPeriod = 'شهري';
   DateTime? _lastUpdate;
 
-  final List<String> _periodOptions = ['يومي', 'أسبوعي', 'شهري', 'سنوي'];
-  final Map<String, String> localizedTitles = {
-    'revenue': 'إجمالي الإيرادات',
-    'success': 'عدد العمليات الناجحة',
-    'activeSubs': 'عدد الاشتراكات النشطة',
-    'failures': 'المحاولات الفاشلة',
+  final List<String> _periodOptionsAr = ['يومي', 'أسبوعي', 'شهري', 'سنوي'];
+  final List<String> _periodOptionsEn = ['Daily', 'Weekly', 'Monthly', 'Yearly'];
+
+  final Map<String, Map<String, String>> localizedTitles = {
+    'revenue': {'ar': 'إجمالي الإيرادات', 'en': 'Total Revenue'},
+    'success': {'ar': 'عدد العمليات الناجحة', 'en': 'Successful Transactions'},
+    'activeSubs': {'ar': 'عدد الاشتراكات النشطة', 'en': 'Active Subscriptions'},
+    'failures': {'ar': 'المحاولات الفاشلة', 'en': 'Failed Attempts'},
   };
 
   final Map<String, double> _previousStats = {};
@@ -31,12 +36,15 @@ class _PaymentStatsDashboardState extends State<PaymentStatsDashboard> {
 
     switch (_selectedPeriod) {
       case 'يومي':
+      case 'Daily':
         multiplier = 1;
         break;
       case 'أسبوعي':
+      case 'Weekly':
         multiplier = 7;
         break;
       case 'سنوي':
+      case 'Yearly':
         multiplier = 365;
         break;
       default:
@@ -48,10 +56,10 @@ class _PaymentStatsDashboardState extends State<PaymentStatsDashboard> {
       _previousStats.addAll(_stats);
 
       _stats = {
-        localizedTitles['revenue']!: 500 * multiplier + rand.nextInt(2000),
-        localizedTitles['success']!: 20 * multiplier + rand.nextInt(100),
-        localizedTitles['activeSubs']!: 10 * multiplier + rand.nextInt(50),
-        localizedTitles['failures']!: rand.nextInt(15) * multiplier / 10,
+        localizedTitles['revenue']![isArabic ? 'ar' : 'en']!: 500 * multiplier + rand.nextInt(2000),
+        localizedTitles['success']![isArabic ? 'ar' : 'en']!: 20 * multiplier + rand.nextInt(100),
+        localizedTitles['activeSubs']![isArabic ? 'ar' : 'en']!: 10 * multiplier + rand.nextInt(50),
+        localizedTitles['failures']![isArabic ? 'ar' : 'en']!: rand.nextInt(15) * multiplier / 10,
       };
       _lastUpdate = DateTime.now();
     });
@@ -65,13 +73,22 @@ class _PaymentStatsDashboardState extends State<PaymentStatsDashboard> {
     return ((newVal - oldVal) / oldVal) * 100;
   }
 
+  bool get isArabic {
+    final locale = Localizations.localeOf(context);
+    return locale.languageCode == 'ar';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     var isDark = theme.brightness == Brightness.dark;
-    return Scaffold(
-      backgroundColor:isDark?Colors.grey[900]: Colors.white,
 
+    final periodOptions = isArabic ? _periodOptionsAr : _periodOptionsEn;
+    if (!periodOptions.contains(_selectedPeriod)) {
+      _selectedPeriod = periodOptions[2]; // 'شهري' أو 'Monthly'
+    }
+    return Scaffold(
+      backgroundColor: isDark ? Colors.grey[900] : Colors.white,
       body: Column(
         children: [
           Padding(
@@ -81,7 +98,7 @@ class _PaymentStatsDashboardState extends State<PaymentStatsDashboard> {
               children: [
                 DropdownButton<String>(
                   value: _selectedPeriod,
-                  items: _periodOptions
+                  items: periodOptions
                       .map((p) => DropdownMenuItem(value: p, child: Text(p)))
                       .toList(),
                   onChanged: (v) {
@@ -91,7 +108,7 @@ class _PaymentStatsDashboardState extends State<PaymentStatsDashboard> {
                   },
                 ),
                 IconButton(
-                  tooltip: 'تحديث البيانات',
+                  tooltip: isArabic ? 'تحديث البيانات' : 'Refresh Data',
                   icon: const Icon(Icons.refresh),
                   onPressed: _refreshData,
                 ),
@@ -102,7 +119,9 @@ class _PaymentStatsDashboardState extends State<PaymentStatsDashboard> {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                'آخر تحديث: ${DateFormat('yyyy-MM-dd HH:mm').format(_lastUpdate!)}',
+                isArabic
+                    ? 'آخر تحديث: ${DateFormat('yyyy-MM-dd HH:mm').format(_lastUpdate!)}'
+                    : 'Last Update: ${DateFormat('yyyy-MM-dd HH:mm').format(_lastUpdate!)}',
                 style: TextStyle(color: Colors.grey[600], fontSize: 12),
               ),
             ),
@@ -112,13 +131,16 @@ class _PaymentStatsDashboardState extends State<PaymentStatsDashboard> {
               child: _stats.isEmpty
                   ? Center(
                 child: Text(
-                  'لا توجد بيانات حالياً\nاضغط على "تحديث" لجلب البيانات',
+                  isArabic
+                      ? 'لا توجد بيانات حالياً\nاضغط على "تحديث" لجلب البيانات'
+                      : 'No data available\nPress "Refresh" to load data',
                   style: TextStyle(color: Colors.grey[600], fontSize: 16),
                   textAlign: TextAlign.center,
                 ),
               )
                   : GridView.count(
-                crossAxisCount: MediaQuery.of(context).size.width > 600 ? 2 : 1,
+                crossAxisCount:
+                MediaQuery.of(context).size.width > 600 ? 2 : 1,
                 mainAxisSpacing: 20,
                 crossAxisSpacing: 20,
                 childAspectRatio: 3,
@@ -131,10 +153,16 @@ class _PaymentStatsDashboardState extends State<PaymentStatsDashboard> {
                     color: _colorFor(entry.key),
                     changePercent: change,
                     subtitle: change == null
+                        ? (isArabic
                         ? 'لا بيانات سابقة للمقارنة'
+                        : 'No previous data for comparison')
                         : (change > 0
+                        ? (isArabic
                         ? 'تحسن مقارنة بالفترة السابقة'
-                        : 'تراجع مقارنة بالفترة السابقة'),
+                        : 'Improved compared to previous period')
+                        : (isArabic
+                        ? 'تراجع مقارنة بالفترة السابقة'
+                        : 'Declined compared to previous period')),
                   );
                 }).toList(),
               ),
@@ -146,18 +174,34 @@ class _PaymentStatsDashboardState extends State<PaymentStatsDashboard> {
   }
 
   IconData _iconFor(String title) {
-    if (title.contains('إيرادات')) return Icons.attach_money;
-    if (title.contains('ناجحة')) return Icons.check_circle_outline;
-    if (title.contains('نشطة')) return Icons.subscriptions;
-    if (title.contains('فاشلة')) return Icons.warning_amber_rounded;
+    if (title.contains('إيرادات') || title.contains('Revenue')) {
+      return Icons.attach_money;
+    }
+    if (title.contains('ناجحة') || title.contains('Successful')) {
+      return Icons.check_circle_outline;
+    }
+    if (title.contains('نشطة') || title.contains('Active')) {
+      return Icons.subscriptions;
+    }
+    if (title.contains('فاشلة') || title.contains('Failed')) {
+      return Icons.warning_amber_rounded;
+    }
     return Icons.analytics;
   }
 
   Color _colorFor(String title) {
-    if (title.contains('إيرادات')) return Colors.green;
-    if (title.contains('ناجحة')) return Colors.blue;
-    if (title.contains('نشطة')) return Colors.purple;
-    if (title.contains('فاشلة')) return Colors.red;
+    if (title.contains('إيرادات') || title.contains('Revenue')) {
+      return Colors.green;
+    }
+    if (title.contains('ناجحة') || title.contains('Successful')) {
+      return Colors.blue;
+    }
+    if (title.contains('نشطة') || title.contains('Active')) {
+      return Colors.purple;
+    }
+    if (title.contains('فاشلة') || title.contains('Failed')) {
+      return Colors.red;
+    }
     return Colors.teal;
   }
 }
@@ -182,9 +226,11 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final isArabic = localeProvider.locale.languageCode == 'ar';
     final bool isPositive = (changePercent ?? 0) >= 0;
     final bool hasChange = changePercent != null;
-
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: () {
         showModalBottomSheet(
@@ -197,10 +243,52 @@ class StatCard extends StatelessWidget {
       },
       borderRadius: BorderRadius.circular(16),
       child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        elevation: 5,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        elevation: 6,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors:isDark?[
+                Colors.green.shade700.withOpacity(.3),
+                Colors.green.shade500.withOpacity(.3),
+                Color(0xFFB3A664).withOpacity(.3),
+                Colors.green.shade600.withOpacity(.3),
+                ?Colors.green[900]?.withOpacity(.3),
+              ]: [
+                Colors.blue.shade700.withOpacity(.4),
+                Colors.blue.shade500.withOpacity(.4),
+                Colors.blue.shade300.withOpacity(.4),
+                Colors.blue.shade600.withOpacity(.4),
+                ?Colors.blue[900],
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                  color: LinearGradient(
+                    colors:isDark?[
+                      Colors.green.shade700.withOpacity(.3),
+                      Colors.green.shade500.withOpacity(.3),
+                      Color(0xFFB3A664).withOpacity(.3),
+                      Colors.green.shade600.withOpacity(.3),
+                      ?Colors.green[900]?.withOpacity(.3),
+                    ]: [
+                      Colors.blue.shade700.withOpacity(.4),
+                      Colors.blue.shade500.withOpacity(.4),
+                      Colors.blue.shade300.withOpacity(.4),
+                      Colors.blue.shade600.withOpacity(.4),
+                      ?Colors.blue[900],
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ).colors.last.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 6))
+            ],
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -209,13 +297,13 @@ class StatCard extends StatelessWidget {
                   CircleAvatar(
                     radius: 24,
                     backgroundColor: color.withOpacity(0.15),
-                    child: Icon(icon, color: color, size: 28),
+                    child: Icon(icon, color:Colors.white, size: 28),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
                       title,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600,color:Colors.white),
                     ),
                   ),
                   if (hasChange)
@@ -248,20 +336,20 @@ class StatCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                title.contains('إيرادات')
+                title.contains(isArabic?'إيرادات':'Incomes')
                     ? '${value.toStringAsFixed(0)} ر.س'
                     : value.round().toString(),
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: color,
+                  color:Colors.white,
                 ),
               ),
               if (subtitle != null) ...[
                 const SizedBox(height: 8),
                 Text(
                   subtitle!,
-                  style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                  style: TextStyle( color:Colors.white, fontSize: 13),
                 ),
               ],
             ],
@@ -288,7 +376,8 @@ class _StatDetailsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final rand = Random();
-
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final isArabic = localeProvider.locale.languageCode == 'ar';
     final data = List.generate(6, (index) {
       final monthDate = DateTime(now.year, now.month - (5 - index), 1);
       double val = currentValue * (0.7 + rand.nextDouble() * 0.6);
@@ -301,11 +390,11 @@ class _StatDetailsSheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('تطور $title', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+          Text(isArabic?'تطور $title':'Up $title', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
           const SizedBox(height: 12),
           Expanded(child: _BarChart(data: data)),
           Text(
-            'عرض بيانات لـ 6 أشهر',
+            isArabic?'عرض بيانات لـ 6 أشهر':'Display data for 6 months ',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
           ),

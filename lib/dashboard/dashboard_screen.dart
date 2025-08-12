@@ -17,11 +17,11 @@ import 'pages/ReferralRewardsPage.dart';
 import 'pages/SuggestionsManagementScreen.dart';
 import 'pages/SupervisorsManagementScreen.dart';
 import 'pages/PaymentManagement.dart';
-import 'pages/SocialAccountsPage.dart';
 import 'pages/api_dashboard.dart';
 import 'pages/login_screen.dart';
 import 'pages/messages_page.dart';
 import 'pages/select_user_screen.dart';
+import 'pages/social_accounts_page.dart';
 import 'pages/stats_page.dart';
 import 'pages/subscriptions_page.dart';
 import 'pages/users_page.dart';
@@ -56,31 +56,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double _dragStartX = 0;
   double _scrollStartX = 0;
 
-  final List<Widget> basePages = [
-     DashboardStatsSection(), // إحصائيات
-    const UsersPage(), // المستخدمين
-    const MessagesPage(), // الرسائل
-    const SubscriptionsPage(), // الاشتراكات
-    const SizedBox.shrink(), // منصات (غير مستخدمة مباشرة)
-    const SizedBox.shrink(), // محادثات (منسدلة)
-    SelectUserScreen(), // ملفات واتساب
-    SelectTelegramUserScreen(), // ملفات تليجرام
-    const SendNotificationPage(), // إرسال إشعار
-    const PlatformManagementPage(), // إدارة منصات
-    const AdminManagementScreen(), // المسؤولين
-    const PackagesPage(), // إدارة فليكس
-    const SocialAccountsPage(), // روابط تواصل
-    const ReferralRewardsPage(), // ادارة المكافئات
-    const SuggestionsManagementPage(), // ادارة الاقتراحات
-    const SupervisorsManagementSimpleScreen(), // ادارة المسوقين
-    const ApiDashboardScreen(), // ادارة API's
-    const PaymentManagementSection(), // ادارة الدفع
-    AdminAboutAppScreen(), // إدارة فيديوهات الاستخدام
-  ];
 
   final List<Widget> platformPages = [
     const StatsPage(), // واتساب
-    const StatsPageTele(), // تيليجرام
+    const StatsPageTelegram(), // تيليجرام
     const Center(child: Text('صفحة فيسبوك')), // فيسبوك
   ];
 
@@ -175,6 +154,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isArabic = localeProvider.locale.languageCode == 'ar';
     final locale = Localizations.localeOf(context);
     final isRTL = ['ar', 'he', 'fa', 'ur'].contains(locale.languageCode);
+    final List<Widget> basePages = [
+      DashboardStatsSection(), // إحصائيات
+      const UsersPage(), // المستخدمين
+      const MessagesPage(), // الرسائل
+      const SubscriptionsPage(), // الاشتراكات
+      const SizedBox.shrink(), // منصات (غير مستخدمة مباشرة)
+      const SizedBox.shrink(), // محادثات (منسدلة)
+      SelectUserScreen(), // ملفات واتساب
+      SelectUserScreentele(), // ملفات تليجرام
+      const SendNotificationPage(), // إرسال إشعار
+      const PlatformManagementPage(), // إدارة منصات
+      const AdminManagementScreen(), // المسؤولين
+       PackagesPage( isArabic: isArabic), // إدارة فليكس
+      const SocialAccountsPage(), // روابط تواصل
+      const ReferralRewardsPage(), // ادارة المكافئات
+      const SuggestionsManagementPage(), // ادارة الاقتراحات
+      const SupervisorsMarketersPage(), // ادارة المسوقين
+      const ApiDashboardScreen(), // ادارة API's
+      const PaymentManagementSection(), // ادارة الدفع
+      AdminAboutAppScreen(), // إدارة فيديوهات الاستخدام
+    ];
 
     return Directionality(
       textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
@@ -375,7 +375,7 @@ class _MovableSpeedDialState extends State<MovableSpeedDial> {
           ),
           activeIcon: Icons.close,
           backgroundColor:
-          widget.isDark ? Colors.green.shade700 : Colors.blue.shade700,
+          widget.isDark ? Colors.green.shade700.withOpacity(.9) : Colors.blue.shade700.withOpacity(.9),
           children: [
             SpeedDialChild(
               child: const Icon(Icons.person),

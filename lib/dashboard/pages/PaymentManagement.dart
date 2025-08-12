@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../providers/app_providers.dart';
 import 'PaymentStatsDashboard.dart';
 Future<void> exportToCSVFile(List<Payment> payments) async {
   try {
@@ -51,17 +52,22 @@ class _PaymentManagementSectionState extends State<PaymentManagementSection>
   late TabController _tabController;
   UserRole currentRole = UserRole.admin;
 
-  final List<Tab> tabs = const [
+  final List<Tab> tabsAR = const [
     Tab(text: 'لوحة الإحصائيات'),
     Tab(text: 'سجل المدفوعات'),
     Tab(text: 'مدفوعات العملاء'),
     Tab(text: 'بوابات الدفع'),
   ];
-
+  final List<Tab> tabsEN = const [
+    Tab(text: 'Stats Dashboard'),
+    Tab(text: 'Payment History'),
+    Tab(text: 'Customer Payments'),
+    Tab(text: 'Payment Gateways'),
+  ];
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: tabs.length, vsync: this);
+    _tabController = TabController(length: tabsAR.length, vsync: this);
   }
 
   @override
@@ -72,24 +78,19 @@ class _PaymentManagementSectionState extends State<PaymentManagementSection>
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final isArabic = localeProvider.locale.languageCode == 'ar';
     final theme = Theme.of(context);
     var isDark = theme.brightness == Brightness.dark;
-    void toggleTheme() {
-      setState(() => isDark = !isDark);
-    }
-    Locale locale = const Locale('ar');
-    void toggleLocale() {
-      setState(() {
-        locale = locale.languageCode == 'ar' ? const Locale('en') : const Locale('ar');
-      });
-    }
+
+
     return Scaffold(
       backgroundColor:isDark?Colors.grey[900]: Colors.white,
       appBar: AppBar(
         elevation: 4,
         backgroundColor:isDark?Colors.grey[900]:Colors.blue.shade300,
         title:   Text(
-          'إدارة الدفع',
+          isArabic?'إدارة الدفع':'Payment Management',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
             color:   Colors.white ,
@@ -102,7 +103,7 @@ class _PaymentManagementSectionState extends State<PaymentManagementSection>
             child: TabBar(
               controller: _tabController,
               isScrollable: true,
-              tabs: tabs,
+              tabs:isArabic? tabsAR:tabsEN,
               labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
               labelColor:isDark?Colors.white: Colors.blue.shade700,
@@ -156,20 +157,26 @@ class PaymentViewModel extends ChangeNotifier {
   String _searchQuery = '';
   String get searchQuery => _searchQuery;
 
-  PaymentViewModel() {
-    _generateInitialPayments();
+  PaymentViewModel(isArabic) {
+    _generateInitialPayments(isArabic);
   }
 
-  void _generateInitialPayments() {
+  void _generateInitialPayments(bool isArabic) {
+
     _payments.addAll(List.generate(50, (i) {
       return Payment(
-        username: 'مستخدم $i',
-        plan: i % 2 == 0 ? 'شهري' : 'سنوي',
+        username: isArabic ? 'مستخدم $i' : 'User $i',
+        plan: i % 2 == 0
+            ? (isArabic ? 'شهري' : 'Monthly')
+            : (isArabic ? 'سنوي' : 'Yearly'),
         amount: 100 + i * 10,
-        status: i % 2 == 0 ? 'تم' : 'معلق',
-        method: 'بطاقة',
+        status: i % 2 == 0
+            ? (isArabic ? 'تم' : 'Completed')
+            : (isArabic ? 'معلق' : 'Pending'),
+        method: isArabic ? 'بطاقة' : 'Card',
         date: DateTime.now().subtract(Duration(days: i)),
       );
+
     }));
   }
 
@@ -207,8 +214,10 @@ class PaymentHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final isArabic = localeProvider.locale.languageCode == 'ar';
     return ChangeNotifierProvider(
-      create: (_) => PaymentViewModel(),
+      create: (_) => PaymentViewModel(isArabic),
       child: Scaffold(
 
         body: const SingleChildScrollView(
@@ -227,6 +236,8 @@ class PaymentHistoryBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final isArabic = localeProvider.locale.languageCode == 'ar';
     final vm = context.watch<PaymentViewModel>();
     final payments = vm.filteredPayments;
     final theme = Theme.of(context);
@@ -241,7 +252,7 @@ class PaymentHistoryBody extends StatelessWidget {
               child: TextField(
                 onChanged: vm.updateSearchQuery,
                 decoration: InputDecoration(
-                  hintText: 'ابحث باسم العميل',
+                  hintText: isArabic ? 'ابحث باسم العميل' : 'Search by client name',
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
                   fillColor: Theme.of(context).colorScheme.surfaceVariant,
@@ -258,13 +269,13 @@ class PaymentHistoryBody extends StatelessWidget {
                 final vm = context.read<PaymentViewModel>();
                 await exportToCSVFile(vm.filteredPayments);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('تم حفظ ملف CSV')),
+                  SnackBar(content: Text(isArabic ? 'تم حفظ ملف CSV' : 'CSV file saved')),
                 );
               },
               icon: const Icon(Icons.download, color: Colors.white),
-              label: const Text('تصدير'),
+              label: Text(isArabic ? 'تصدير' : 'Export'),
               style: FilledButton.styleFrom(
-                backgroundColor:isDark?Colors.green: Colors.blue,
+                backgroundColor: isDark ? Colors.green : Colors.blue,
                 foregroundColor: Colors.white, // لون النص والأيقونة
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -285,16 +296,16 @@ class PaymentHistoryBody extends StatelessWidget {
                 color: isDark ? Colors.grey[900] : Colors.grey[50], // خلفية ناعمة للطرفين
                 width: constraints.maxWidth,
                 child: PaginatedDataTable(
-                  columns: const [
-                    DataColumn(label: Text('المستخدم')),
-                    DataColumn(label: Text('الباقة')),
-                    DataColumn(label: Text('المبلغ')),
-                    DataColumn(label: Text('الحالة')),
-                    DataColumn(label: Text('الوسيلة')),
-                    DataColumn(label: Text('التاريخ')),
+                  columns: [
+                    DataColumn(label: Text(isArabic ? 'المستخدم' : 'User')),
+                    DataColumn(label: Text(isArabic ? 'الباقة' : 'Plan')),
+                    DataColumn(label: Text(isArabic ? 'المبلغ' : 'Amount')),
+                    DataColumn(label: Text(isArabic ? 'الحالة' : 'Status')),
+                    DataColumn(label: Text(isArabic ? 'الوسيلة' : 'Method')),
+                    DataColumn(label: Text(isArabic ? 'التاريخ' : 'Date')),
                   ],
                   source: PaymentDataSource(payments),
-                  header: const Text('عمليات الدفع'),
+                  header: Text(isArabic ? 'عمليات الدفع' : 'Payment Transactions'),
                   rowsPerPage: 10,
                   columnSpacing: 24,
                   horizontalMargin: 12,
@@ -306,11 +317,7 @@ class PaymentHistoryBody extends StatelessWidget {
               ),
             );
           },
-        )
-
-
-        // جدول البيانات بكامل عرض الشاشة
-
+        ),
       ],
     );
   }
@@ -361,260 +368,7 @@ class CustomerPaymentsScreen extends StatefulWidget {
       _CustomerPaymentsScreenState();
 }
 
-class _CustomerPaymentsScreenState extends State<CustomerPaymentsScreen> {
-  final List<CustomerSubscription> subscriptions = [
-    CustomerSubscription(
-      name: 'محمد أحمد',
-      packageName: 'باقة شهرية',
-      endDate: DateTime(2025, 9, 1),
-      isActive: true,
-    ),
-    CustomerSubscription(
-      name: 'ليلى خالد',
-      packageName: 'باقة سنوية',
-      endDate: DateTime(2025, 12, 31),
-      isActive: true,
-    ),
-    CustomerSubscription(
-      name: 'عبدالله يوسف',
-      packageName: 'باقة تجريبية',
-      endDate: DateTime(2025, 7, 1),
-      isActive: false,
-    ),
-    // أضف المزيد لاختبار الصفحات
-  ];
 
-  String searchQuery = '';
-  int currentPage = 0;
-  final int itemsPerPage = 5;
-  String statusFilter = 'الكل';
-  bool sortAscending = true; // true = تصاعدي، false = تنازلي
-  void _renewSubscription(int index) {
-    final realIndex = filteredSubscriptions.indexOf(paginatedSubscriptions[index]);
-    final subscriptionIndex = subscriptions.indexOf(filteredSubscriptions[realIndex]);
-
-    setState(() {
-      subscriptions[subscriptionIndex] = subscriptions[subscriptionIndex].copyWith(
-        endDate: DateTime.now().add(const Duration(days: 30)),
-        isActive: true,
-      );
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('تم تجديد اشتراك ${subscriptions[subscriptionIndex].name} لمدة 30 يوم.'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  List<CustomerSubscription> get filteredSubscriptions {
-    List<CustomerSubscription> result = subscriptions;
-
-    // بحث بالاسم
-    if (searchQuery.isNotEmpty) {
-      result = result.where((sub) => sub.name.contains(searchQuery)).toList();
-    }
-
-    // فلترة بالحالة
-    if (statusFilter == 'نشط') {
-      result = result.where((sub) => sub.isActive && sub.endDate.isAfter(DateTime.now())).toList();
-    } else if (statusFilter == 'منتهي') {
-      result = result.where((sub) => !sub.isActive || sub.endDate.isBefore(DateTime.now())).toList();
-    }
-
-    // ترتيب حسب تاريخ الانتهاء
-    result.sort((a, b) => sortAscending
-        ? a.endDate.compareTo(b.endDate)
-        : b.endDate.compareTo(a.endDate));
-
-    return result;
-  }
-
-
-
-  List<CustomerSubscription> get paginatedSubscriptions {
-    final startIndex = currentPage * itemsPerPage;
-    final endIndex = startIndex + itemsPerPage;
-    return filteredSubscriptions.sublist(
-      startIndex,
-      endIndex > filteredSubscriptions.length
-          ? filteredSubscriptions.length
-          : endIndex,
-    );
-  }
-
-  void _goToPreviousPage() {
-    if (currentPage > 0) {
-      setState(() => currentPage--);
-    }
-  }
-
-  void _goToNextPage() {
-    final totalPages = (filteredSubscriptions.length / itemsPerPage).ceil();
-    if (currentPage < totalPages - 1) {
-      setState(() => currentPage++);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    var isDark = theme.brightness == Brightness.dark;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                // بحث (يوسع تلقائيًا)
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      labelText:  'ابحث عن عميل' ,
-                      prefixIcon: const Icon(Icons.search),
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        searchQuery = value;
-                        currentPage = 0;
-                      });
-                    },
-                  ),
-                ),
-
-                const SizedBox(width: 16),
-
-                // فلتر الحالة
-                const Text('عرض الحالة: '),
-                const SizedBox(width: 8),
-                DropdownButton<String>(
-                  value: statusFilter,
-                  items: ['الكل', 'نشط', 'منتهي'].map((status) {
-                    return DropdownMenuItem<String>(
-                      value: status,
-                      child: Text(status),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      statusFilter = value!;
-                      currentPage = 0;
-                    });
-                  },
-                ),
-
-                const SizedBox(width: 24),
-
-                // زر الفرز حسب تاريخ الانتهاء
-                const Text('ترتيب حسب تاريخ الانتهاء: '),
-                IconButton(
-                  icon: Icon(sortAscending ? Icons.arrow_upward : Icons.arrow_downward),
-                  onPressed: () {
-                    setState(() {
-                      sortAscending = !sortAscending;
-                      currentPage = 0;
-                    });
-                  },
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // القائمة أو رسالة لا يوجد نتائج
-            Expanded(
-              child: paginatedSubscriptions.isEmpty
-                  ? const Center(child: Text('لا يوجد نتائج'))
-                  : ListView.builder(
-                itemCount: paginatedSubscriptions.length,
-                itemBuilder: (context, index) {
-                  final sub = paginatedSubscriptions[index];
-                  final isExpired = sub.endDate.isBefore(DateTime.now());
-
-                  return Card(
-                    color: isDark?Colors.grey.shade800:Colors.white,
-
-                    margin: const EdgeInsets.only(bottom: 16),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CircleAvatar(
-                            backgroundColor:isDark?Colors.green.shade200:Colors.blue.shade100,
-                            child: Text(sub.name.characters.first),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(sub.name,
-                                    style:   TextStyle(fontWeight: FontWeight.bold,color:isDark?Colors.green.shade200:Colors.blue.shade900)),
-                                const SizedBox(height: 4),
-                                Text(
-                                    '${sub.packageName} - تنتهي في ${DateFormat('yyyy-MM-dd').format(sub.endDate)}',style:TextStyle(color:isDark?Colors.green.shade200:Colors.blue.shade900)),
-                              ],
-                            ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Chip(
-                                label: Text(
-                                  sub.isActive && !isExpired ? 'نشط' : 'منتهي',
-                                  style: TextStyle(
-                                    color: sub.isActive && !isExpired
-                                        ? Colors.green
-                                        : Colors.red,
-                                  ),
-                                ),
-
-                              ),
-                              const SizedBox(height: 8),
-                              ElevatedButton(
-                                onPressed: () => _renewSubscription(index),
-                                child:  Text('تجديد يدوي',style:TextStyle(color:isDark?Colors.green:Colors.blue)),
-                              ),
-                            ],
-                          )
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            // شريط التنقل بين الصفحات
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('صفحة ${currentPage + 1} من ${(filteredSubscriptions.length / itemsPerPage).ceil()}'),
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: _goToPreviousPage,
-                      icon: const Icon(Icons.arrow_back),
-                    ),
-                    IconButton(
-                      onPressed: _goToNextPage,
-                      icon: const Icon(Icons.arrow_forward),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-}
 
 class CustomerSubscription {
   final String name;
@@ -644,45 +398,339 @@ class CustomerSubscription {
   }
 }
 
+class _CustomerPaymentsScreenState extends State<CustomerPaymentsScreen> {
+  final List<CustomerSubscription> subscriptions = [
+    CustomerSubscription(
+      name: 'محمد أحمد',
+      packageName: 'باقة شهرية',
+      endDate: DateTime(2025, 9, 1),
+      isActive: true,
+    ),
+    CustomerSubscription(
+      name: 'ليلى خالد',
+      packageName: 'باقة سنوية',
+      endDate: DateTime(2025, 12, 31),
+      isActive: true,
+    ),
+    CustomerSubscription(
+      name: 'عبدالله يوسف',
+      packageName: 'باقة تجريبية',
+      endDate: DateTime(2025, 7, 1),
+      isActive: false,
+    ),
+    // أضف المزيد لاختبار الصفحات
+  ];
+
+  String searchQuery = '';
+  int currentPage = 0;
+  final int itemsPerPage = 5;
+  String statusFilter = 'الكل';
+  bool sortAscending = true; // true = تصاعدي، false = تنازلي
+
+  void _renewSubscription(int index) {
+    final realIndex = filteredSubscriptions.indexOf(paginatedSubscriptions[index]);
+    final subscriptionIndex = subscriptions.indexOf(filteredSubscriptions[realIndex]);
+
+    setState(() {
+      subscriptions[subscriptionIndex] = subscriptions[subscriptionIndex].copyWith(
+        endDate: DateTime.now().add(const Duration(days: 30)),
+        isActive: true,
+      );
+    });
+
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+    final isArabic = localeProvider.locale.languageCode == 'ar';
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isArabic
+              ? 'تم تجديد اشتراك ${subscriptions[subscriptionIndex].name} لمدة 30 يوم.'
+              : 'Subscription for ${subscriptions[subscriptionIndex].name} renewed for 30 days.',
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  List<CustomerSubscription> get filteredSubscriptions {
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+    final isArabic = localeProvider.locale.languageCode == 'ar';
+
+    List<CustomerSubscription> result = subscriptions;
+
+    // بحث بالاسم
+    if (searchQuery.isNotEmpty) {
+      result = result.where((sub) => sub.name.contains(searchQuery)).toList();
+    }
+
+    // فلترة بالحالة
+    if (statusFilter == (isArabic ? 'نشط' : 'Active')) {
+      result = result.where((sub) => sub.isActive && sub.endDate.isAfter(DateTime.now())).toList();
+    } else if (statusFilter == (isArabic ? 'منتهي' : 'Expired')) {
+      result = result.where((sub) => !sub.isActive || sub.endDate.isBefore(DateTime.now())).toList();
+    }
+
+    // ترتيب حسب تاريخ الانتهاء
+    result.sort((a, b) => sortAscending
+        ? a.endDate.compareTo(b.endDate)
+        : b.endDate.compareTo(a.endDate));
+
+    return result;
+  }
+
+  List<CustomerSubscription> get paginatedSubscriptions {
+    final startIndex = currentPage * itemsPerPage;
+    final endIndex = startIndex + itemsPerPage;
+    return filteredSubscriptions.sublist(
+      startIndex,
+      endIndex > filteredSubscriptions.length
+          ? filteredSubscriptions.length
+          : endIndex,
+    );
+  }
+
+  void _goToPreviousPage() {
+    if (currentPage > 0) {
+      setState(() => currentPage--);
+    }
+  }
+
+  void _goToNextPage() {
+    final totalPages = (filteredSubscriptions.length / itemsPerPage).ceil();
+    if (currentPage < totalPages - 1) {
+      setState(() => currentPage++);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final isArabic = localeProvider.locale.languageCode == 'ar';
+    final theme = Theme.of(context);
+    var isDark = theme.brightness == Brightness.dark;
+
+    // تحضير خيارات الفلتر حسب اللغة
+    final statusOptions = isArabic ? ['الكل', 'نشط', 'منتهي'] : ['All', 'Active', 'Expired'];
+
+    // ضبط statusFilter إذا لم يتطابق مع الخيارات الجديدة (مثلاً بعد تغيير اللغة)
+    if (!statusOptions.contains(statusFilter)) {
+      statusFilter = statusOptions[0];
+    }
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                // بحث (يوسع تلقائيًا)
+                Expanded(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      labelText: isArabic ? 'ابحث عن عميل' : 'Search for client',
+                      prefixIcon: const Icon(Icons.search),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        searchQuery = value;
+                        currentPage = 0;
+                      });
+                    },
+                  ),
+                ),
+
+                const SizedBox(width: 16),
+
+                // فلتر الحالة
+                Text(isArabic ? 'عرض الحالة:' : 'Status:'),
+                const SizedBox(width: 8),
+                DropdownButton<String>(
+                  value: statusFilter,
+                  items: statusOptions.map((status) {
+                    return DropdownMenuItem<String>(
+                      value: status,
+                      child: Text(status),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      statusFilter = value!;
+                      currentPage = 0;
+                    });
+                  },
+                ),
+
+                const SizedBox(width: 24),
+
+                // زر الفرز حسب تاريخ الانتهاء
+                Text(isArabic ? 'ترتيب حسب تاريخ الانتهاء:' : 'Sort by end date:'),
+                IconButton(
+                  icon: Icon(sortAscending ? Icons.arrow_upward : Icons.arrow_downward),
+                  onPressed: () {
+                    setState(() {
+                      sortAscending = !sortAscending;
+                      currentPage = 0;
+                    });
+                  },
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // القائمة أو رسالة لا يوجد نتائج
+            Expanded(
+              child: paginatedSubscriptions.isEmpty
+                  ? Center(child: Text(isArabic ? 'لا يوجد نتائج' : 'No results'))
+                  : ListView.builder(
+                itemCount: paginatedSubscriptions.length,
+                itemBuilder: (context, index) {
+                  final sub = paginatedSubscriptions[index];
+                  final isExpired = sub.endDate.isBefore(DateTime.now());
+
+                  return Card(
+                    color: isDark ? Colors.grey.shade800 : Colors.white,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: isDark ? Colors.green.shade200 : Colors.blue.shade100,
+                            child: Text(sub.name.characters.first),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  sub.name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.green.shade200 : Colors.blue.shade900,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  isArabic
+                                      ? '${sub.packageName} - تنتهي في ${DateFormat('yyyy-MM-dd').format(sub.endDate)}'
+                                      : '${sub.packageName} - Ends on ${DateFormat('yyyy-MM-dd').format(sub.endDate)}',
+                                  style: TextStyle(
+                                    color: isDark ? Colors.green.shade200 : Colors.blue.shade900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Chip(
+                                label: Text(
+                                  sub.isActive && !isExpired ? (isArabic ? 'نشط' : 'Active') : (isArabic ? 'منتهي' : 'Expired'),
+                                  style: TextStyle(
+                                    color: sub.isActive && !isExpired ? Colors.green : Colors.red,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: () => _renewSubscription(index),
+                                child: Text(
+                                  isArabic ? 'تجديد يدوي' : 'Manual Renew',
+                                  style: TextStyle(color: isDark ? Colors.green : Colors.blue),
+                                ),
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // شريط التنقل بين الصفحات
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(isArabic
+                    ? 'صفحة ${currentPage + 1} من ${(filteredSubscriptions.length / itemsPerPage).ceil()}'
+                    : 'Page ${currentPage + 1} of ${(filteredSubscriptions.length / itemsPerPage).ceil()}'),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: _goToPreviousPage,
+                      icon: const Icon(Icons.arrow_back),
+                    ),
+                    IconButton(
+                      onPressed: _goToNextPage,
+                      icon: const Icon(Icons.arrow_forward),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class GatewaysScreen extends StatelessWidget {
   const GatewaysScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final isArabic = localeProvider.locale.languageCode == 'ar';
+
     final theme = Theme.of(context);
     var isDark = theme.brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: ListView(
         children: [
-          const Text('بوابة PayTabs',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            isArabic ? 'بوابة PayTabs' : 'PayTabs Gateway',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 12),
           TextField(
             decoration: InputDecoration(
-              labelText: 'Merchant ID',
-              border: OutlineInputBorder(),
+              labelText: isArabic ? 'معرف التاجر' : 'Merchant ID',
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
           TextField(
             decoration: InputDecoration(
-              labelText: 'Server Key',
-              border: OutlineInputBorder(),
+              labelText: isArabic ? 'مفتاح الخادم' : 'Server Key',
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 24),
           FilledButton.icon(
-
             onPressed: () {},
-            icon:   Icon(Icons.save,color:Colors.white),
-            label:   Text('حفظ الإعدادات',style:TextStyle(color: Colors.white)),
+            icon: const Icon(Icons.save, color: Colors.white),
+            label: Text(
+              isArabic ? 'حفظ الإعدادات' : 'Save Settings',
+              style: const TextStyle(color: Colors.white),
+            ),
             style: FilledButton.styleFrom(
-              backgroundColor:isDark?Colors.green: Colors.blue,
+              backgroundColor: isDark ? Colors.green : Colors.blue,
               foregroundColor: Colors.white, // لون النص والأيقونة
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              textStyle:
+              const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ],

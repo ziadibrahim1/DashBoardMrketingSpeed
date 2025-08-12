@@ -1,916 +1,864 @@
-import 'dart:io';
-
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:uuid/uuid.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
-void main() {
-  runApp(const MaterialApp(home: SupervisorsManagementSimpleScreen()));
-}
+import '../../providers/app_providers.dart';
+import 'SimpleSupervisorDialog.dart';
 
-class Supervisor {
-  String id;
-  String firstName, middleName, lastName, phone, country, city;
-  String bankName, bankAccountNumber;
-  File? profileImageFile;
-  String? profileImageUrl; // للمشرفين فقط رابط - ممكن تغيرها لملف إذا حبيت
+enum UserStatus { active, frozen }
 
-  String email, password;
+abstract class User {
+  String firstName;
+  String lastName;
+  String country;
+  String city;
+  String bank;
+  String accountNumber;
+  String phone;
+  String email;
+  String password;
+  UserStatus status;
 
-  List<Marketer> marketers = [];
-
-  Supervisor({
-    required this.id,
+  User({
     required this.firstName,
-    required this.middleName,
     required this.lastName,
-    required this.phone,
     required this.country,
     required this.city,
-    required this.bankName,
-    required this.bankAccountNumber,
-    this.profileImageFile,
-    this.profileImageUrl,
+    required this.bank,
+    required this.accountNumber,
+    required this.phone,
     required this.email,
     required this.password,
+    this.status = UserStatus.active,
   });
-
-  String get fullName => '$firstName $middleName $lastName';
 }
 
-class Marketer {
-  String id;
-  String firstName, middleName, lastName, phone, country, city;
-  String bankName, bankAccountNumber;
-  File? profileImageFile; // الصورة الشخصية ملف من الجهاز
-  String? profileImageUrl; // للاحتياط لو حبيت رابط
+class Supervisor extends User {
+  List<Marketer> marketers;
+  double totalDueAmount;
+  double pointPrice;
+  Supervisor({
+    required String firstName,
+    required String lastName,
+    required String country,
+    required String city,
+    required String bank,
+    required String accountNumber,
+    required String phone,
+    required String email,
+    required String password,
+    this.marketers = const [],
+    UserStatus status = UserStatus.active,
+    this.totalDueAmount = 0,
+    this.pointPrice = 0,
+  }) : super(
+    firstName: firstName,
+    lastName: lastName,
+    country: country,
+    city: city,
+    bank: bank,
+    accountNumber: accountNumber,
+    phone: phone,
+    email: email,
+    password: password,
+    status: status,
+  );
+}
 
-  String promoCode;
-  DateTime promoCodeCreatedAt;
-  DateTime promoCodeExpiresAt;
-  DateTime createdAt;
-
+class Marketer extends User {
   int points;
-  String supervisorId;
-  bool isFrozen;
-  double salary;
+  double pointPrice;
+  String discountCode;
+  String reviewLink;
+  double totalDueAmount;
 
   Marketer({
-    required this.id,
-    required this.firstName,
-    required this.middleName,
-    required this.lastName,
-    required this.phone,
-    required this.country,
-    required this.city,
-    required this.bankName,
-    required this.bankAccountNumber,
-    this.profileImageFile,
-    this.profileImageUrl,
-    required this.promoCode,
-    required this.promoCodeCreatedAt,
-    required this.promoCodeExpiresAt,
-    required this.createdAt,
-    required this.points,
-    required this.supervisorId,
-    this.isFrozen = false,
-  }) : salary = points * 0.15;
-
-  String get fullName => '$firstName $middleName $lastName';
-
-  void regeneratePromoCode() {
-    promoCode = const Uuid().v4().substring(0, 8).toUpperCase();
-    promoCodeCreatedAt = DateTime.now();
-    promoCodeExpiresAt = DateTime.now().add(const Duration(days: 30));
-  }
-
-  void cashOutSalary() {
-    points = 0;
-    salary = 0;
-  }
+    required String firstName,
+    required String lastName,
+    required String country,
+    required String city,
+    required String bank,
+    required String accountNumber,
+    required String phone,
+    required String email,
+    required String password,
+    this.points = 0,
+    this.pointPrice = 0,
+    this.discountCode = '',
+    required this.reviewLink,
+    this.totalDueAmount = 0,
+    UserStatus status = UserStatus.active,
+  }) : super(
+    firstName: firstName,
+    lastName: lastName,
+    country: country,
+    city: city,
+    bank: bank,
+    accountNumber: accountNumber,
+    phone: phone,
+    email: email,
+    password: password,
+    status: status,
+  );
 }
 
-class SupervisorsManagementSimpleScreen extends StatefulWidget {
-  const SupervisorsManagementSimpleScreen({super.key});
+
+// --- الشاشة الرئيسية ---
+class SupervisorsMarketersPage extends StatefulWidget {
+  const SupervisorsMarketersPage({Key? key}) : super(key: key);
 
   @override
-  State<SupervisorsManagementSimpleScreen> createState() =>
-      _SupervisorsManagementSimpleScreenState();
+  State<SupervisorsMarketersPage> createState() =>
+      _SupervisorsMarketersPageState();
 }
 
-class _SupervisorsManagementSimpleScreenState
-    extends State<SupervisorsManagementSimpleScreen> {
-  final List<Supervisor> supervisors = [];
+class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
+  List<Supervisor> supervisors = [];
   Supervisor? selectedSupervisor;
+  User? selectedUser; // مشرف أو مسوق
+  bool showEditPanel = false;
+  User? editingUser;
+  bool isEditingSupervisor = false;
+  bool isAdding = false;
 
-  final ImagePicker _picker = ImagePicker();
+  late bool isArabic;
+  late bool isDark;
 
   @override
   void initState() {
     super.initState();
-
-    // بيانات تجريبية
-    final sup1 = Supervisor(
-      id: const Uuid().v4(),
-      firstName: 'محمد',
-      middleName: 'علي',
-      lastName: 'الزهراني',
-      phone: '0501234567',
-      country: 'السعودية',
-      city: 'الرياض',
-      bankName: 'الأهلي',
-      bankAccountNumber: '1234567890',
-      email: 'm.alzahrani@example.com',
-      password: 'password123',
-    );
-
-    final marketer1 = Marketer(
-      id: const Uuid().v4(),
-      firstName: 'علي',
-      middleName: 'خالد',
-      lastName: 'الحربي',
-      phone: '0555555555',
-      country: 'السعودية',
-      city: 'الدمام',
-      bankName: 'الراجحي',
-      bankAccountNumber: '1122334455',
-      promoCode: 'PROMO123',
-      promoCodeCreatedAt: DateTime.now().subtract(const Duration(days: 10)),
-      promoCodeExpiresAt: DateTime.now().add(const Duration(days: 20)),
-      createdAt: DateTime.now().subtract(const Duration(days: 100)),
-      points: 150,
-      supervisorId: sup1.id,
-      isFrozen: false,
-    );
-
-    sup1.marketers.add(marketer1);
-
-    supervisors.add(sup1);
-
-    selectedSupervisor = supervisors.first;
-  }
-
-  void addSupervisor(Supervisor sup) {
-    setState(() {
-      supervisors.add(sup);
-    });
-  }
-
-  void updateSupervisor(Supervisor updated) {
-    final idx = supervisors.indexWhere((s) => s.id == updated.id);
-    if (idx != -1) {
-      setState(() {
-        supervisors[idx] = updated;
-        if (selectedSupervisor?.id == updated.id) selectedSupervisor = updated;
-      });
-    }
-  }
-
-  void addMarketer(Marketer marketer) {
-    final sup = supervisors.firstWhere((s) => s.id == marketer.supervisorId);
-    setState(() {
-      sup.marketers.add(marketer);
-    });
-  }
-
-  void updateMarketer(Marketer updated) {
-    final sup = supervisors.firstWhere((s) => s.id == updated.supervisorId);
-    final idx = sup.marketers.indexWhere((m) => m.id == updated.id);
-    if (idx != -1) {
-      setState(() {
-        sup.marketers[idx] = updated;
-      });
-    }
-  }
-
-  void freezeMarketer(Marketer m, Duration duration) {
-    setState(() {
-      m.isFrozen = true;
-      m.regeneratePromoCode();
-      m.promoCodeExpiresAt = DateTime.now().add(duration);
-    });
-  }
-
-  void unfreezeMarketer(Marketer m) {
-    setState(() {
-      m.isFrozen = false;
-      m.promoCodeExpiresAt = DateTime.now().add(const Duration(days: 30));
-    });
-  }
-
-  Future<void> _pickImageForSupervisor() async {
-    if (selectedSupervisor == null) return;
-    final picked =
-    await _picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
-    if (picked != null) {
-      setState(() {
-        selectedSupervisor!.profileImageFile = File(picked.path);
-        selectedSupervisor!.profileImageUrl = null;
-      });
-    }
-  }
-
-  Future<File?> _pickImageForMarketer(Marketer marketer) async {
-    final picked =
-    await _picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
-    if (picked != null) {
-      return File(picked.path);
-    }
-    return null;
-  }
-
-  void _showSupervisorDialog({Supervisor? supervisor}) {
-    showDialog(
-      context: context,
-      builder: (context) => SimpleSupervisorDialog(
-        supervisor: supervisor,
-        onSave: (sup) {
-          if (supervisor == null) {
-            addSupervisor(sup);
-          } else {
-            updateSupervisor(sup);
-          }
-          Navigator.pop(context);
-        },
-        pickImage: _pickImageForSupervisor,
-      ),
-    );
-  }
-
-  void _showMarketerDialog({Marketer? marketer}) {
-    if (selectedSupervisor == null) return;
-    showDialog(
-      context: context,
-      builder: (context) => SimpleMarketerDialog(
-        marketer: marketer,
-        supervisorId: selectedSupervisor!.id,
-        onSave: (marketerData) {
-          if (marketer == null) {
-            addMarketer(marketerData);
-          } else {
-            updateMarketer(marketerData);
-          }
-          Navigator.pop(context);
-        },
-        pickImage: () => _pickImageForMarketer(marketer!),
-      ),
-    );
-  }
-
-  void _showFreezeDialog(Marketer marketer) {
-    Duration selected = const Duration(days: 30);
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text('اختر مدة التجميد'),
-          content: StatefulBuilder(builder: (ctx, setState) {
-            return DropdownButton<Duration>(
-              value: selected,
-              items: const [
-                DropdownMenuItem(value: Duration(days: 7), child: Text('7 أيام')),
-                DropdownMenuItem(value: Duration(days: 30), child: Text('30 يوم')),
-                DropdownMenuItem(value: Duration(days: 90), child: Text('90 يوم')),
-              ],
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() {
-                    selected = val;
-                  });
-                }
-              },
-            );
-          }),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-            ElevatedButton(
-              onPressed: () {
-                freezeMarketer(marketer, selected);
-                Navigator.pop(ctx);
-              },
-              child: const Text('تجميد'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final sup = selectedSupervisor;
-    final marketers = sup?.marketers ?? [];
-
-    final frozen = marketers.where((m) => m.isFrozen).toList();
-    final active = marketers.where((m) => !m.isFrozen).toList();
-
-    final totalPoints = marketers.fold<int>(0, (sum, m) => sum + m.points);
-    final totalSalary = marketers.fold<double>(0, (sum, m) => sum + m.salary);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('إدارة المشرفين والمسوقين'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_add),
-            tooltip: 'إضافة مشرف',
-            onPressed: () => _showSupervisorDialog(),
+    supervisors = [
+      Supervisor(
+        firstName: 'أحمد',
+        lastName: 'الناصر',
+        country: 'السعودية',
+        city: 'الرياض',
+        bank: 'الراجحي',
+        accountNumber: '123456789',
+        phone: '0501234567',
+        email: 'ahmed@example.com',
+        totalDueAmount: 30,
+        password: '123456789',
+        marketers: [
+          Marketer(
+            firstName: 'محمد',
+            lastName: 'سعيد',
+            country: 'السعودية',
+            city: 'جدة',
+            bank: 'الرياض',
+            accountNumber: '987654321',
+            phone: '0559876543',
+            email: 'mohamed@example.com',
+            points: 120,
+            pointPrice: 0.5,
+            discountCode: 'DISC2025',
+            reviewLink: 'http://review.link/abcd1234',
+            totalDueAmount: 60,
+            password: '123456789',
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(10),
-        child: SizedBox(
-          height: MediaQuery.of(context).size.height * 1.3,
-          child: Column(children: [
-            Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding:
-                const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _simpleStat('المشرفين', supervisors.length.toString(),
-                          Icons.supervisor_account),
-                      _simpleStat('المسوقين', marketers.length.toString(),
-                          Icons.group),
-                      _simpleStat('المجمدين', frozen.length.toString(),
-                          Icons.lock_outline),
-                      _simpleStat('النقاط', totalPoints.toString(),
-                          Icons.star_outline),
-                      _simpleStat('الرواتب', totalSalary.toStringAsFixed(1) + ' ر.س',
-                          Icons.attach_money_outlined),
-                    ]),
-              ),
+    ];
+  }
+
+  String tr(String ar, String en) => isArabic ? ar : en;
+
+  void selectSupervisor(Supervisor sup) {
+    setState(() {
+      selectedSupervisor = sup;
+      selectedUser = sup;
+      editingUser = null;
+      showEditPanel = false;
+    });
+  }
+
+  void selectMarketer(Marketer marketer) {
+    setState(() {
+      selectedUser = marketer;
+      editingUser = null;
+      showEditPanel = false;
+    });
+  }
+
+  void openAddEdit({User? user, required bool supervisor}) {
+    setState(() {
+      editingUser = user;
+      isEditingSupervisor = supervisor;
+      isAdding = user == null;
+      showEditPanel = true;
+    });
+  }
+
+  void closeAddEdit() {
+    setState(() {
+      editingUser = null;
+      showEditPanel = false;
+    });
+  }
+
+  void onSaveUser(User newUser) {
+    setState(() {
+      if (isAdding) {
+        if (isEditingSupervisor) {
+          supervisors.add(newUser as Supervisor);
+          selectedSupervisor = newUser;
+          selectedUser = newUser;
+        } else {
+          selectedSupervisor?.marketers.add(newUser as Marketer);
+          selectedUser = newUser;
+        }
+      } else {
+        if (editingUser is Supervisor && newUser is Supervisor) {
+          int index = supervisors.indexOf(editingUser as Supervisor);
+          supervisors[index] = newUser;
+          selectedSupervisor = newUser;
+          selectedUser = newUser;
+        } else if (editingUser is Marketer && newUser is Marketer) {
+          int index = selectedSupervisor!.marketers.indexOf(editingUser as Marketer);
+          selectedSupervisor!.marketers[index] = newUser;
+          selectedUser = newUser;
+        }
+      }
+      editingUser = null;
+      showEditPanel = false;
+    });
+  }
+
+  String generateReviewLink() {
+    final random = Random();
+    final randomStr =
+    List.generate(8, (_) => random.nextInt(36).toRadixString(36)).join();
+    return 'http://review.link/$randomStr';
+  }
+  void showSupervisorOptions(Supervisor sup) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: Text(tr('تعديل', 'Edit')),
+              onTap: () {
+                Navigator.pop(context);
+                openAddEdit(user: sup, supervisor: true);
+              },
             ),
-            const SizedBox(height: 10),
-            DropdownButton<Supervisor>(
-              isExpanded: true,
-              value: sup,
-              items: supervisors
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e.fullName)))
-                  .toList(),
-              onChanged: (val) {
+            ListTile(
+              leading: const Icon(Icons.delete),
+              title: Text(tr('حذف', 'Delete')),
+              onTap: () {
+                Navigator.pop(context);
+                showDeleteConfirmation(sup,isDark);
+              },
+            ),
+            ListTile(
+              leading: Icon(sup.status == UserStatus.active ? Icons.pause : Icons.play_arrow),
+              title: Text(sup.status == UserStatus.active ? tr('تجميد', 'Freeze') : tr('تفعيل', 'Activate')),
+              onTap: () {
+                Navigator.pop(context);
                 setState(() {
-                  selectedSupervisor = val;
+                  sup.status = sup.status == UserStatus.active ? UserStatus.frozen : UserStatus.active;
                 });
               },
             ),
-            if (sup != null) ...[
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(children: [
-                    CircleAvatar(
-                      radius: 25,
-                      backgroundImage: sup.profileImageFile != null
-                          ? FileImage(sup.profileImageFile!)
-                          : sup.profileImageUrl != null
-                          ? NetworkImage(sup.profileImageUrl!) as ImageProvider
-                          : null,
-                      child: sup.profileImageFile == null &&
-                          sup.profileImageUrl == null
-                          ? const Icon(Icons.person, size: 30)
-                          : null,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      sup.fullName,
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                  ]),
-                  IconButton(
-                    icon: const Icon(Icons.edit),
-                    tooltip: 'تعديل بيانات المشرف',
-                    onPressed: () => _showSupervisorDialog(supervisor: sup),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.image),
-                    tooltip: 'تغيير الصورة الشخصية',
-                    onPressed: _pickImageForSupervisor,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.person_add_alt_1),
-                label: const Text('إضافة مسوق'),
-                onPressed: () => _showMarketerDialog(),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(40),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 500,
-                child: ListView(
-                  children: [
-                    if (frozen.isNotEmpty)
-                      _buildMarketerSection('المسوقين المجمدين', frozen),
-                    if (active.isNotEmpty)
-                      _buildMarketerSection('المسوقين النشطين', active),
-                    if (marketers.isEmpty)
-                      const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text('لا يوجد مسوقين لهذا المشرف'),
-                          )),
-                  ],
-                ),
-              ),
-            ]
-          ]),
+          ],
         ),
       ),
     );
   }
 
-  Widget _simpleStat(String title, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, size: 30, color: Colors.blueAccent),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+  void showMarketerOptions(Marketer marketer) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: Text(tr('تعديل', 'Edit')),
+              onTap: () {
+                Navigator.pop(context);
+                openAddEdit(user: marketer, supervisor: false);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete),
+              title: Text(tr('حذف', 'Delete')),
+              onTap: () {
+                Navigator.pop(context);
+                showDeleteConfirmation(marketer,isDark);
+              },
+            ),
+            ListTile(
+              leading: Icon(marketer.status == UserStatus.active ? Icons.pause : Icons.play_arrow),
+              title: Text(marketer.status == UserStatus.active ? tr('تجميد', 'Freeze') : tr('تفعيل', 'Activate')),
+              onTap: () {
+                Navigator.pop(context);
+                setState(() {
+                  marketer.status = marketer.status == UserStatus.active ? UserStatus.frozen : UserStatus.active;
+                });
+              },
+            ),
+          ],
         ),
-        Text(title),
-      ],
+      ),
     );
   }
 
-  Widget _buildMarketerSection(String title, List<Marketer> marketers) {
+  String getSupervisorStats(Supervisor sup) {
+    int totalPoints = sup.marketers.fold(0, (p, m) => p + m.points);
+    double totalDue = sup.marketers.fold(0.0, (p, m) => p + m.totalDueAmount);
+    return '${tr('عدد المسوقين', 'Marketers')}: ${sup.marketers.length} - '
+        '${tr('إجمالي النقاط', 'Total Points')}: $totalPoints - '
+        '${tr('إجمالي المستحق', 'Total Due')}: ${totalDue.toStringAsFixed(2)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    isArabic = localeProvider.locale.languageCode == 'ar';
+    isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+
+        body: Row(
+          children: [
+          Expanded(
+          flex: 2,
+          child:
+            Column(children : [
+              Row(children: [
+                const SizedBox(width: 25,),
+                Text(tr('المشرفين', 'Supervisors'),style:TextStyle(color:isDark?Color(0xFFD7EFDC):Colors.blue[900],fontWeight:FontWeight.bold,fontSize:25 )),
+                const SizedBox(width: 25,),
+                Card(child:  IconButton(
+                  tooltip: tr('إضافة مشرف', 'Add Supervisor'),
+                  icon:   Icon(Icons.person_add,color:isDark?Color(0xFFD7EFDC):Colors.blue[900]),
+                  onPressed: () => openAddEdit(user: null, supervisor: true),
+                )),
+                ]
+              ),
+              Flexible(
+              flex: 2,
+
+              child: ListView(
+
+                children: supervisors
+                    .map(
+                      (sup) => Card(
+                        
+                    color: sup == selectedSupervisor
+                        ? (isDark
+                        ? Colors.green[300]?.withOpacity(.6)
+                        : Colors.blue[900]?.withOpacity(.8))
+                        :(isDark
+                        ? Colors.green.withOpacity(.2)
+                        : Colors.blue[600]?.withOpacity(.3)),
+                    child: ListTile(
+                      title: Text('${sup.firstName} ${sup.lastName}',style:TextStyle(fontSize: 18,fontWeight: FontWeight.bold,color:Colors.white)),
+                      subtitle: Text(
+                        '${sup.country} - ${sup.city}\n${getSupervisorStats(sup)}'
+                          ,style:TextStyle(color:Colors.white)),
+                      isThreeLine: true,
+                      trailing: sup.status == UserStatus.active
+                          ? null
+                          : const Icon(Icons.pause_circle_filled,
+                          color: Colors.red),
+                      onTap: () => selectSupervisor(sup),
+                      onLongPress: () => showSupervisorOptions(sup),
+                    ),
+                  ),
+                )
+                    .toList(),
+              ),
+            ),]
+            ),
+            ),
+            const VerticalDivider(width: 12),
+
+            // عمود المسوقين + التفاصيل أو شاشة التعديل
+            Expanded(
+              flex: 5,
+              child: showEditPanel
+                  ? AddEditUserWidget(
+                user: editingUser,
+                isSupervisor: isEditingSupervisor,
+                isArabic: isArabic,
+                onCancel: closeAddEdit,
+                onSave: onSaveUser,
+                generateReviewLink: generateReviewLink,
+              )
+                  : selectedUser == null
+                  ? Center(
+                child: Text(
+                    tr('يرجى اختيار مشرف أو مسوق', 'Please select a supervisor or marketer')),
+              )
+                  : selectedUser is Supervisor
+                  ? buildSupervisorDetails(selectedUser as Supervisor)
+                  : buildMarketerDetails(selectedUser as Marketer),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildSupervisorDetails(Supervisor sup) {
+    final textColor = isDark ? Color(0xFFD7EFDC) : Colors.blue[900];
+    final gradient = LinearGradient(
+      colors:isDark?[
+        Colors.green.shade700.withOpacity(.3),
+        Colors.green.shade500.withOpacity(.3),
+        Color(0xFFB3A664).withOpacity(.3),
+        Colors.green.shade600.withOpacity(.3),
+        ?Colors.green[900]?.withOpacity(.3),
+      ] :
+      [?Colors.green[200]?.withOpacity(.3), ?Colors.blue[700]?.withOpacity(.3)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+    final gradient2 = LinearGradient(
+      colors:isDark?[
+        Colors.green.shade700.withOpacity(.3),
+        Colors.green.shade500.withOpacity(.3),
+        Color(0xFFB3A664).withOpacity(.3),
+        Colors.green.shade600.withOpacity(.3),
+        ?Colors.green[900]?.withOpacity(.3),
+      ] :
+      [ ?Colors.blue[700]?.withOpacity(.3),?Colors.green[200]?.withOpacity(.3)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const Divider(thickness: 1),
-        ...marketers.map((m) => _buildMarketerTile(m)).toList(),
-        const SizedBox(height: 12),
+        Card(
+          margin: const EdgeInsets.all(12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          elevation: 8,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tr('تفاصيل المشرف', 'Supervisor Details'),
+                  style:   TextStyle(fontSize: 22, fontWeight: FontWeight.bold,color:isDark?Color(0xFFD7EFDC):Colors.blue[900]),
+                ),
+                const SizedBox(height: 16),
+                buildDetailRow(tr('الاسم الأول', 'First Name'), sup.firstName , textColor!),
+                buildDetailRow(tr('الاسم الأخير', 'Last Name'), sup.lastName, textColor),
+                buildDetailRow(tr('الدولة', 'Country'), sup.country, textColor),
+                buildDetailRow(tr('المدينة', 'City'), sup.city, textColor),
+                buildDetailRow(tr('البنك', 'Bank'), sup.bank, textColor),
+                buildDetailRow(tr('رقم الحساب', 'Account Number'), sup.accountNumber, textColor),
+                buildDetailRow(tr('رقم الهاتف', 'Phone'), sup.phone, textColor),
+                buildDetailRow(tr('البريد الإلكتروني', 'Email'), sup.email, textColor),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(backgroundColor: isDark?Colors.green[800]:Colors.blue),
+                      icon: const Icon(Icons.edit,color:Colors.white),
+                      label: Text(tr('تعديل', 'Edit'),style:TextStyle(color:Colors.white)),
+                      onPressed: () => openAddEdit(user: sup, supervisor: true),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      icon: const Icon(Icons.delete, color:Colors.white ),
+                      label: Text(tr('حذف', 'Delete'),style:TextStyle(color:Colors.white)),
+                      onPressed: () => showDeleteConfirmation(sup,isDark),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                          sup.status == UserStatus.active ? Colors.orange : Colors.green),
+                      icon: Icon(sup.status == UserStatus.active ? Icons.pause : Icons.play_arrow,color:Colors.white),
+                      label: Text(sup.status == UserStatus.active ? tr('تجميد', 'Freeze') : tr('تفعيل', 'Activate'),style:TextStyle(color:Colors.white)),
+                      onPressed: () {
+                        setState(() {
+                          sup.status = sup.status == UserStatus.active
+                              ? UserStatus.frozen
+                              : UserStatus.active;
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor:isDark?Colors.green[700]: Colors.blue),
+                      onPressed:  () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(tr('تم صرف المبلغ', 'Amount paid'))),
+                        );
+                        setState(() {
+
+                        });
+                      }
+                         ,
+                      child: Text(tr('صرف المبلغ المستحق', 'Pay Due Amount'),style:TextStyle(color:Colors.white)),
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child:
+                Row( children: [
+                  SizedBox(width: 20,),
+                  Text(
+                  tr('المسوقين التابعين', 'Marketers under Supervisor'),
+                  style:  TextStyle(fontSize: 20, fontWeight: FontWeight.bold,color:isDark?Color(0xFFD7EFDC):Colors.blue[900]),
+                ),
+                  SizedBox(width: 20,),
+                  Card(child: IconButton(
+                    tooltip: tr('إضافة مسوق', 'Add Marketer'),
+                    icon:   Icon(Icons.person_add,color:isDark?Color(0xFFD7EFDC):Colors.blue[900]),
+                    onPressed: () => openAddEdit(user: null, supervisor: false),
+                  ) ,),
+                ] ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: sup.marketers.length,
+                  itemBuilder: (context, index) {
+                    final marketer = sup.marketers[index];
+                    return Card(
+                        margin: const EdgeInsets.all(12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        elevation: 8,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            gradient: gradient2,
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                      child: ListTile(
+                        title: Text('${marketer.firstName} ${marketer.lastName}',style:TextStyle(fontSize: 22,fontWeight: FontWeight.bold,color:isDark?Colors.white:Colors.blue[900])),
+                        subtitle: Text('${marketer.country} - ${marketer.city}',style:TextStyle(color:isDark?Colors.white:Colors.blue[900])),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: tr('نسخ اللينك', 'Copy Link'),
+                              icon: const Icon(Icons.copy, color: Colors.white),
+                              onPressed: () {
+                                Clipboard.setData(ClipboardData(text: marketer.reviewLink));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(tr('تم نسخ اللينك', 'Link copied'))),
+                                );
+                              },
+                            ),
+                            IconButton(
+                              tooltip: tr('تجديد اللينك', 'Renew Link'),
+                              icon: const Icon(Icons.refresh, color: Colors.white),
+                              onPressed: () {
+                                setState(() {
+                                  marketer.reviewLink = generateReviewLink();
+                                  selectedUser = marketer;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(tr('تم تجديد اللينك', 'Link renewed'))),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        onTap: () => selectMarketer(marketer),
+                        onLongPress: () => showMarketerOptions(marketer),
+                      ),
+                    )
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildMarketerTile(Marketer m) {
-    final expired = DateTime.now().isAfter(m.promoCodeExpiresAt);
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        leading: CircleAvatar(
-          backgroundImage: m.profileImageFile != null
-              ? FileImage(m.profileImageFile!)
-              : m.profileImageUrl != null
-              ? NetworkImage(m.profileImageUrl!) as ImageProvider
-              : null,
-          child: m.profileImageFile == null && m.profileImageUrl == null
-              ? const Icon(Icons.person, size: 24)
-              : null,
-        ),
-        title: Row(
-          children: [
-            Expanded(
-                child: Text(m.fullName,
-                    style: const TextStyle(fontWeight: FontWeight.bold))),
-            if (m.isFrozen)
-              Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                    color: Colors.red.shade300,
-                    borderRadius: BorderRadius.circular(12)),
-                child: const Text('مجمّد',
-                    style: TextStyle(color: Colors.white, fontSize: 12)),
-              ),
-            IconButton(
-                icon: const Icon(Icons.edit, size: 20),
-                tooltip: 'تعديل',
-                onPressed: () => _showMarketerDialog(marketer: m)),
-          ],
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Column(children: [
-              _simpleInfoRow('الهاتف', m.phone),
-              _simpleInfoRow('الدولة', m.country),
-              _simpleInfoRow('المدينة', m.city),
-              _simpleInfoRow('البنك', m.bankName),
-              _simpleInfoRow('رقم الحساب', m.bankAccountNumber),
-              const Divider(),
-              _simpleInfoRow('الكود الترويجي', m.promoCode,
-                  valueColor: expired ? Colors.red : Colors.black),
-              _simpleInfoRow(
-                  'تاريخ إنشاء الكود',
-                  '${m.promoCodeCreatedAt.year}-${m.promoCodeCreatedAt.month.toString().padLeft(2, '0')}-${m.promoCodeCreatedAt.day.toString().padLeft(2, '0')}'),
-              _simpleInfoRow(
-                  'تاريخ انتهاء الكود',
-                  '${m.promoCodeExpiresAt.year}-${m.promoCodeExpiresAt.month.toString().padLeft(2, '0')}-${m.promoCodeExpiresAt.day.toString().padLeft(2, '0')}',
-                  valueColor: expired ? Colors.red : null),
-              _simpleInfoRow(
-                  'تاريخ الإنشاء',
-                  '${m.createdAt.year}-${m.createdAt.month.toString().padLeft(2, '0')}-${m.createdAt.day.toString().padLeft(2, '0')}'),
-              _simpleInfoRow('نقاط الترويج', m.points.toString()),
-              _simpleInfoRow('الراتب', '${m.salary.toStringAsFixed(2)} ر.س',
-                  valueColor: Colors.green.shade700),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: m.isFrozen
-                        ? null
-                        : () {
-                      setState(() {
-                        m.regeneratePromoCode();
-                      });
-                    },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('كود جديد'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(100, 36),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: m.points > 0
-                        ? () {
-                      setState(() {
-                        m.cashOutSalary();
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content: Text(
-                                'تم صرف الراتب للمسوق ${m.fullName}')),
-                      );
-                    }
-                        : null,
-                    icon: const Icon(Icons.money_off),
-                    label: const Text('صرف الراتب'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(100, 36),
-                      backgroundColor: Colors.green,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  if (!m.isFrozen)
-                    ElevatedButton.icon(
-                      onPressed: () => _showFreezeDialog(m),
-                      icon: const Icon(Icons.lock),
-                      label: const Text('تجميد'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                      ),
-                    )
-                  else
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          unfreezeMarketer(m);
-                        });
-                      },
-                      icon: const Icon(Icons.lock_open),
-                      label: const Text('فك التجميد'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueGrey,
-                      ),
-                    ),
-                ],
-              )
-            ]),
-          )
-        ],
-      ),
-    );
-  }
+  Widget buildMarketerDetails(Marketer marketer) {
+    final textColor = isDark ? Color(0xFFD7EFDC) : Colors.blue[900];
 
-  Widget _simpleInfoRow(String label, String value,
-      {Color? valueColor = Colors.black}) {
+    final gradient = LinearGradient(
+      colors:isDark?[
+        Colors.green.shade700.withOpacity(.3),
+        Colors.green.shade500.withOpacity(.3),
+        Color(0xFFB3A664).withOpacity(.3),
+        Colors.green.shade600.withOpacity(.3),
+        ?Colors.green[900]?.withOpacity(.3),
+      ] :
+      [?Colors.green[200]?.withOpacity(.3), ?Colors.blue[700]?.withOpacity(.3)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+    return SingleChildScrollView(
+        child: Card(
+          margin: const EdgeInsets.all(12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          elevation: 8,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                Text(
+                tr('تفاصيل المسوق', 'Marketer Details'),
+            style:   TextStyle(fontSize: 22, fontWeight: FontWeight.bold,color:isDark?Color(0xFFD7EFDC):Colors.blue[900]),
+          ),
+          const SizedBox(height: 16),
+          buildDetailRow(tr('الاسم الأول', 'First Name'), marketer.firstName, textColor!),
+          buildDetailRow(tr('الاسم الأخير', 'Last Name'), marketer.lastName, textColor),
+          buildDetailRow(tr('الدولة', 'Country'), marketer.country, textColor),
+          buildDetailRow(tr('المدينة', 'City'), marketer.city, textColor),
+          buildDetailRow(tr('البنك', 'Bank'), marketer.bank, textColor),
+          buildDetailRow(tr('رقم الحساب', 'Account Number'), marketer.accountNumber, textColor),
+          buildDetailRow(tr('رقم الهاتف', 'Phone'), marketer.phone, textColor),
+          buildDetailRow(tr('البريد الإلكتروني', 'Email'), marketer.email, textColor),
+          const Divider(height: 30),
+          buildDetailRow(tr('النقاط المجمعه', 'Points Collected'), marketer.points.toString(), textColor),
+          buildDetailRow(tr('سعر النقاط', 'Point Price'), marketer.pointPrice.toStringAsFixed(2), textColor),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          '${tr('كود الخصم', 'Discount Code')}: ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 4,
+                        child: Text(
+                          marketer.discountCode,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: tr('نسخ الكود', 'Copy Code'),
+                        icon: const Icon(Icons.copy, color: Colors.blue),
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: marketer.discountCode));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(tr('تم نسخ الكود', 'Code copied'),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),)),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  '${tr('لينك المراجعه', 'Review Link')}: ',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 4,
+                child: Text(
+                  marketer.reviewLink,
+                  style: TextStyle(
+                    color: Colors.blue.shade700,
+                    decoration: TextDecoration.underline,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                tooltip: tr('نسخ اللينك', 'Copy Link'),
+                icon: const Icon(Icons.copy, color: Colors.blue),
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: marketer.reviewLink));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(tr('تم نسخ اللينك', 'Link copied'),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),)),
+                  );
+                },
+              ),
+              IconButton(
+                tooltip: tr('تجديد اللينك', 'Renew Link'),
+                icon: const Icon(Icons.refresh, color: Colors.green),
+                onPressed: () {
+                  setState(() {
+                    marketer.reviewLink = generateReviewLink();
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(tr('تم تجديد اللينك', 'Link renewed'),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),)),
+                  );
+                },
+              ),
+            ],
+          ),
+          buildDetailRow(tr('اجمالي المبلغ المستحق', 'Total Due Amount'),
+              marketer.totalDueAmount.toStringAsFixed(2), textColor),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor:isDark?Colors.green[700]: Colors.blue),
+            onPressed: marketer.totalDueAmount > 0
+                ? () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(tr('تم صرف المبلغ', 'Amount paid'))),
+              );
+              setState(() {
+                marketer.totalDueAmount = 0;
+              });
+            }
+                : null,
+            child: Text(tr('صرف المبلغ المستحق', 'Pay Due Amount'),style:TextStyle(color:Colors.white)),
+          ),
+          const SizedBox(height: 16),
+          Row(
+              children: [
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(backgroundColor:isDark?Colors.green[700]: Colors.blue),
+          icon: const Icon(Icons.edit,color:Colors.white),
+          label: Text(tr('تعديل', 'Edit'),style:TextStyle(color:Colors.white)),
+          onPressed: () => openAddEdit(user: marketer, supervisor: false),
+        ),
+        const SizedBox(width: 12),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          icon: const Icon(Icons.delete,color:Colors.white),
+          label: Text(tr('حذف', 'Delete'),style:TextStyle(color:Colors.white)),
+          onPressed: () => showDeleteConfirmation(marketer,isDark),
+        ),
+        const SizedBox(width: 12),
+        ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+                backgroundColor:
+                marketer.status == UserStatus.active ? Colors.orange : Colors.green),
+            icon: Icon(marketer.status == UserStatus.active ? Icons.pause : Icons.play_arrow,color:Colors.white),
+            label: Text(
+                marketer.status == UserStatus.active ? tr('تجميد', 'Freeze') : tr('تفعيل', 'Activate'),style:TextStyle(color:Colors.white)),
+            onPressed: () {
+              setState(() {
+                marketer.status = marketer.status == UserStatus.active
+                    ? UserStatus.frozen
+                    : UserStatus.active;
+              });
+            },
+        ),
+              ],
+          ),
+                ],
+            ),
+          ),
+        )
+        );
+    }
+
+  Widget buildDetailRow(String label, String value, Color textColor) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500))),
           Expanded(
             flex: 2,
             child: Text(
-              value,
+              label,
               style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: valueColor,
-                  fontSize: 14),
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: Text(
+              value,
+              style: TextStyle(color: textColor),
             ),
           ),
         ],
       ),
     );
   }
-}
 
-// حوار إضافة وتعديل مشرف مع إمكانية اختيار صورة من الجهاز
-class SimpleSupervisorDialog extends StatefulWidget {
-  final Supervisor? supervisor;
-  final void Function(Supervisor sup) onSave;
-  final Future<void> Function()? pickImage;
 
-  const SimpleSupervisorDialog(
-  {super.key, this.supervisor, required this.onSave, this.pickImage});
-
-  @override
-  State<SimpleSupervisorDialog> createState() => _SimpleSupervisorDialogState();
-}
-
-class _SimpleSupervisorDialogState extends State<SimpleSupervisorDialog> {
-  final _formKey = GlobalKey<FormState>();
-
-  late String firstName;
-  late String middleName;
-  late String lastName;
-  late String phone;
-  late String country;
-  late String city;
-  late String bankName;
-  late String bankAccountNumber;
-  File? profileImageFile;
-  String? profileImageUrl;
-  late String email;
-  late String password;
-
-  @override
-  void initState() {
-    super.initState();
-    final sup = widget.supervisor;
-    firstName = sup?.firstName ?? '';
-    middleName = sup?.middleName ?? '';
-    lastName = sup?.lastName ?? '';
-    phone = sup?.phone ?? '';
-    country = sup?.country ?? '';
-    city = sup?.city ?? '';
-    bankName = sup?.bankName ?? '';
-    bankAccountNumber = sup?.bankAccountNumber ?? '';
-    profileImageFile = sup?.profileImageFile;
-    profileImageUrl = sup?.profileImageUrl;
-    email = sup?.email ?? '';
-    password = sup?.password ?? '';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.supervisor == null ? 'إضافة مشرف' : 'تعديل مشرف'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              _buildField('الاسم الأول', (val) => firstName = val ?? '', firstName),
-              _buildField('الاسم الأوسط', (val) => middleName = val ?? '', middleName),
-              _buildField('الاسم الأخير', (val) => lastName = val ?? '', lastName),
-              _buildField('رقم الهاتف', (val) => phone = val ?? '', phone),
-              _buildField('الدولة', (val) => country = val ?? '', country),
-              _buildField('المدينة', (val) => city = val ?? '', city),
-              _buildField('اسم البنك', (val) => bankName = val ?? '', bankName),
-              _buildField('رقم الحساب البنكي', (val) => bankAccountNumber = val ?? '', bankAccountNumber),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.image),
-                    label: const Text('اختيار صورة'),
-                    onPressed: () async {
-                      if (widget.pickImage != null) {
-                        await widget.pickImage!();
-                        setState(() {});
-                      }
-                    },
-                  ),
-                  const SizedBox(width: 10),
-                  profileImageFile != null
-                      ? CircleAvatar(
-                    radius: 25,
-                    backgroundImage: FileImage(profileImageFile!),
-                  )
-                      : profileImageUrl != null
-                      ? CircleAvatar(
-                    radius: 25,
-                    backgroundImage: NetworkImage(profileImageUrl!),
-                  )
-                      : const CircleAvatar(
-                    radius: 25,
-                    child: Icon(Icons.person),
-                  ),
-                ],
-              ),
-              _buildField('البريد الإلكتروني', (val) => email = val ?? '', email),
-              _buildField('كلمة المرور', (val) => password = val ?? '', password,
-                  obscure: true),
-            ],
+  void showDeleteConfirmation(User user,bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr('تأكيد الحذف', 'Delete Confirmation'),style:TextStyle(color:isDark?Color(0xFFD7EFDC):Colors.blue[900])),
+        content: Text(tr(
+            'هل أنت متأكد من حذف هذا العنصر؟',
+            'Are you sure you want to delete this item?'),style:TextStyle(color:isDark?Color(0xFFD7EFDC):Colors.blue[900])),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(tr('إلغاء', 'Cancel'),style:TextStyle(color:isDark?Color(0xFFD7EFDC):Colors.blue[900])),
           ),
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
-        ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState?.validate() ?? false) {
-              final sup = Supervisor(
-                id: widget.supervisor?.id ?? const Uuid().v4(),
-                firstName: firstName,
-                middleName: middleName,
-                lastName: lastName,
-                phone: phone,
-                country: country,
-                city: city,
-                bankName: bankName,
-                bankAccountNumber: bankAccountNumber,
-                profileImageFile: profileImageFile,
-                profileImageUrl: profileImageUrl,
-                email: email,
-                password: password,
-              );
-              widget.onSave(sup);
-            }
-          },
-          child: const Text('حفظ'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildField(String label, Function(String?) onChanged, String initialValue,
-      {bool obscure = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: TextFormField(
-        initialValue: initialValue,
-        obscureText: obscure,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          isDense: true,
-        ),
-        validator: (val) => val == null || val.isEmpty ? 'مطلوب' : null,
-        onChanged: onChanged,
-      ),
-    );
-  }
-}
-
-// حوار إضافة وتعديل مسوق مع اختيار صورة من الجهاز
-class SimpleMarketerDialog extends StatefulWidget {
-  final Marketer? marketer;
-  final String supervisorId;
-  final void Function(Marketer marketer) onSave;
-  final Future<File?> Function()? pickImage;
-
-  const SimpleMarketerDialog(
-  {super.key,
-  this.marketer,
-  required this.supervisorId,
-  required this.onSave,
-  this.pickImage});
-
-  @override
-  State<SimpleMarketerDialog> createState() => _SimpleMarketerDialogState();
-}
-
-class _SimpleMarketerDialogState extends State<SimpleMarketerDialog> {
-  final _formKey = GlobalKey<FormState>();
-
-  late String firstName;
-  late String middleName;
-  late String lastName;
-  late String phone;
-  late String country;
-  late String city;
-  late String bankName;
-  late String bankAccountNumber;
-  File? profileImageFile;
-
-  @override
-  void initState() {
-    super.initState();
-    final m = widget.marketer;
-    firstName = m?.firstName ?? '';
-    middleName = m?.middleName ?? '';
-    lastName = m?.lastName ?? '';
-    phone = m?.phone ?? '';
-    country = m?.country ?? '';
-    city = m?.city ?? '';
-    bankName = m?.bankName ?? '';
-    bankAccountNumber = m?.bankAccountNumber ?? '';
-    profileImageFile = m?.profileImageFile;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.marketer == null ? 'إضافة مسوق' : 'تعديل مسوق'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              _buildField('الاسم الأول', (val) => firstName = val ?? '', firstName),
-              _buildField('الاسم الأوسط', (val) => middleName = val ?? '', middleName),
-              _buildField('الاسم الأخير', (val) => lastName = val ?? '', lastName),
-              _buildField('رقم الهاتف', (val) => phone = val ?? '', phone),
-              _buildField('الدولة', (val) => country = val ?? '', country),
-              _buildField('المدينة', (val) => city = val ?? '', city),
-              _buildField('اسم البنك', (val) => bankName = val ?? '', bankName),
-              _buildField('رقم الحساب البنكي', (val) => bankAccountNumber = val ?? '', bankAccountNumber),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.image),
-                    label: const Text('اختيار صورة'),
-                    onPressed: () async {
-                      if (widget.pickImage != null) {
-                        final file = await widget.pickImage!();
-                        if (file != null) {
-                          setState(() {
-                            profileImageFile = file;
-                          });
-                        }
-                      }
-                    },
-                  ),
-                  const SizedBox(width: 10),
-                  profileImageFile != null
-                      ? CircleAvatar(
-                    radius: 25,
-                    backgroundImage: FileImage(profileImageFile!),
-                  )
-                      : const CircleAvatar(
-                    radius: 25,
-                    child: Icon(Icons.person),
-                  ),
-                ],
-              ),
-            ],
+          TextButton(
+            onPressed: () {
+              setState(() {
+                if (user is Supervisor) {
+                  supervisors.remove(user);
+                  if (selectedSupervisor == user) {
+                    selectedSupervisor = null;
+                    selectedUser = null;
+                  }
+                } else if (user is Marketer) {
+                  selectedSupervisor?.marketers.remove(user);
+                  if (selectedUser == user) {
+                    selectedUser = null;
+                  }
+                }
+              });
+              Navigator.pop(context);
+            },
+            child: Text(tr('حذف', 'Delete'),style:TextStyle(color:isDark?Color(0xFFD7EFDC):Colors.blue[900])),
           ),
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
-        ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState?.validate() ?? false) {
-              final marketer = Marketer(
-                id: widget.marketer?.id ?? const Uuid().v4(),
-                firstName: firstName,
-                middleName: middleName,
-                lastName: lastName,
-                phone: phone,
-                country: country,
-                city: city,
-                bankName: bankName,
-                bankAccountNumber: bankAccountNumber,
-                profileImageFile: profileImageFile,
-                promoCode: widget.marketer?.promoCode ?? _generatePromoCode(),
-                promoCodeCreatedAt:
-                widget.marketer?.promoCodeCreatedAt ?? DateTime.now(),
-                promoCodeExpiresAt:
-                widget.marketer?.promoCodeExpiresAt ??
-                    DateTime.now().add(const Duration(days: 30)),
-                createdAt: widget.marketer?.createdAt ?? DateTime.now(),
-                points: widget.marketer?.points ?? 0,
-                supervisorId: widget.supervisorId,
-                isFrozen: widget.marketer?.isFrozen ?? false,
-              );
-              widget.onSave(marketer);
-            }
-          },
-          child: const Text('حفظ'),
-        ),
-      ],
-    );
-  }
-
-  String _generatePromoCode() => const Uuid().v4().substring(0, 8).toUpperCase();
-
-  Widget _buildField(String label, Function(String?) onChanged, String initialValue,
-      {bool obscure = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: TextFormField(
-        initialValue: initialValue,
-        obscureText: obscure,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          isDense: true,
-        ),
-        validator: (val) => val == null || val.isEmpty ? 'مطلوب' : null,
-        onChanged: onChanged,
+        ],
       ),
     );
   }
-}
+
+} // نهاية _SupervisorsMarketersPageState

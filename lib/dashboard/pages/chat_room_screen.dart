@@ -9,6 +9,8 @@ class ChatRoomScreen extends StatefulWidget {
   final bool multiMode;
   final List<String> targets;
   final bool toGroupMembers;
+  final bool type;
+
 
   ChatRoomScreen({
     required this.userId,
@@ -17,6 +19,7 @@ class ChatRoomScreen extends StatefulWidget {
     this.multiMode = false,
     this.targets = const [],
     this.toGroupMembers = false,
+    required this.type,
   });
 
   @override
@@ -78,8 +81,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   String _getTargetType() {
-    if (widget.toGroupMembers) return "عضو في الجروب";
-    return widget.isGroup ? "جروب" : "دردشة";
+    if (widget.toGroupMembers) return "عضو في ";
+    return widget.isGroup ? widget.type?"جروب":"قناة" : "دردشة";
   }
 
   @override
@@ -88,43 +91,42 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     final primaryColor = Theme.of(context).colorScheme.primary;
-    final backgroundColor = isDark ? Colors.black : Colors.grey[100];
-    final sentMessageColor = isDark ? Colors.teal[700] : Colors.teal[300];
+    final backgroundColor = isDark ? Colors.black : Colors.white;
+    final sentMessageColor =  isDark ? Colors.green.shade500 : Colors.blue.shade500;
     final receivedMessageColor = isDark ? Colors.grey[800] : Colors.white;
     final inputFillColor = isDark ? Colors.grey[900] : Colors.white;
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      appBar: AppBar(
-        backgroundColor: primaryColor,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.title,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              widget.multiMode
-                  ? '${widget.targets.length} ${_getTargetType()}'
-                  : (widget.isGroup ? (isArabic ? 'جروب' : 'Group') : (isArabic ? 'دردشة' : 'Chat')),
-              style: TextStyle(fontSize: 13, color: Colors.white70),
-            ),
-          ],
-        ),
-      ),
+
       body: Column(
         children: [
           if (widget.multiMode)
-            Container(
-              padding: const EdgeInsets.all(8),
-              width: double.infinity,
-              color: isDark ? Colors.grey[900] : Colors.grey[300],
-              child: Text(
-                '${isArabic ? 'الأهداف:' : 'Targets:'}\n${widget.targets.join(", ")}',
-                style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
-                textAlign: TextAlign.start,
-              ),
+            Row(
+              children:[
+    Expanded(
+      child: Card(
+        color: isDark ? Colors.grey[850] : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 4,
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(
+            '${isArabic ? 'الأهداف:' : 'Targets:'}\n${widget.targets.join(", ")}',
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+            textAlign: TextAlign.start,
+          ),
+        ),
+      ),
+
+    ),
+            ],
             ),
           Expanded(
             child: ListView.builder(
@@ -177,12 +179,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             child: Row(
               children: [
                 IconButton(
-                  icon: Icon(Icons.attach_file, color: primaryColor),
+                  icon: Icon(Icons.attach_file, color: isDark ? Colors.green.shade800 : Colors.blue.shade800),
                   onPressed: _pickFile,
                   tooltip: isArabic ? 'إرفاق ملف' : 'Attach File',
                 ),
                 IconButton(
-                  icon: Icon(Icons.image, color: primaryColor),
+                  icon: Icon(Icons.image, color: isDark ? Colors.green.shade800 : Colors.blue.shade800),
                   onPressed: _pickImage,
                   tooltip: isArabic ? 'إرفاق صورة' : 'Attach Image',
                 ),
@@ -205,7 +207,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 ),
                 const SizedBox(width: 6),
                 CircleAvatar(
-                  backgroundColor: primaryColor,
+                  backgroundColor:isDark ? Colors.green.shade800 : Colors.blue.shade800,
                   radius: 22,
                   child: IconButton(
                     icon: const Icon(Icons.send, color: Colors.white),

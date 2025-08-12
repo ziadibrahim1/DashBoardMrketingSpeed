@@ -28,10 +28,39 @@ class _SimulateScreenState extends State<SimulateScreen>
   bool selectAllGroups = false;
   bool selectAllChats = false;
 
+  // متغيرات لعرض ChatRoom داخل نفس الصفحة
+  bool _showChatRoom = false;
+  String _chatRoomTitle = '';
+  List<String> _chatRoomTargets = [];
+  bool _chatRoomIsGroup = false;
+  bool _chatRoomToGroupMembers = false;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+  }
+
+  void _openChatRoomInline({
+    required String title,
+    required List<String> targets,
+    required bool isGroup,
+    bool toGroupMembers = false,
+  }) {
+    setState(() {
+      _showChatRoom = true;
+      _chatRoomTitle = title;
+      _chatRoomTargets = targets;
+      _chatRoomIsGroup = isGroup;
+      _chatRoomToGroupMembers = toGroupMembers;
+    });
+  }
+
+  void _closeChatRoom() {
+    setState(() {
+      _showChatRoom = false;
+      _chatRoomTargets = [];
+    });
   }
 
   @override
@@ -39,45 +68,84 @@ class _SimulateScreenState extends State<SimulateScreen>
     bool isDark = Theme.of(context).brightness == Brightness.dark;
     bool isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
-    final primaryColor = isDark ? Colors.teal[300] : Colors.teal;
-    final backgroundColor = isDark ? Colors.grey[900] : Colors.grey[100];
+    final primaryColor = isDark ? const Color(0xFF4D5D53) : const Color(0xFF65C4F8);
+    final backgroundColor = isDark ? Colors.grey[900] : Colors.white;
     final cardColor = isDark ? Colors.grey[850] : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subtitleColor = isDark ? Colors.grey[400] : Colors.grey[700];
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      appBar: AppBar(
-        backgroundColor: primaryColor,
-        title: Text(
-          isArabic ? 'محاكاة المستخدم' : 'User Simulation',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        bottom: TabBar(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(100),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(30),
+            bottomRight: Radius.circular(30),
+            topLeft: Radius.circular(30),
+            topRight: Radius.circular(30),
+          ),
+          child: Row(
+        children: [
+          IconButton(
+            icon:  Icon(Icons.arrow_back,color: isDark ? Colors.green[200] : Colors.blue[900],
+            ),
+            onPressed: _closeChatRoom,
+          ),
+      Expanded(
+        child: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.white,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          indicatorColor: isDark ? const Color(0xFF5EAF6D) : Colors.blue[800],
+          labelStyle: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[800],
+          ),
+          unselectedLabelColor: isDark ? const Color(0xFF86D091) : Colors.blue[300],
           tabs: [
             Tab(text: isArabic ? 'الجروبات (${groups.length})' : 'Groups (${groups.length})'),
             Tab(text: isArabic ? 'الدردشات (${chats.length})' : 'Chats (${chats.length})'),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildGroupTab(isArabic, cardColor, textColor, subtitleColor, primaryColor),
-          _buildChatTab(isArabic, cardColor, textColor, primaryColor),
-        ],
+      ],
+    ),
+
+    ),
+      ),
+      body: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.grey[850] : const Color(0xFFAFDBF5),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: _showChatRoom
+            ? ChatRoomScreen(
+          userId: widget.userId,
+          title: _chatRoomTitle,
+          isGroup: _chatRoomIsGroup,
+          multiMode: true,
+          targets: _chatRoomTargets,
+          toGroupMembers: _chatRoomToGroupMembers,type:true
+        )
+            : TabBarView(
+          controller: _tabController,
+          children: [
+            _buildGroupTab(
+                isArabic, cardColor, textColor, subtitleColor, primaryColor, isDark),
+            _buildChatTab(
+                isArabic, cardColor, textColor, primaryColor, isDark),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildGroupTab(bool isArabic, Color? cardColor, Color textColor, Color? subtitleColor, Color? primaryColor) {
+  Widget _buildGroupTab(bool isArabic, Color? cardColor, Color textColor,
+      Color? subtitleColor, Color? primaryColor, bool isDark) {
     return Column(
       children: [
-        _buildGroupActions(isArabic, primaryColor),
+        _buildGroupActions(isArabic, primaryColor, isDark),
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -91,13 +159,19 @@ class _SimulateScreenState extends State<SimulateScreen>
                 color: cardColor,
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 elevation: 3,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 child: CheckboxListTile(
-                  activeColor: primaryColor,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  title: Text(name, style: TextStyle(color: textColor, fontWeight: FontWeight.w600)),
+                  activeColor: isDark ? Colors.green : Colors.blue,
+                  contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  title: Text(name,
+                      style: TextStyle(
+                          color: textColor, fontWeight: FontWeight.w600)),
                   subtitle: Text(
-                    isArabic ? 'عدد الأعضاء: $members' : 'Members: $members',
+                    isArabic
+                        ? 'عدد الأعضاء: $members'
+                        : 'Members: $members',
                     style: TextStyle(color: subtitleColor),
                   ),
                   value: selectedGroups.contains(name),
@@ -119,10 +193,11 @@ class _SimulateScreenState extends State<SimulateScreen>
     );
   }
 
-  Widget _buildChatTab(bool isArabic, Color? cardColor, Color textColor, Color? primaryColor) {
+  Widget _buildChatTab(bool isArabic, Color? cardColor, Color textColor,
+      Color? primaryColor, bool isDark) {
     return Column(
       children: [
-        _buildChatActions(isArabic, primaryColor),
+        _buildChatActions(isArabic, primaryColor, isDark),
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -134,11 +209,15 @@ class _SimulateScreenState extends State<SimulateScreen>
                 color: cardColor,
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 elevation: 3,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 child: CheckboxListTile(
-                  activeColor: primaryColor,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  title: Text(chat, style: TextStyle(color: textColor, fontWeight: FontWeight.w600)),
+                  activeColor: isDark ? Colors.green : Colors.blue,
+                  contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  title: Text(chat,
+                      style: TextStyle(
+                          color: textColor, fontWeight: FontWeight.w600)),
                   value: selectedChats.contains(chat),
                   onChanged: (bool? value) {
                     setState(() {
@@ -158,7 +237,7 @@ class _SimulateScreenState extends State<SimulateScreen>
     );
   }
 
-  Widget _buildGroupActions(bool isArabic, Color? primaryColor) {
+  Widget _buildGroupActions(bool isArabic, Color? primaryColor, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Wrap(
@@ -167,14 +246,20 @@ class _SimulateScreenState extends State<SimulateScreen>
         alignment: WrapAlignment.center,
         children: [
           ElevatedButton.icon(
-            icon: Icon(selectAllGroups ? Icons.clear_all : Icons.select_all),
-            label: Text(selectAllGroups
-                ? (isArabic ? 'إلغاء تحديد الكل' : 'Unselect All')
-                : (isArabic ? 'تحديد كل الجروبات' : 'Select All Groups')),
+            icon: Icon(selectAllGroups ? Icons.clear_all : Icons.select_all,
+                color: isDark ? const Color(0xFFD7EFDC) : Colors.white),
+            label: Text(
+                selectAllGroups
+                    ? (isArabic ? 'إلغاء تحديد الكل' : 'Unselect All')
+                    : (isArabic ? 'تحديد كل الجروبات' : 'Select All Groups'),
+                style: TextStyle(
+                    color: isDark ? const Color(0xFFD7EFDC) : Colors.white)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
+              backgroundColor:
+              isDark ? Colors.green.shade800 : Colors.blue.shade800,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
               textStyle: const TextStyle(fontWeight: FontWeight.bold),
             ),
             onPressed: () {
@@ -182,25 +267,33 @@ class _SimulateScreenState extends State<SimulateScreen>
                 if (selectAllGroups) {
                   selectedGroups.clear();
                 } else {
-                  selectedGroups = groups.map((g) => g['name'].toString()).toList();
+                  selectedGroups =
+                      groups.map((g) => g['name'].toString()).toList();
                 }
                 selectAllGroups = !selectAllGroups;
               });
             },
           ),
           ElevatedButton.icon(
-            icon: const Icon(Icons.send),
-            label: Text(isArabic ? 'إرسال إلى الجروبات المحددة' : 'Send to Selected Groups'),
+            icon: Icon(Icons.send,
+                color: isDark ? const Color(0xFFD7EFDC) : Colors.white),
+            label: Text(isArabic
+                ? 'إرسال إلى الجروبات المحددة'
+                : 'Send to Selected Groups',
+                style: TextStyle(
+                    color: isDark ? const Color(0xFFD7EFDC) : Colors.white)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
+              backgroundColor:
+              isDark ? Colors.green.shade800 : Colors.blue.shade800,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
               textStyle: const TextStyle(fontWeight: FontWeight.bold),
             ),
             onPressed: selectedGroups.isEmpty
                 ? null
                 : () {
-              _openChatRoom(
+              _openChatRoomInline(
                 title: isArabic
                     ? 'إرسال إلى ${selectedGroups.length} جروب'
                     : 'Send to ${selectedGroups.length} Groups',
@@ -210,18 +303,25 @@ class _SimulateScreenState extends State<SimulateScreen>
             },
           ),
           ElevatedButton.icon(
-            icon: const Icon(Icons.people),
-            label: Text(isArabic ? 'إرسال لأعضاء الجروبات المحددة' : 'Send to Group Members'),
+            icon: Icon(Icons.people,
+                color: isDark ? const Color(0xFFD7EFDC) : Colors.white),
+            label: Text(isArabic
+                ? 'إرسال لأعضاء الجروبات المحددة'
+                : 'Send to Group Members',
+                style: TextStyle(
+                    color: isDark ? const Color(0xFFD7EFDC) : Colors.white)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
+              backgroundColor:
+              isDark ? Colors.green.shade800 : Colors.blue.shade800,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
               textStyle: const TextStyle(fontWeight: FontWeight.bold),
             ),
             onPressed: selectedGroups.isEmpty
                 ? null
                 : () {
-              _openChatRoom(
+              _openChatRoomInline(
                 title: isArabic
                     ? 'أعضاء الجروبات المحددة (${selectedGroups.length})'
                     : 'Members of Selected Groups (${selectedGroups.length})',
@@ -236,7 +336,7 @@ class _SimulateScreenState extends State<SimulateScreen>
     );
   }
 
-  Widget _buildChatActions(bool isArabic, Color? primaryColor) {
+  Widget _buildChatActions(bool isArabic, Color? primaryColor, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Wrap(
@@ -245,14 +345,20 @@ class _SimulateScreenState extends State<SimulateScreen>
         alignment: WrapAlignment.center,
         children: [
           ElevatedButton.icon(
-            icon: Icon(selectAllChats ? Icons.clear_all : Icons.select_all),
-            label: Text(selectAllChats
-                ? (isArabic ? 'إلغاء تحديد الكل' : 'Unselect All')
-                : (isArabic ? 'تحديد كل الدردشات' : 'Select All Chats')),
+            icon: Icon(selectAllChats ? Icons.clear_all : Icons.select_all,
+                color: isDark ? const Color(0xFFD7EFDC) : Colors.white),
+            label: Text(
+                selectAllChats
+                    ? (isArabic ? 'إلغاء تحديد الكل' : 'Unselect All')
+                    : (isArabic ? 'تحديد كل الدردشات' : 'Select All Chats'),
+                style: TextStyle(
+                    color: isDark ? const Color(0xFFD7EFDC) : Colors.white)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
+              backgroundColor:
+              isDark ? Colors.green.shade800 : Colors.blue.shade800,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
               textStyle: const TextStyle(fontWeight: FontWeight.bold),
             ),
             onPressed: () {
@@ -267,18 +373,25 @@ class _SimulateScreenState extends State<SimulateScreen>
             },
           ),
           ElevatedButton.icon(
-            icon: const Icon(Icons.send),
-            label: Text(isArabic ? 'إرسال إلى الدردشات المحددة' : 'Send to Selected Chats'),
+            icon: Icon(Icons.send,
+                color: isDark ? const Color(0xFFD7EFDC) : Colors.white),
+            label: Text(isArabic
+                ? 'إرسال إلى الدردشات المحددة'
+                : 'Send to Selected Chats',
+                style: TextStyle(
+                    color: isDark ? const Color(0xFFD7EFDC) : Colors.white)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
+              backgroundColor:
+              isDark ? Colors.green.shade800 : Colors.blue.shade800,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
               textStyle: const TextStyle(fontWeight: FontWeight.bold),
             ),
             onPressed: selectedChats.isEmpty
                 ? null
                 : () {
-              _openChatRoom(
+              _openChatRoomInline(
                 title: isArabic
                     ? 'إرسال إلى ${selectedChats.length} دردشة'
                     : 'Send to ${selectedChats.length} Chats',
@@ -288,27 +401,6 @@ class _SimulateScreenState extends State<SimulateScreen>
             },
           ),
         ],
-      ),
-    );
-  }
-
-  void _openChatRoom({
-    required String title,
-    required List<String> targets,
-    required bool isGroup,
-    bool toGroupMembers = false,
-  }) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChatRoomScreen(
-          userId: widget.userId,
-          title: title,
-          isGroup: isGroup,
-          multiMode: true,
-          targets: targets,
-          toGroupMembers: toGroupMembers,
-        ),
       ),
     );
   }

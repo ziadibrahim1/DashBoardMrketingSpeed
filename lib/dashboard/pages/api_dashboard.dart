@@ -235,8 +235,9 @@ class ApiServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isConnected = service.status == ConnectionStatus.connected;
-    final cardColor = isConnected ? Colors.green[50] : Colors.grey[200];
+    final cardColor = isConnected ?isDark? Colors.green[700]?.withOpacity(.5) :Colors.blue[100]:isDark?Colors.grey[850]: Colors.grey[200];
 
     return Card(
       elevation: 3,
@@ -280,7 +281,7 @@ class ApiServiceCard extends StatelessWidget {
                       const SizedBox(width: 12),
                       Text(
                         "آخر اتصال: ${Utils.timeAgo(service.lastConnected)}",
-                        style: const TextStyle(fontSize: 12, color: Colors.black54),
+                        style:  TextStyle(fontSize: 12, color:isDark?Colors.grey[300]: Colors.black54),
                       )
                     ],
                   ),

@@ -439,7 +439,8 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
       bool isArabic,
       bool isDark
       ) {
-    return _buildSectionCard(
+    return
+      _buildSectionCard(
       title: '${isArabic ? 'الجروبات' : 'Groups'} (${allGroups.length})',
       titleColor: titleColor,
       cardColor: cardColor,

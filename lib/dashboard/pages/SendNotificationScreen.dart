@@ -31,14 +31,20 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
   Timer? countdownTimer;
   Duration remaining = Duration.zero;
 
-  final List<Map<String, dynamic>> receiverOptions = [
+  final List<Map<String, dynamic>> receiverOptionsAR = [
     {"key": "all", "label": "الكل", "count": 500},
     {"key": "subscribed", "label": "المشتركين", "count": 320},
     {"key": "not_subscribed", "label": "غير المشتركين", "count": 180},
     {"key": "users", "label": "المستخدمين", "count": 400},
     {"key": "non_users", "label": "غير المستخدمين", "count": 100},
   ];
-
+  final List<Map<String, dynamic>> receiverOptionsEN = [
+    {"key": "all", "label": "all", "count": 500},
+    {"key": "subscribed", "label": "subscribed", "count": 320},
+    {"key": "not_subscribed", "label": "not subscribed", "count": 180},
+    {"key": "users", "label": "users", "count": 400},
+    {"key": "non_users", "label": "non users", "count": 100},
+  ];
   @override
   void dispose() {
     titleController.dispose();
@@ -238,8 +244,8 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
   @override
   Widget build(BuildContext context) {
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-
-    final filteredReceivers = receiverOptions
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final filteredReceivers =isArabic? receiverOptionsAR:receiverOptionsEN
         .where((r) => r["label"]
         .toString()
         .toLowerCase()
@@ -247,17 +253,12 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
         .toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          isArabic ? "إرسال إشعار للمستخدمين" : "Send Notification",
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: Colors.blueGrey,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: Padding(
+
+      body:
+      Card(
+        color: isDark ?null:Colors.grey[100],
+        child:
+        Padding(
         padding: const EdgeInsets.all(24),
         child: Center(
           child: ConstrainedBox(
@@ -267,6 +268,7 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Card(
+                    color: isDark ? Color(0xFF2C352F) : Colors.white,
                     elevation: 4,
                     margin: const EdgeInsets.symmetric(vertical: 12),
                     child: Padding(
@@ -276,9 +278,8 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
                         children: [
                           Text(
                             isArabic ? "معلومات الإشعار" : "Notification Info",
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style:TextStyle(fontWeight: FontWeight.bold,fontSize:25,
+                                color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),
                           ),
                           const SizedBox(height: 16),
                           _buildLabeledInput(
@@ -286,34 +287,53 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
                             child: TextField(
                               controller: titleController,
                               decoration: InputDecoration(
-                                border: const OutlineInputBorder(),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12), // تقدر تغير الرقم عشان تحدد مدى انحناء الحواف
+                                  borderSide: BorderSide(
+                                    width: 3, // سمك الخط 3
+                                    color: Colors.grey, // تقدر تغير اللون حسب رغبتك
+                                  ),
+                                ),
                                 hintText: isArabic ? "مثال: تحديث جديد" : "e.g. New Update",
                               ),
-                            ),
-                          ),
+                            )
+                              ,
+                         isDark:isDark),
                           const SizedBox(height: 16),
                           _buildLabeledInput(
                             label: isArabic ? "موضوع البريد (اختياري)" : "Email Subject (Optional)",
                             child: TextField(
-                              controller: emailSubjectController,
+                              controller: titleController,
                               decoration: InputDecoration(
-                                border: const OutlineInputBorder(),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12), // تقدر تغير الرقم عشان تحدد مدى انحناء الحواف
+                                  borderSide: BorderSide(
+                                    width: 3, // سمك الخط 3
+                                    color: Colors.grey, // تقدر تغير اللون حسب رغبتك
+                                  ),
+                                ),
                                 hintText: isArabic ? "موضوع البريد الإلكتروني" : "Email subject",
                               ),
                             ),
-                          ),
+                              isDark:isDark),
                           const SizedBox(height: 16),
                           _buildLabeledInput(
                             label: isArabic ? "نص الإشعار" : "Notification Body",
                             child: TextField(
-                              controller: messageController,
-                              maxLines: 4,
+                              controller: titleController,
+                              maxLines:5,
                               decoration: InputDecoration(
-                                border: const OutlineInputBorder(),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12), // تقدر تغير الرقم عشان تحدد مدى انحناء الحواف
+                                  borderSide: BorderSide(
+                                    width: 3, // سمك الخط 3
+                                    color: Colors.grey, // تقدر تغير اللون حسب رغبتك
+                                  ),
+                                ),
                                 hintText: isArabic ? "تفاصيل الإشعار" : "Notification content",
                               ),
                             ),
-                          ),
+                              isDark:isDark),
                         ],
                       ),
                     ),
@@ -321,23 +341,28 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
                   Card(
                     elevation: 4,
                     margin: const EdgeInsets.symmetric(vertical: 12),
+                    color: isDark ? Color(0xFF2C352F) : Colors.white,
                     child: Padding(
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            isArabic ? "الفئة المستهدفة" : "Target Audience",
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            isArabic ? "الفئة المستهدفة" : "Target Audience",style:TextStyle(fontWeight: FontWeight.bold,fontSize:25,
+                          color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),
                           ),
                           const SizedBox(height: 16),
                           TextField(
                             onChanged: (v) => setState(() => receiverSearch = v),
+                            controller: titleController,
                             decoration: InputDecoration(
-                              prefixIcon: const Icon(Icons.search),
-                              border: const OutlineInputBorder(),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12), // تقدر تغير الرقم عشان تحدد مدى انحناء الحواف
+                                borderSide: BorderSide(
+                                  width: 3, // سمك الخط 3
+                                  color: Colors.grey, // تقدر تغير اللون حسب رغبتك
+                                ),
+                              ),
                               hintText: isArabic ? "ابحث هنا..." : "Search here...",
                             ),
                           ),
@@ -353,21 +378,24 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
                                   return Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 6),
                                     child: ChoiceChip(
+                                      backgroundColor: isDark ? Colors.green[900] : Colors.blue[900],
                                       label: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Text(opt['label']),
+                                          Text(opt['label'],
+                                        style: const TextStyle(
+                                          color: Colors.white)),
                                           const SizedBox(width: 6),
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
-                                              color: Colors.blue.shade100,
+                                              color: isDark ? Colors.green[900] : Colors.blue[900],
                                               borderRadius: BorderRadius.circular(12),
                                             ),
                                             child: Text(
                                               opt['count'].toString(),
                                               style: const TextStyle(
-                                                color: Colors.blue,
+                                                color: Colors.white,
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 12,
                                               ),
@@ -381,7 +409,8 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
                                           receiverType = opt['key'];
                                         });
                                       },
-                                      selectedColor: Colors.blue.shade300,
+                                      selectedColor:  isDark ? const Color(
+                                          0xFF87D5A8) : Colors.blue[300],
                                     ),
                                   );
                                 }).toList(),
@@ -394,6 +423,7 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
                   ),
                   Card(
                     elevation: 4,
+                    color: isDark ? Color(0xFF2C352F) : Colors.white,
                     margin: const EdgeInsets.symmetric(vertical: 12),
                     child: Padding(
                       padding: const EdgeInsets.all(20),
@@ -402,9 +432,8 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
                         children: [
                           Text(
                             isArabic ? "الجدولة" : "Scheduling",
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                          style:TextStyle(fontWeight: FontWeight.bold,fontSize:25,
+                      color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),
                           ),
                           const SizedBox(height: 16),
                           Row(
@@ -422,19 +451,22 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
                                   }
                                 }),
                               ),
-                              Text(isArabic ? "جدولة الإشعار" : "Schedule Notification"),
+                              Text(isArabic ? "جدولة الإشعار" : "Schedule Notification",style:TextStyle(fontWeight: FontWeight.bold,
+                                  color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),),
                               const SizedBox(width: 16),
                               if (schedule && scheduledTime != null)
                                 ElevatedButton.icon(
                                   icon: const Icon(Icons.access_time),
-                                  label: Text(isArabic ? "تغيير الوقت" : "Change Time"),
+                                  label: Text(isArabic ? "تغيير الوقت" : "Change Time",style:TextStyle(fontWeight: FontWeight.bold ,
+                                      color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),),
                                   onPressed: pickScheduleDateTime,
                                 ),
                               const SizedBox(width: 12),
                               if (schedule && scheduledTime != null)
                                 Text(
                                   "${isArabic ? 'الوقت المتبقي' : 'Time left'}: ${_formatDuration(remaining)}",
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+          style:TextStyle(fontWeight: FontWeight.bold,
+      color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),
                                 ),
                             ],
                           ),
@@ -443,6 +475,7 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
                     ),
                   ),
                   Card(
+                    color: isDark ? Color(0xFF2C352F) : Colors.white,
                     elevation: 4,
                     margin: const EdgeInsets.symmetric(vertical: 12),
                     child: Padding(
@@ -452,26 +485,31 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
                         children: [
                           Text(
                             isArabic ? "طرق الإرسال" : "Send Methods",
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                           style:TextStyle(fontWeight: FontWeight.bold,fontSize:25,
+                      color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),
                           ),
                           const SizedBox(height: 16),
                           Wrap(
                             spacing: 20,
                             children: [
                               FilterChip(
-                                label: Text(isArabic ? "داخل التطبيق" : "In-App"),
+                                selectedColor:isDark?Colors.green[800]: Colors.blue[100],
+                                label: Text(isArabic ? "داخل التطبيق" : "In-App",style:TextStyle(fontWeight: FontWeight.bold ,
+                                    color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),),
                                 selected: sendInApp,
                                 onSelected: (val) => setState(() => sendInApp = val),
                               ),
                               FilterChip(
-                                label: Text(isArabic ? "رسالة SMS" : "SMS"),
+                                selectedColor:isDark?Colors.green[800]: Colors.blue[100],
+                                label: Text(isArabic ? "رسالة SMS" : "SMS",style:TextStyle(fontWeight: FontWeight.bold ,
+                                    color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),),
                                 selected: sendSms,
                                 onSelected: (val) => setState(() => sendSms = val),
                               ),
                               FilterChip(
-                                label: Text(isArabic ? "بريد إلكتروني" : "Email"),
+                                selectedColor:isDark?Colors.green[800]: Colors.blue[100],
+                                label: Text(isArabic ? "بريد إلكتروني" : "Email",style:TextStyle(fontWeight: FontWeight.bold ,
+                                    color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),),
                                 selected: sendEmail,
                                 onSelected: (val) => setState(() => sendEmail = val),
                               ),
@@ -482,6 +520,7 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
                     ),
                   ),
                   Card(
+                    color: isDark ? Color(0xFF2C352F) : Colors.white,
                     elevation: 4,
                     margin: const EdgeInsets.symmetric(vertical: 12),
                     child: Padding(
@@ -491,16 +530,17 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
                         children: [
                           Text(
                             isArabic ? "إرفاق صور (اختياري)" : "Attach Images (Optional)",
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style:TextStyle(fontWeight: FontWeight.bold,fontSize:25,
+                                color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),
                           ),
                           const SizedBox(height: 16),
                           Row(
                             children: [
                               ElevatedButton.icon(
-                                icon: const Icon(Icons.image),
-                                label: Text(isArabic ? "اختيار صور" : "Select Images"),
+                                icon:  Icon(Icons.image,color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),
+                                label: Text(isArabic ? "اختيار صور" : "Select Images",
+                                  style:TextStyle(fontWeight: FontWeight.bold ,
+                                      color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),),
                                 onPressed: pickImage,
                               ),
                               const SizedBox(width: 16),
@@ -535,14 +575,25 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
                     child: SizedBox(
                       width: 300,
                       child: ElevatedButton.icon(
-                        icon: const Icon(Icons.send),
-                        label: Text(isArabic ? "إرسال الإشعار" : "Send Notification"),
+                        icon: Icon(
+                          Icons.send,
+                          color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900],
+                        ),
+                        label: Text(
+                          isArabic ? "إرسال الإشعار" : "Send Notification",
+                          style: TextStyle(
+                            color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900],
+                          ),
+                        ),
                         onPressed: canSend ? openConfirmDialog : null,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           textStyle: const TextStyle(fontSize: 18),
+                          backgroundColor: isDark ? Colors.green[900] :   Colors.blue[100],
+                          foregroundColor: isDark ? Colors.green[100] : Colors.blue[900],
                         ),
                       ),
+
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -551,7 +602,7 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
             ),
           ),
         ),
-      ),
+      ),),
     );
   }
 
@@ -563,11 +614,12 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
     return "$h:$m:$s";
   }
 
-  Widget _buildLabeledInput({required String label, required Widget child}) {
+  Widget _buildLabeledInput({required String label, required Widget child,required bool isDark}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(label, style:TextStyle(fontWeight: FontWeight.bold,
+            color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900])),
         const SizedBox(height: 8),
         child,
       ],

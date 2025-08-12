@@ -46,13 +46,13 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
     });
   }
 
-  Widget _buildUserProfile(String id, String name) {
+  Widget _buildUserProfile(String id, String name, bool isArabic) {
     final userData = {
       "email": "$name@email.com",
       "phone": "0501234567",
-      "subscription": "Premium",
+      "subscription": isArabic ? "مميز" : "Premium",
       "expiry": "2025-12-31",
-      "location": "الرياض، السعودية",
+      "location": isArabic ? "الرياض، السعودية" : "Riyadh, Saudi Arabia",
       "joined": "2023-06-10"
     };
 
@@ -60,17 +60,32 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
       padding: const EdgeInsets.all(24.0),
       child: ListView(
         children: [
-          Text("الملف الشخصي", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(isArabic ? "الملف الشخصي" : "Profile",
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          ListTile(title: Text("الاسم"), subtitle: Text(name)),
-          ListTile(title: Text("البريد الإلكتروني"), subtitle: Text(userData['email']!)),
-          ListTile(title: Text("رقم الجوال"), subtitle: Text(userData['phone']!)),
-          ListTile(title: Text("المدينة"), subtitle: Text(userData['location']!)),
+          ListTile(
+              title: Text(isArabic ? "الاسم" : "Name"), subtitle: Text(name)),
+          ListTile(
+              title: Text(isArabic ? "البريد الإلكتروني" : "Email"),
+              subtitle: Text(userData['email']!)),
+          ListTile(
+              title: Text(isArabic ? "رقم الجوال" : "Phone"),
+              subtitle: Text(userData['phone']!)),
+          ListTile(
+              title: Text(isArabic ? "المدينة" : "City"),
+              subtitle: Text(userData['location']!)),
           const Divider(),
-          Text("الاشتراك", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ListTile(title: Text("النوع"), subtitle: Text(userData['subscription']!)),
-          ListTile(title: Text("تاريخ الانتهاء"), subtitle: Text(userData['expiry']!)),
-          ListTile(title: Text("تاريخ الانضمام"), subtitle: Text(userData['joined']!)),
+          Text(isArabic ? "الاشتراك" : "Subscription",
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ListTile(
+              title: Text(isArabic ? "النوع" : "Type"),
+              subtitle: Text(userData['subscription']!)),
+          ListTile(
+              title: Text(isArabic ? "تاريخ الانتهاء" : "Expiry Date"),
+              subtitle: Text(userData['expiry']!)),
+          ListTile(
+              title: Text(isArabic ? "تاريخ الانضمام" : "Joined Date"),
+              subtitle: Text(userData['joined']!)),
         ],
       ),
     );
@@ -80,6 +95,8 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final locale = Localizations.localeOf(context);
+    final isArabic = locale.languageCode == 'ar';
     final primaryColor = theme.colorScheme.primary;
 
     final filteredConversations = allConversations
@@ -87,14 +104,7 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
         .toList();
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: theme.colorScheme.surface,
-        title:Text("لوحة المحادثات",  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: Colors.blueGrey,
-        ),),
-        elevation: 0.5,
-      ),
+
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -105,7 +115,7 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
               backgroundColor: theme.cardColor,
               label: Text(chat['name']!,
                   style: TextStyle(color: theme.textTheme.bodyLarge!.color)),
-              icon: Icon(Icons.chat_bubble, color: primaryColor),
+              icon: Icon(Icons.chat_bubble,color:isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),
               onPressed: () => openChat(chat['id']!, chat['name']!),
             ),
           )),
@@ -129,7 +139,9 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
                   child: TextField(
                     onChanged: (value) => setState(() => searchQuery = value),
                     decoration: InputDecoration(
-                      hintText: "بحث عن مستخدم...",
+                      hintText: isArabic
+                          ? "بحث عن مستخدم..."
+                          : "Search for user...",
                       prefixIcon: const Icon(Icons.search),
                       filled: true,
                       fillColor: theme.cardColor,
@@ -137,7 +149,8 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 0, horizontal: 12),
                     ),
                   ),
                 ),
@@ -149,21 +162,24 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
                       return InkWell(
                         onTap: () => openChat(conv['id']!, conv['name']!),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
                           child: Row(
                             children: [
                               CircleAvatar(
                                 backgroundColor: primaryColor.withOpacity(0.15),
                                 child: Text(conv['avatar']!,
-                                    style: TextStyle(color: primaryColor)),
+                                    style: TextStyle(color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900])),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(conv['name']!,
-                                    style: const TextStyle(
-                                        fontSize: 16, fontWeight: FontWeight.w600)),
+                                    style:   TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,color:isDark ? const Color(0xFFD7EFDC) :  Colors.blue[900])),
                               ),
-                              const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                                Icon(Icons.arrow_forward_ios_rounded,
+                                  size: 14,color:isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),
                             ],
                           ),
                         ),
@@ -180,12 +196,17 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
             child: openedChats.isEmpty
                 ? Center(
               child: Text(
-                "اختر محادثة من القائمة الجانبية",
-                style: TextStyle(fontSize: 18, color: theme.hintColor),
+                isArabic
+                    ? "اختر محادثة من القائمة الجانبية"
+                    : "Select a conversation from the sidebar",
+                style:
+                TextStyle(fontSize: 18, color: theme.hintColor),
               ),
             )
                 : Container(
-              color: isDark ? const Color(0xFF121212) : const Color(0xFFF9FAFC),
+              color: isDark
+                  ? const Color(0xFF121212)
+                  : const Color(0xFFF9FAFC),
               child: Row(
                 children: openedChats.map((chat) {
                   return Expanded(
@@ -203,22 +224,30 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
                               children: [
                                 Container(
                                   alignment: Alignment.centerRight,
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    mainAxisAlignment:
+                                    MainAxisAlignment.end,
                                     children: [
                                       Tooltip(
-                                        message: "تصغير",
+                                        message: isArabic
+                                            ? "تصغير"
+                                            : "Minimize",
                                         child: IconButton(
-                                          onPressed: () => minimizeChat(chat['id']!),
+                                          onPressed: () => minimizeChat(
+                                              chat['id']!),
                                           icon: const Icon(Icons.minimize,
                                               color: Colors.orange),
                                         ),
                                       ),
                                       Tooltip(
-                                        message: "إغلاق",
+                                        message: isArabic
+                                            ? "إغلاق"
+                                            : "Close",
                                         child: IconButton(
-                                          onPressed: () => closeChat(chat['id']!),
+                                          onPressed: () =>
+                                              closeChat(chat['id']!),
                                           icon: const Icon(Icons.close,
                                               color: Colors.redAccent),
                                         ),
@@ -230,17 +259,26 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
                                 Container(
                                   color: theme.colorScheme.surface,
                                   child: TabBar(
-                                    tabs: const [
+                                    tabs: [
                                       Tab(
-                                          icon: Icon(Icons.chat_bubble_outline),
-                                          text: "المحادثة"),
+                                          icon:  Icon(Icons
+                                              .chat_bubble_outline,color:isDark ? const Color(0xFFD7EFDC) :  Colors.blue[900]),
+                                          text: isArabic
+                                              ? "المحادثة"
+                                              : "Chat"),
                                       Tab(
-                                          icon: Icon(Icons.person_outline),
-                                          text: "الملف الشخصي"),
+                                          icon:   Icon(
+                                              Icons.person_outline,color:isDark ? const Color(0xFFD7EFDC) :  Colors.blue[900]),
+                                          text: isArabic
+                                              ? "الملف الشخصي"
+                                              : "Profile"),
                                     ],
-                                    labelColor: theme.colorScheme.primary,
-                                    unselectedLabelColor: theme.hintColor,
-                                    indicatorColor: theme.colorScheme.primary,
+                                    labelColor:
+                                    isDark ? const Color(0xFFD7EFDC) :  Colors.blue[900],
+                                    unselectedLabelColor:
+                                    theme.hintColor,
+                                    indicatorColor:
+                                    isDark ? const Color(0xFFD7EFDC) :  Colors.blue[900],
                                   ),
                                 ),
                                 const Divider(height: 1),
@@ -250,29 +288,19 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
                                       Stack(
                                         children: [
                                           AdminLiveChatScreen(
-                                            conversationId: chat['id']!,
+                                            conversationId:
+                                            chat['id']!,
                                             userName: chat['name']!,
-                                          ),
-                                          Positioned(
-                                            left: 16,
-                                            bottom: 16,
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                  horizontal: 12, vertical: 6),
-                                              decoration: BoxDecoration(
-                                                color: primaryColor.withOpacity(0.1),
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-
-                                            ),
                                           ),
                                         ],
                                       ),
-                                      _buildUserProfile(chat['id']!, chat['name']!),
+                                      _buildUserProfile(
+                                          chat['id']!,
+                                          chat['name']!,
+                                          isArabic),
                                     ],
                                   ),
                                 ),
-
                               ],
                             ),
                           ),

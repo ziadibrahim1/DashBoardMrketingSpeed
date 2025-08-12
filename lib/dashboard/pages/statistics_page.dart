@@ -51,7 +51,13 @@ class DashboardStatsSection extends StatelessWidget {
     // تدرج لوني للخلفية (فاتح أو داكن حسب الوضع)
     final cardGradient = isDark
         ? LinearGradient(
-      colors: [const Color(0xFF313D35), const Color(0xFF4D5D53)],
+      colors: [
+        Colors.green.shade700.withOpacity(.3),
+        Colors.green.shade500.withOpacity(.3),
+        Color(0xFFB3A664).withOpacity(.3),
+        Colors.green.shade600.withOpacity(.3),
+        ?Colors.green[900]?.withOpacity(.3),
+      ],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     )
@@ -504,13 +510,28 @@ class DashboardStatsSection extends StatelessWidget {
       },
     ];
 
-
+    final gradient =  LinearGradient(
+      colors:isDark?[
+        Colors.green.shade700.withOpacity(.3),
+        Colors.green.shade500.withOpacity(.3),
+        Color(0xFFB3A664).withOpacity(.3),
+        Colors.green.shade600.withOpacity(.3),
+        ?Colors.green[900]?.withOpacity(.3),
+      ]: [Colors.white,Colors.white
+      ],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
     return Card(
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Theme.of(context).cardColor,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(16),
+
+        ),
         child: PieChart(
           PieChartData(
             sections: sections.map((e) {

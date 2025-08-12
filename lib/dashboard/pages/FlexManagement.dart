@@ -1,9 +1,7 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
-void main() => runApp(const MaterialApp(home: PackagesPage()));
 
 enum PackageStatus { active, paused }
 
@@ -68,77 +66,105 @@ class Package {
 }
 
 class PackagesPage extends StatefulWidget {
-  const PackagesPage({super.key});
+  final bool isArabic;
 
+  const PackagesPage({super.key, required this.isArabic});
   @override
   State<PackagesPage> createState() => _PackagesPageState();
 }
 
 class _PackagesPageState extends State<PackagesPage> {
-  final List<Package> packages = [
-    Package(
-      name: 'فليكس وتساب',
-      id:439750 ,
-      price: 100,
-      durationDays: 30,
-      discount: 20,
-      features: [
-        'الإرسال على المجموعات',
-        'الإرسال على الدردشات',
-        'الوصول إلى 10000 عضو',
-        'تنبيه توصيات تسويق',
-      ],
-      subscribers: 0,
-    ),
-    Package(
-      name: 'فيسبوك شاملة',
-      id:574186 ,
-      price: 200,
-      durationDays: 60,
-      discount: null,
-      features: ['الإعلانات المدفوعة', 'إدارة الصفحات'],
-      subscribers: 3,
-    ),
-    Package(
-      name: 'إنستجرام بلس',
-      id: 772345,
-      price: 150,
-      durationDays: 45,
-      discount: 15,
-      features: ['تحليل البيانات', 'جدولة المنشورات'],
-      subscribers: 12,
-    ),
-  ];
+  // نخزن الباقات هنا بشكل داخلي، لإمكانية التعديل عليها
+  late List<Package> _packages;
 
-  String selectedFilter = 'الكل';
-  String selectedSort = 'id';
-  bool showArchived = false;
+  late String selectedFilter;
+  late String selectedSort;
+  late bool showArchived;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // تهيئة الباقات حسب اللغة
+    _packages = [
+      Package(
+        name: widget.isArabic ? 'فليكس وتساب' : 'Flex WhatsApp',
+        id: 439750,
+        price: 100,
+        durationDays: 30,
+        discount: 20,
+        features: widget.isArabic
+            ? [
+          'الإرسال على المجموعات',
+          'الإرسال على الدردشات',
+          'الوصول إلى 10000 عضو',
+          'تنبيه توصيات تسويق',
+        ]
+            : [
+          'Group sending',
+          'Chat sending',
+          'Access up to 10000 members',
+          'Marketing recommendation alerts',
+        ],
+        subscribers: 0,
+      ),
+      Package(
+        name: widget.isArabic ? 'فيسبوك شاملة' : 'Facebook Complete',
+        id: 574186,
+        price: 200,
+        durationDays: 60,
+        discount: null,
+        features: widget.isArabic
+            ? ['الإعلانات المدفوعة', 'إدارة الصفحات']
+            : ['Paid Ads', 'Page Management'],
+        subscribers: 3,
+      ),
+      Package(
+        name: widget.isArabic ? 'إنستجرام بلس' : 'Instagram Plus',
+        id: 772345,
+        price: 150,
+        durationDays: 45,
+        discount: 15,
+        features: widget.isArabic
+            ? ['تحليل البيانات', 'جدولة المنشورات']
+            : ['Data Analysis', 'Post Scheduling'],
+        subscribers: 12,
+      ),
+    ];
+
+    // تهيئة الفلاتر والترتيب والقيمة الافتراضية لعرض المؤرشفة حسب اللغة
+    selectedFilter = widget.isArabic ? 'الكل' : 'All';
+    selectedSort = 'id';
+    showArchived = false;
+  }
 
   int generateUniqueId() {
     final rand = Random();
     int newId;
     do {
       newId = 100000 + rand.nextInt(900000);
-    } while (packages.any((p) => p.id == newId));
+    } while (_packages.any((p) => p.id == newId));
     return newId;
   }
 
-  int get totalSubscribers => packages.fold(0, (sum, p) => sum + p.subscribers);
+  int get totalSubscribers => _packages.fold(0, (sum, p) => sum + p.subscribers);
 
   List<Package> get filteredPackages {
-    List<Package> list = [...packages];
+    List<Package> list = [..._packages];
 
     if (!showArchived) {
       list = list.where((p) => !p.isArchived).toList();
     }
 
-    if (selectedFilter == 'باقات مخفضة') {
+    // فلترة حسب النص المختار، مع مراعاة الترجمة
+    if (selectedFilter == (widget.isArabic ? 'باقات مخفضة' : 'Discounted Packages')) {
       list = list.where((p) => p.discount != null && p.discount! > 0).toList();
-    } else if (selectedFilter == 'باقات بها مشتركين') {
+    } else if (selectedFilter == (widget.isArabic ? 'باقات بها مشتركين' : 'Packages with Subscribers')) {
       list = list.where((p) => p.subscribers > 0).toList();
-    } else if (selectedFilter == 'مجدولة') {
+    } else if (selectedFilter == (widget.isArabic ? 'مجدولة' : 'Scheduled')) {
       list = list.where((p) => p.isScheduledFuture).toList();
     }
+    // 'الكل' أو 'All' تعني الكل، لا حاجة لتغيير
 
     switch (selectedSort) {
       case 'price':
@@ -167,8 +193,7 @@ class _PackagesPageState extends State<PackagesPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) {
         return PackageEditor(
           existing: existing,
@@ -176,14 +201,14 @@ class _PackagesPageState extends State<PackagesPage> {
           onSave: (pkg) {
             setState(() {
               if (index != null) {
-                packages[index] = pkg;
-                pkg.addLog('تم تعديل الباقة');
+                _packages[index] = pkg;
+                pkg.addLog(widget.isArabic ? 'تم تعديل الباقة' : 'Package edited');
               } else {
-                packages.add(pkg);
-                pkg.addLog('تم إنشاء الباقة');
+                _packages.add(pkg);
+                pkg.addLog(widget.isArabic ? 'تم إنشاء الباقة' : 'Package created');
               }
             });
-          },
+          },isArabic: widget.isArabic
         );
       },
     );
@@ -191,17 +216,21 @@ class _PackagesPageState extends State<PackagesPage> {
 
   void _toggleArchive(int index) {
     setState(() {
-      final p = packages[index];
+      final p = _packages[index];
       p.isArchived = !p.isArchived;
-      p.addLog(p.isArchived ? 'أرشفة الباقة' : 'استرجاع الباقة');
+      p.addLog(p.isArchived
+          ? (widget.isArabic ? 'أرشفة الباقة' : 'Package archived')
+          : (widget.isArabic ? 'استرجاع الباقة' : 'Package restored'));
     });
   }
 
   void _toggleStatus(int index) {
     setState(() {
-      final p = packages[index];
+      final p = _packages[index];
       p.status = p.status == PackageStatus.active ? PackageStatus.paused : PackageStatus.active;
-      p.addLog('تغيير الحالة إلى ${p.status == PackageStatus.active ? 'مفعلة' : 'معطله'}');
+      p.addLog(widget.isArabic
+          ? 'تغيير الحالة إلى ${p.status == PackageStatus.active ? 'مفعلة' : 'معطله'}'
+          : 'Status changed to ${p.status == PackageStatus.active ? 'Active' : 'Paused'}');
     });
   }
 
@@ -209,15 +238,19 @@ class _PackagesPageState extends State<PackagesPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (c) {
         return NotificationModal(
           package: package,
           onSent: (method, title, content, scheduled) {
             setState(() {
               package.addLog(
-                  'تم إرسال إشعار بعنوان "$title" عبر $method${scheduled != null ? ' (مجدول لـ ${DateFormat('yyyy/MM/dd').format(scheduled)})' : ''}');
+                '${widget.isArabic ? 'تم إرسال إشعار بعنوان' : 'Notification sent titled'} "$title" ${widget.isArabic ? 'عبر' : 'via'} $method${scheduled != null
+                        ? (widget.isArabic
+                        ? ' (مجدول لـ ${DateFormat('yyyy/MM/dd').format(scheduled)})'
+                        : ' (Scheduled for ${DateFormat('yyyy/MM/dd').format(scheduled)})')
+                        : ''}',
+              );
             });
           },
         );
@@ -229,137 +262,153 @@ class _PackagesPageState extends State<PackagesPage> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final crossAxisCount = getCrossAxisCount(width);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // إعداد عناصر الفلتر مع دعم الترجمة
+    final filterOptions = widget.isArabic
+        ? ['الكل', 'باقات مخفضة', 'باقات بها مشتركين', 'مجدولة']
+        : ['All', 'Discounted Packages', 'Packages with Subscribers', 'Scheduled'];
 
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text('إدارة الباقات'),
-        backgroundColor: Colors.deepPurple,
-        elevation: 6,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // فلتر/ترتيب + عرض المؤرشفة + إضافة
-              Row(
-                children: [
-                  DropdownButton<String>(
-                    value: selectedFilter,
-                    items: const [
-                      DropdownMenuItem(value: 'الكل', child: Text('الكل')),
-                      DropdownMenuItem(value: 'باقات مخفضة', child: Text('باقات مخفضة')),
-                      DropdownMenuItem(value: 'باقات بها مشتركين', child: Text('باقات بها مشتركين')),
-                      DropdownMenuItem(value: 'مجدولة', child: Text('مجموعة مجدولة')),
-                    ],
-                    onChanged: (v) {
-                      if (v != null) setState(() => selectedFilter = v);
-                    },
-                  ),
-                  const SizedBox(width: 12),
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.sort),
-                    onSelected: (val) {
-                      setState(() {
-                        selectedSort = val;
-                      });
-                    },
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'id', child: Text('معرف')),
-                      PopupMenuItem(value: 'price', child: Text('السعر')),
-                      PopupMenuItem(value: 'duration', child: Text('مدة')),
-                      PopupMenuItem(value: 'subscribers', child: Text('مشتركين')),
-                    ],
-                  ),
-                  const SizedBox(width: 20),
-                  Row(
-                    children: [
-                      const Text('عرض المؤرشفة'),
-                      Switch(
-                        value: showArchived,
-                        onChanged: (val) => setState(() => showArchived = val),
+    // إعداد عناصر الترتيب مع دعم الترجمة
+    final sortOptions = widget.isArabic
+        ? {
+      'id': 'معرف',
+      'price': 'السعر',
+      'duration': 'مدة',
+      'subscribers': 'مشتركين',
+    }
+        : {
+      'id': 'ID',
+      'price': 'Price',
+      'duration': 'Duration',
+      'subscribers': 'Subscribers',
+    };
+
+    return Directionality(
+      textDirection: widget.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor:isDark?Colors.grey[850]: Colors.grey[50],
+
+        body: Padding(
+          padding: const EdgeInsets.all(20),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                // فلتر/ترتيب + عرض المؤرشفة + إضافة
+                Row(
+                  children: [
+                    DropdownButton<String>(
+                      value: selectedFilter,
+                      items: filterOptions
+                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) setState(() => selectedFilter = v);
+                      },
+                    ),
+                    const SizedBox(width: 12),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.sort),
+                      onSelected: (val) {
+                        setState(() {
+                          selectedSort = val;
+                        });
+                      },
+                      itemBuilder: (_) => sortOptions.entries
+                          .map((e) => PopupMenuItem(value: e.key, child: Text(e.value)))
+                          .toList(),
+                    ),
+                    const SizedBox(width: 20),
+                    Row(
+                      children: [
+                        Text(widget.isArabic ? 'عرض المؤرشفة' : 'Show Archived'),
+                        Switch(
+                          activeColor:isDark?Colors.green[400] : Colors.blue,
+                          value: showArchived,
+                          onChanged: (val) => setState(() => showArchived = val),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    ElevatedButton.icon(
+                      onPressed: () => _openPackageEditor(),
+                      icon: const Icon(Icons.add_box,color:Colors.white),
+                      label: Text(widget.isArabic ? 'إضافة باقة' : 'Add Package',style:TextStyle(color:Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:isDark ? Colors.green.shade800 : Colors.blue.shade800,
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       ),
-                    ],
-                  ),
-                  const Spacer(),
-                  ElevatedButton.icon(
-                    onPressed: () => _openPackageEditor(),
-                    icon: const Icon(Icons.add_box),
-                    label: const Text('إضافة باقة'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // كروت إحصائيات
-              Row(
-                children: [
-                  Expanded(
-                    child: StatCardGradient(
-                      title: 'عدد الباقات',
-                      value: packages.where((p) => !p.isArchived).length.toString(),
-                      icon: Icons.card_giftcard,
-                      gradient: const LinearGradient(colors: [Colors.deepPurple, Colors.purpleAccent]),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: StatCardGradient(
-                      title: 'إجمالي المشتركين',
-                      value: totalSubscribers.toString(),
-                      icon: Icons.people,
-                      gradient: const LinearGradient(colors: [Colors.teal, Colors.greenAccent]),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: StatCardGradient(
-                      title: 'باقات مجدولة مستقبلية',
-                      value: packages.where((p) => p.isScheduledFuture).length.toString(),
-                      icon: Icons.schedule,
-                      gradient: const LinearGradient(colors: [Colors.orange, Colors.deepOrangeAccent]),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // شبكة الباقات
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  mainAxisExtent: 400,
-                  crossAxisSpacing: 20,
-                  mainAxisSpacing: 20,
+                  ],
                 ),
-                itemCount: filteredPackages.length,
-                itemBuilder: (context, i) {
-                  final p = filteredPackages[i];
-                  return PackageCardAdvanced(
-                    package: p,
-                    onEdit: () => _openPackageEditor(existing: p, index: i),
-                    onArchive: () => _toggleArchive(i),
-                    onToggleStatus: () => _toggleStatus(i),
-                    onNotify: () => _openNotificationModal(p),
-                    onViewLogs: () => showModalBottomSheet(
-                      context: context,
-                      shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-                      builder: (_) => LogsViewer(package: p),
+                const SizedBox(height: 24),
+
+                // كروت إحصائيات
+                Row(
+                  children: [
+                    Expanded(
+                      child: StatCardGradient(
+                        title: widget.isArabic ? 'عدد الباقات' : 'Number of Packages',
+                        value: _packages.where((p) => !p.isArchived).length.toString(),
+                        icon: Icons.card_giftcard,
+                        gradient:
+                         LinearGradient(colors:isDark?[Color(0xFF54D3B3), ?Colors.green[900]]: [?Colors.red[300]?.withOpacity(.3), Colors.blue.withOpacity(.3)]), isArabic:widget.isArabic,
+                      ),
                     ),
-                  );
-                },
-              ),
-              const SizedBox(height: 40),
-            ],
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: StatCardGradient(
+                        title: widget.isArabic ? 'إجمالي المشتركين' : 'Total Subscribers',
+                        value: totalSubscribers.toString(),
+                        icon: Icons.people,
+                        gradient:  LinearGradient(colors:isDark?[Color(0xFF54D3B3), ?Colors.green[900]]: [?Colors.orange[300]?.withOpacity(.3), ?Colors.blue[800]?.withOpacity(.3)]),isArabic:widget.isArabic,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: StatCardGradient(
+                        title: widget.isArabic ? 'باقات مجدولة مستقبلية' : 'Scheduled Packages',
+                        value: _packages.where((p) => p.isScheduledFuture).length.toString(),
+                        icon: Icons.schedule,
+                        gradient:
+                         LinearGradient(colors:isDark?[Color(0xFF54D3B3), ?Colors.green[900]] :[?Colors.green[200]?.withOpacity(.3), ?Colors.blue[900]?.withOpacity(.3)] ),isArabic:widget.isArabic,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // شبكة الباقات
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    mainAxisExtent: 400,
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                  ),
+                  itemCount: filteredPackages.length,
+                  itemBuilder: (context, i) {
+                    final p = filteredPackages[i];
+                    return PackageCardAdvanced(
+                      package: p,
+                      onEdit: () => _openPackageEditor(existing: p, index: i),
+                      onArchive: () => _toggleArchive(i),
+                      onToggleStatus: () => _toggleStatus(i),
+                      onNotify: () => _openNotificationModal(p),
+                      onViewLogs: () => showModalBottomSheet(
+                        context: context,
+                        shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+                        builder: (_) => LogsViewer(package: p),
+                      ),isArabic:widget.isArabic,
+                    );
+                  },
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),
@@ -374,47 +423,65 @@ class StatCardGradient extends StatelessWidget {
   final String value;
   final IconData icon;
   final LinearGradient gradient;
+  final bool isArabic; // إضافة
 
   const StatCardGradient({
-  super.key,
-  required this.title,
-  required this.value,
-  required this.icon,
-  required this.gradient,
+    super.key,
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.gradient,
+    required this.isArabic, // إضافة
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      elevation: 6,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [BoxShadow(color: gradient.colors.last.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 6))],
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: Colors.white.withOpacity(0.3),
-              radius: 28,
-              child: Icon(icon, color: Colors.white, size: 28),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white, height: 1.1)),
-                  const SizedBox(height: 6),
-                  Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-                ],
+    return Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        elevation: 6,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: gradient,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                  color: gradient.colors.last.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 6))
+            ],
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: Colors.white.withOpacity(0.3),
+                radius: 28,
+                child: Icon(icon, color: Colors.white, size: 28),
               ),
-            ),
-          ],
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            height: 1.1)),
+                    const SizedBox(height: 6),
+                    Text(value,
+                        style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white)),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -429,182 +496,222 @@ class PackageCardAdvanced extends StatelessWidget {
   final VoidCallback onToggleStatus;
   final VoidCallback onNotify;
   final VoidCallback onViewLogs;
+  final bool isArabic; // إضافة
 
   const PackageCardAdvanced({
-  super.key,
-  required this.package,
-  required this.onEdit,
-  required this.onArchive,
-  required this.onToggleStatus,
-  required this.onNotify,
-  required this.onViewLogs,
+    super.key,
+    required this.package,
+    required this.onEdit,
+    required this.onArchive,
+    required this.onToggleStatus,
+    required this.onNotify,
+    required this.onViewLogs,
+    required this.isArabic, // إضافة
   });
 
   @override
   Widget build(BuildContext context) {
-    final gradient = const LinearGradient(
-      colors: [Color(0xFF5E35B1), Color(0xFF7E57C2)],
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final gradient =  LinearGradient(
+      colors:isDark?[
+        Colors.green.shade700.withOpacity(.3),
+        Colors.green.shade500.withOpacity(.3),
+        Color(0xFFB3A664).withOpacity(.3),
+        Colors.green.shade600.withOpacity(.3),
+        ?Colors.green[900]?.withOpacity(.3),
+      ]: [
+        Colors.blue.shade700.withOpacity(.4),
+        Colors.blue.shade500.withOpacity(.4),
+        Colors.blue.shade300.withOpacity(.4),
+        Colors.blue.shade600.withOpacity(.4),
+        ?Colors.blue[900],
+      ],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     );
 
-    return Stack(
-      children: [
-        Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          elevation: 12,
-          shadowColor: Colors.deepPurple.withOpacity(0.5),
-          clipBehavior: Clip.hardEdge,
-          child: Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              gradient: gradient,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [BoxShadow(color: Colors.deepPurple.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 8))],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // بانر ذكي اذا الباقة بدون مشتركين مدة طويلة
-                if (package.shouldShowInactiveBanner)
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: const [
-                        Icon(Icons.info_outline, size: 18, color: Colors.black87),
-                        SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'لا يوجد مشتركين في هذه الباقة منذ أكثر من شهر. قد تحتاج تحديثها أو ترويجها.',
-                            style: TextStyle(fontSize: 12, color: Colors.black87),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        package.name,
-                        style: const TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                    ),
-                    // حالة الباقة
+    return Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Stack(
+        children: [
+          Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            elevation: 12,
+            shadowColor:isDark?Colors.green.withOpacity(0.5): Colors.blue.withOpacity(0.5),
+            clipBehavior: Clip.hardEdge,
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: gradient,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                      color:isDark?Colors.green.withOpacity(0.3): Colors.blue.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 8))
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (package.shouldShowInactiveBanner)
                     Container(
-                      padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                      margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
-                        color: package.status == PackageStatus.active
-                            ? Colors.greenAccent.shade200
-                            : Colors.grey.shade700,
+                        color: Colors.amber.shade100,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Text(
-                        package.status == PackageStatus.active ? 'مفعلة' : 'معطله',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, size: 18, color: Colors.black87),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              isArabic
+                                  ? 'لا يوجد مشتركين في هذه الباقة منذ أكثر من شهر. قد تحتاج تحديثها أو ترويجها.'
+                                  : 'No subscribers in this package for over a month. You may need to update or promote it.',
+                              style: const TextStyle(fontSize: 12, color: Colors.black87),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          )
+                        ],
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: [
-                    _infoTag('ID: ${package.id}'),
-                    _infoTag('السعر: ${package.price.toStringAsFixed(2)} ر.س'),
-                    _infoTag('المدة: ${package.durationDays} يوم'),
-                    if (package.discount != null)
-                      _infoTag('خصم: ${package.discount!.toStringAsFixed(2)} ر.س',
-                          background: Colors.redAccent.shade100),
-                    if (package.isScheduledFuture)
-                      _infoTag(
-                        'تبدأ: ${DateFormat('yyyy/MM/dd').format(package.startDate!)}',
-                        background: Colors.orange.shade100,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          package.name,
+                          style: const TextStyle(
+                              fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
                       ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                const Text('المميزات:', style: TextStyle(fontSize: 14, color: Colors.white70)),
-                const SizedBox(height: 6),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: package.features
-                          .map((f) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Text('• $f',
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 13)),
-                      ))
-                          .toList(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: package.status == PackageStatus.active
+                              ? Colors.green.shade400
+                              : Colors.grey.shade700,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          package.status == PackageStatus.active
+                              ? (isArabic ? 'مفعلة' : 'Active')
+                              : (isArabic ? 'معطله' : 'Paused'),
+                          style: const TextStyle(fontWeight: FontWeight.bold,color:Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      _infoTag('ID: ${package.id}'),
+                      _infoTag(isArabic
+                          ? 'السعر: ${package.price.toStringAsFixed(2)} ر.س'
+                          : 'Price: ${package.price.toStringAsFixed(2)} SAR'),
+                      _infoTag(isArabic
+                          ? 'المدة: ${package.durationDays} يوم'
+                          : 'Duration: ${package.durationDays} days'),
+                      if (package.discount != null)
+                        _infoTag(
+                          isArabic
+                              ? 'خصم: ${package.discount!.toStringAsFixed(2)} ر.س'
+                              : 'Discount: ${package.discount!.toStringAsFixed(2)} SAR',
+                          background: Colors.redAccent.shade200,
+                        ),
+                      if (package.isScheduledFuture)
+                        _infoTag(
+                          isArabic
+                              ? 'تبدأ: ${DateFormat('yyyy/MM/dd').format(package.startDate!)}'
+                              : 'Starts: ${DateFormat('yyyy/MM/dd').format(package.startDate!)}',
+                          background: Colors.orange.shade100,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    isArabic ? 'المميزات:' : 'Features:',
+                    style:  TextStyle(fontSize: 14, color:isDark?Colors.white:Colors.white),
+                  ),
+                  const SizedBox(height: 6),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: package.features
+                            .map(
+                              (f) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Text('• $f',
+                                style:
+                                 TextStyle(color:isDark?Colors.white:Colors.white, fontSize: 13)),
+                          ),
+                        )
+                            .toList(),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'مشتركين: ${package.subscribers}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            fontSize: 15),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          isArabic
+                              ? 'مشتركين: ${package.subscribers}'
+                              : 'Subscribers: ${package.subscribers}',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _smallAction(Icons.edit, 'تعديل', onEdit),
-                    _smallAction(
-                        package.isArchived ? Icons.unarchive : Icons.archive,
-                        package.isArchived ? 'استرجاع' : 'أرشفة', onArchive),
-                    _smallAction(
-                        package.status == PackageStatus.active
-                            ? Icons.pause_circle
-                            : Icons.play_circle_fill,
-                        package.status == PackageStatus.active
-                            ? 'إيقاف'
-                            : 'تفعيل', onToggleStatus),
-                    _smallAction(Icons.notifications_active, 'إشعار', onNotify),
-                    _smallAction(Icons.history, 'سجل', onViewLogs),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        // علامة مؤرشفة صغيرة
-        if (package.isArchived)
-          Positioned(
-            top: 10,
-            right: 10,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                'مؤرشف',
-                style: TextStyle(color: Colors.white, fontSize: 12),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _smallAction(Icons.edit, isArabic ? 'تعديل' : 'Edit', onEdit),
+                      _smallAction(
+                          package.isArchived ? Icons.unarchive : Icons.archive,
+                          package.isArchived ? (isArabic ? 'استرجاع' : 'Restore') : (isArabic ? 'أرشفة' : 'Archive'),
+                          onArchive),
+                      _smallAction(
+                          package.status == PackageStatus.active
+                              ? Icons.pause_circle
+                              : Icons.play_circle_fill,
+                          package.status == PackageStatus.active
+                              ? (isArabic ? 'إيقاف' : 'Pause')
+                              : (isArabic ? 'تفعيل' : 'Activate'),
+                          onToggleStatus),
+                      _smallAction(Icons.notifications_active, isArabic ? 'إشعار' : 'Notify', onNotify),
+                      _smallAction(Icons.history, isArabic ? 'سجل' : 'Logs', onViewLogs),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
-      ],
+          if (package.isArchived)
+            Positioned(
+              top: 10,
+              right: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  isArabic ? 'مؤرشف' : 'Archived',
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -637,12 +744,14 @@ class PackageEditor extends StatefulWidget {
   final Package? existing;
   final int Function() generateId;
   final void Function(Package) onSave;
+  final bool isArabic;  // إضافة
 
   const PackageEditor({
-  super.key,
-  this.existing,
-  required this.generateId,
-  required this.onSave,
+    super.key,
+    this.existing,
+    required this.generateId,
+    required this.onSave,
+    required this.isArabic,  // إضافة
   });
 
   @override
@@ -703,7 +812,7 @@ class _PackageEditorState extends State<PackageEditor> {
       initialDate: startDate ?? now,
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
-      locale: const Locale('ar'),
+      locale: Locale(widget.isArabic ? 'ar' : 'en'),
     );
     if (picked != null) {
       setState(() {
@@ -714,12 +823,17 @@ class _PackageEditorState extends State<PackageEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final previewPackage = Package(
-      name: _name.text.trim().isEmpty ? 'اسم الباقة' : _name.text.trim(),
+      name: _name.text.trim().isEmpty
+          ? (widget.isArabic ? 'اسم الباقة' : 'Package Name')
+          : _name.text.trim(),
       id: id,
       price: double.tryParse(_price.text.trim()) ?? 0,
       durationDays: int.tryParse(_duration.text.trim()) ?? 0,
-      discount: _discount.text.trim().isEmpty ? null : double.tryParse(_discount.text.trim()),
+      discount: _discount.text.trim().isEmpty
+          ? null
+          : double.tryParse(_discount.text.trim()),
       features: features,
       subscribers: widget.existing?.subscribers ?? 0,
       status: status,
@@ -744,8 +858,14 @@ class _PackageEditorState extends State<PackageEditor> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  widget.existing == null ? 'إضافة باقة جديدة' : 'تعديل الباقة',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  widget.existing == null
+                      ? (widget.isArabic ? 'إضافة باقة جديدة' : 'Add New Package')
+                      : (widget.isArabic ? 'تعديل الباقة' : 'Edit Package'),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                     color:isDark?Color(0xFFD7EFDC): Colors.blue[900],
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close),
@@ -763,38 +883,58 @@ class _PackageEditorState extends State<PackageEditor> {
                       Expanded(
                         child: TextFormField(
                           controller: _name,
-                          decoration: const InputDecoration(labelText: 'اسم الباقة *'),
-                          validator: (v) => v == null || v.trim().isEmpty ? 'الرجاء إدخال اسم' : null,
+                          decoration: InputDecoration(
+                            labelText: widget.isArabic ? 'اسم الباقة *' : 'Package Name *',
+                            labelStyle: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
+                          ),
+                          validator: (v) => v == null || v.trim().isEmpty
+                              ? (widget.isArabic ? 'الرجاء إدخال اسم' : 'Please enter a name')
+                              : null,
                         ),
                       ),
                       const SizedBox(width: 16),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                            color: status == PackageStatus.active
-                                ? Colors.green.shade50
-                                : Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(12)),
+                          color: status == PackageStatus.active
+                              ? Colors.green.shade50
+                              : Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: Row(
                           children: [
-                            const Text('الحالة: '),
+                            Text(
+                              widget.isArabic ? 'الحالة: ' : 'Status: ',
+                              style: TextStyle(color:isDark? Colors.green: Colors.blue[900]),
+                            ),
                             const SizedBox(width: 4),
                             Text(
-                              status == PackageStatus.active ? 'مفعلة' : 'معطله',
+                              status == PackageStatus.active
+                                  ? (widget.isArabic ? 'مفعلة' : 'Active')
+                                  : (widget.isArabic ? 'معطله' : 'Paused'),
                               style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: status == PackageStatus.active ? Colors.green : Colors.grey[700]),
+                                fontWeight: FontWeight.bold,
+                                color: status == PackageStatus.active
+                                    ? Colors.green
+                                    : Colors.grey[700],
+                              ),
                             ),
                             const SizedBox(width: 8),
                             InkWell(
                               onTap: () {
                                 setState(() {
-                                  status = status == PackageStatus.active ? PackageStatus.paused : PackageStatus.active;
+                                  status = status == PackageStatus.active
+                                      ? PackageStatus.paused
+                                      : PackageStatus.active;
                                 });
                               },
                               child: Icon(
-                                status == PackageStatus.active ? Icons.pause_circle : Icons.play_circle_fill,
-                                color: status == PackageStatus.active ? Colors.green : Colors.grey[700],
+                                status == PackageStatus.active
+                                    ? Icons.pause_circle
+                                    : Icons.play_circle_fill,
+                                color: status == PackageStatus.active
+                                    ? Colors.green
+                                    : Colors.grey[700],
                               ),
                             )
                           ],
@@ -808,11 +948,16 @@ class _PackageEditorState extends State<PackageEditor> {
                       Expanded(
                         child: TextFormField(
                           controller: _price,
-                          decoration: const InputDecoration(labelText: 'السعر *'),
+                          decoration: InputDecoration(
+                            labelText: widget.isArabic ? 'السعر *' : 'Price *',
+                            labelStyle: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
+                          ),
                           keyboardType: TextInputType.number,
                           validator: (v) {
                             final d = double.tryParse(v ?? '');
-                            if (d == null || d <= 0) return 'سعر غير صالح';
+                            if (d == null || d <= 0) {
+                              return widget.isArabic ? 'سعر غير صالح' : 'Invalid price';
+                            }
                             return null;
                           },
                         ),
@@ -821,11 +966,16 @@ class _PackageEditorState extends State<PackageEditor> {
                       Expanded(
                         child: TextFormField(
                           controller: _duration,
-                          decoration: const InputDecoration(labelText: 'مدة (يوم) *'),
+                          decoration: InputDecoration(
+                            labelText: widget.isArabic ? 'مدة (يوم) *' : 'Duration (days) *',
+                            labelStyle: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
+                          ),
                           keyboardType: TextInputType.number,
                           validator: (v) {
                             final d = int.tryParse(v ?? '');
-                            if (d == null || d <= 0) return 'مدة غير صالحة';
+                            if (d == null || d <= 0) {
+                              return widget.isArabic ? 'مدة غير صالحة' : 'Invalid duration';
+                            }
                             return null;
                           },
                         ),
@@ -835,7 +985,10 @@ class _PackageEditorState extends State<PackageEditor> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _discount,
-                    decoration: const InputDecoration(labelText: 'خصم (اختياري)'),
+                    decoration: InputDecoration(
+                      labelText: widget.isArabic ? 'خصم (اختياري)' : 'Discount (optional)',
+                      labelStyle: TextStyle(color: isDark?Color(0xFFD7EFDC):Colors.blue[900]),
+                    ),
                     keyboardType: TextInputType.number,
                   ),
                   const SizedBox(height: 12),
@@ -848,7 +1001,10 @@ class _PackageEditorState extends State<PackageEditor> {
                           children: predefinedFeatures.map((f) {
                             final selected = features.contains(f);
                             return FilterChip(
-                              label: Text(f),
+                              label: Text(
+                                f,
+                                style: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
+                              ),
                               selected: selected,
                               onSelected: (sel) {
                                 setState(() {
@@ -866,7 +1022,10 @@ class _PackageEditorState extends State<PackageEditor> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: TextFormField(
-                          decoration: const InputDecoration(labelText: 'ميزة جديدة'),
+                          decoration: InputDecoration(
+                            labelText: widget.isArabic ? 'ميزة جديدة' : 'New Feature',
+                            labelStyle: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
+                          ),
                           onChanged: (v) => newFeature = v,
                           onFieldSubmitted: (_) {
                             if (newFeature.trim().isNotEmpty) {
@@ -883,11 +1042,19 @@ class _PackageEditorState extends State<PackageEditor> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Text('تاريخ بداية (جدولة):'),
+                      Text(
+                        widget.isArabic ? 'تاريخ بداية (جدولة):' : 'Start Date (Scheduled):',
+                        style: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
+                      ),
                       const SizedBox(width: 12),
                       Text(
-                        startDate != null ? DateFormat('yyyy/MM/dd').format(startDate!) : 'غير محدد',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        startDate != null
+                            ? DateFormat('yyyy/MM/dd').format(startDate!)
+                            : (widget.isArabic ? 'غير محدد' : 'Not set'),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color:isDark?Color(0xFFD7EFDC): Colors.blue[900],
+                        ),
                       ),
                       IconButton(icon: const Icon(Icons.calendar_today), onPressed: _pickStartDate),
                       if (startDate != null)
@@ -905,13 +1072,19 @@ class _PackageEditorState extends State<PackageEditor> {
             // معاينة تفاعلية مباشرة
             Align(
               alignment: Alignment.centerRight,
-              child: Text('معاينة الباقة', style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.blueGrey,
-              ),),
+              child: Text(
+                widget.isArabic ? 'معاينة الباقة' : 'Package Preview',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color:isDark?Color(0xFFD7EFDC): Colors.blue[900],
+                ),
+              ),
             ),
             const SizedBox(height: 8),
-            PackageCardPreview(package: previewPackage),
+            PackageCardPreview(
+              package: previewPackage,
+              isDark: isDark,
+            ),
 
             const SizedBox(height: 20),
             ElevatedButton(
@@ -922,25 +1095,36 @@ class _PackageEditorState extends State<PackageEditor> {
                     id: id,
                     price: double.parse(_price.text.trim()),
                     durationDays: int.parse(_duration.text.trim()),
-                    discount: _discount.text.trim().isEmpty ? null : double.parse(_discount.text.trim()),
+                    discount: _discount.text.trim().isEmpty
+                        ? null
+                        : double.parse(_discount.text.trim()),
                     features: features,
                     subscribers: widget.existing?.subscribers ?? 0,
                     status: status,
                     startDate: startDate,
                     isArchived: widget.existing?.isArchived ?? false,
                     logs: widget.existing?.logs ?? [],
-                    lastZeroSubscriberDetected: widget.existing?.lastZeroSubscriberDetected,
+                    lastZeroSubscriberDetected:
+                    widget.existing?.lastZeroSubscriberDetected,
                   );
-                  pkg.addLog(widget.existing == null ? 'إنشاء باقة جديدة' : 'تعديل باقة');
+                  pkg.addLog(widget.existing == null
+                      ? (widget.isArabic ? 'إنشاء باقة جديدة' : 'Created new package')
+                      : (widget.isArabic ? 'تعديل باقة' : 'Edited package'));
                   widget.onSave(pkg);
                   Navigator.pop(context);
                 }
               },
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-              child: Text(widget.existing == null ? 'أنشئ الباقة' : 'حفظ التعديل'),
+                backgroundColor: isDark ? Colors.green[800] : Colors.blue,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              ),
+              child: Text(
+                widget.existing == null
+                    ? (widget.isArabic ? 'أنشئ الباقة' : 'Create Package')
+                    : (widget.isArabic ? 'حفظ التعديل' : 'Save Changes'),
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
             const SizedBox(height: 16),
           ],
@@ -952,16 +1136,33 @@ class _PackageEditorState extends State<PackageEditor> {
 
 class PackageCardPreview extends StatelessWidget {
   final Package package;
+  final bool isArabic;
+  final bool isDark;
 
-  const PackageCardPreview({super.key, required this.package});
+  const PackageCardPreview({
+    super.key,
+    required this.package,
+    this.isArabic = true,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final gradient = const LinearGradient(
-      colors: [Color(0xFF7B1FA2), Color(0xFF8E24AA)],
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final gradient = LinearGradient(
+      colors:isDark?[
+        Colors.green.shade900,
+        Colors.green.shade600,
+        Colors.lightGreen.shade400,
+      ]: [
+        Colors.indigo.shade900.withOpacity(.3),
+        Colors.blue.shade600.withOpacity(.3),
+        Colors.lightBlue.shade400.withOpacity(.3),
+      ],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     );
+
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       elevation: 8,
@@ -975,25 +1176,63 @@ class PackageCardPreview extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(package.name,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            Text(
+              package.name,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color:isDark?Color(0xFFD7EFDC): Colors.blue[900], // أزرق غامق
+              ),
+            ),
             const SizedBox(height: 6),
-            Text('ID: ${package.id}', style: const TextStyle(color: Colors.white70)),
+            Text(
+              isArabic ? 'الرقم التعريفي: ${package.id}' : 'ID: ${package.id}',
+              style: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
+            ),
             const SizedBox(height: 4),
-            Text('السعر: ${package.price} ر.س', style: const TextStyle(color: Colors.white70)),
-            Text('المدة: ${package.durationDays} يوم', style: const TextStyle(color: Colors.white70)),
+            Text(
+              isArabic ? 'السعر: ${package.price} ر.س' : 'Price: ${package.price} SAR',
+              style: TextStyle(color: isDark?Color(0xFFD7EFDC):Colors.blue[900]),
+            ),
+            Text(
+              isArabic
+                  ? 'المدة: ${package.durationDays} يوم'
+                  : 'Duration: ${package.durationDays} days',
+              style: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
+            ),
             if (package.discount != null)
-              Text('خصم: ${package.discount}', style: const TextStyle(color: Colors.redAccent)),
+              Text(
+                isArabic
+                    ? 'خصم: ${package.discount}'
+                    : 'Discount: ${package.discount}',
+                style: const TextStyle(color: Colors.redAccent),
+              ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 6,
-              children: package.features.map((f) => Chip(label: Text(f), backgroundColor: Colors.white24)).toList(),
+              children: package.features
+                  .map(
+                    (f) => Chip(
+                  label: Text(f, style: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900])),
+                  backgroundColor: Colors.white24,
+                ),
+              )
+                  .toList(),
             ),
             const SizedBox(height: 6),
-            Text('مشتركين: ${package.subscribers}', style: const TextStyle(color: Colors.white)),
+            Text(
+              isArabic
+                  ? 'مشتركين: ${package.subscribers}'
+                  : 'Subscribers: ${package.subscribers}',
+              style: TextStyle(color: isDark?Color(0xFFD7EFDC):Colors.blue[900]),
+            ),
             if (package.isScheduledFuture)
-              Text('تبدأ: ${DateFormat('yyyy/MM/dd').format(package.startDate!)}',
-                  style: const TextStyle(color: Colors.orangeAccent)),
+              Text(
+                isArabic
+                    ? 'تبدأ: ${DateFormat('yyyy/MM/dd').format(package.startDate!)}'
+                    : 'Starts: ${DateFormat('yyyy/MM/dd').format(package.startDate!)}',
+                style: const TextStyle(color: Colors.orangeAccent),
+              ),
           ],
         ),
       ),
@@ -1005,8 +1244,14 @@ class PackageCardPreview extends StatelessWidget {
 class NotificationModal extends StatefulWidget {
   final Package package;
   final void Function(String method, String title, String content, DateTime? scheduled) onSent;
+  final bool isArabic;
 
-  const NotificationModal({super.key, required this.package, required this.onSent});
+  const NotificationModal({
+    super.key,
+    required this.package,
+    required this.onSent,
+    this.isArabic = true,
+  });
 
   @override
   State<NotificationModal> createState() => _NotificationModalState();
@@ -1015,8 +1260,14 @@ class NotificationModal extends StatefulWidget {
 class _NotificationModalState extends State<NotificationModal> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
-  String sendMethod = 'داخل التطبيق';
+  late String sendMethod;
   DateTime? scheduledDate;
+
+  @override
+  void initState() {
+    super.initState();
+    sendMethod = widget.isArabic ? 'داخل التطبيق' : 'In-App';
+  }
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
@@ -1025,49 +1276,65 @@ class _NotificationModalState extends State<NotificationModal> {
       initialDate: scheduledDate ?? now,
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
-      locale: const Locale('ar'),
+      locale: widget.isArabic ? const Locale('ar') : const Locale('en'),
     );
     if (picked != null) setState(() => scheduledDate = picked);
   }
 
   @override
   Widget build(BuildContext context) {
-    final previewTitle = _titleController.text.trim().isEmpty ? 'عنوان تجريبي' : _titleController.text.trim();
-    final previewContent = _contentController.text.trim().isEmpty ? 'محتوى الإشعار سيظهر هنا.' : _contentController.text.trim();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final previewTitle = _titleController.text.trim().isEmpty
+        ? (widget.isArabic ? 'عنوان تجريبي' : 'Sample Title')
+        : _titleController.text.trim();
+
+    final previewContent = _contentController.text.trim().isEmpty
+        ? (widget.isArabic ? 'محتوى الإشعار سيظهر هنا.' : 'Notification content will appear here.')
+        : _contentController.text.trim();
+
+    final methods = widget.isArabic
+        ? ['داخل التطبيق', 'رسائل الهاتف SMS', 'البريد الإلكتروني']
+        : ['In-App', 'SMS', 'Email'];
 
     return Padding(
       padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16, top: 16, left: 16, right: 16),
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          top: 16,
+          left: 16,
+          right: 16),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
-                Text('إرسال إشعار لـ "${widget.package.name}"',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const Spacer(),
+                Expanded(
+                  child: Text(
+                    widget.isArabic
+                        ? 'إرسال إشعار لـ "${widget.package.name}"'
+                        : 'Send Notification to "${widget.package.name}"',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
                 IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
               ],
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(labelText: 'عنوان الإشعار *'),
+              decoration: InputDecoration(labelText: widget.isArabic ? 'عنوان الإشعار *' : 'Notification Title *'),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _contentController,
-              decoration: const InputDecoration(labelText: 'محتوى الإشعار *'),
+              decoration: InputDecoration(labelText: widget.isArabic ? 'محتوى الإشعار *' : 'Notification Content *'),
               maxLines: 4,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: sendMethod,
-              decoration: const InputDecoration(labelText: 'طريقة الإرسال'),
-              items: ['داخل التطبيق', 'رسائل الهاتف SMS', 'البريد الإلكتروني'].map((e) {
-                return DropdownMenuItem(value: e, child: Text(e));
-              }).toList(),
+              decoration: InputDecoration(labelText: widget.isArabic ? 'طريقة الإرسال' : 'Send Method'),
+              items: methods.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
               onChanged: (v) {
                 if (v != null) setState(() => sendMethod = v);
               },
@@ -1075,11 +1342,11 @@ class _NotificationModalState extends State<NotificationModal> {
             const SizedBox(height: 12),
             Row(
               children: [
-                const Text('جدولة الإرسال:'),
+                Text(widget.isArabic ? 'جدولة الإرسال:' : 'Schedule Send:'),
                 const SizedBox(width: 8),
                 Text(scheduledDate != null
                     ? DateFormat('yyyy/MM/dd').format(scheduledDate!)
-                    : 'غير مجدول'),
+                    : (widget.isArabic ? 'غير مجدول' : 'Not Scheduled')),
                 IconButton(icon: const Icon(Icons.calendar_today), onPressed: _pickDate),
                 if (scheduledDate != null)
                   IconButton(icon: const Icon(Icons.clear), onPressed: () => setState(() => scheduledDate = null)),
@@ -1095,16 +1362,21 @@ class _NotificationModalState extends State<NotificationModal> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('معاينة الإشعار', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[800])),
+                    Text(
+                      widget.isArabic ? 'معاينة الإشعار' : 'Notification Preview',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[800]),
+                    ),
                     const SizedBox(height: 8),
-                    Text('العنوان: $previewTitle', style: const TextStyle(fontSize: 16)),
+                    Text('${widget.isArabic ? 'العنوان' : 'Title'}: $previewTitle', style: const TextStyle(fontSize: 16)),
                     const SizedBox(height: 6),
-                    Text('المحتوى: $previewContent'),
+                    Text('${widget.isArabic ? 'المحتوى' : 'Content'}: $previewContent'),
                     const SizedBox(height: 6),
-                    Text('الطريقة: $sendMethod'),
+                    Text('${widget.isArabic ? 'الطريقة' : 'Method'}: $sendMethod'),
                     if (scheduledDate != null)
-                      Text('مجدول لـ: ${DateFormat('yyyy/MM/dd').format(scheduledDate!)}',
-                          style: const TextStyle(color: Colors.deepPurple)),
+                      Text(
+                        '${widget.isArabic ? 'مجدول لـ' : 'Scheduled for'}: ${DateFormat('yyyy/MM/dd').format(scheduledDate!)}',
+                        style:   TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue),
+                      ),
                   ],
                 ),
               ),
@@ -1113,18 +1385,22 @@ class _NotificationModalState extends State<NotificationModal> {
             ElevatedButton(
               onPressed: () {
                 if (_titleController.text.trim().isEmpty || _contentController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(const SnackBar(content: Text('يرجى ملء عنوان ومحتوى الإشعار')));
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(widget.isArabic
+                        ? 'يرجى ملء عنوان ومحتوى الإشعار'
+                        : 'Please fill in the title and content of the notification',style:TextStyle(color:Colors.white)),
+                  ));
                   return;
                 }
                 widget.onSent(sendMethod, _titleController.text.trim(), _contentController.text.trim(), scheduledDate);
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 30),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-              child: const Text('إرسال الإشعار'),
+                backgroundColor:isDark?Colors.green: Colors.blue,
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 30),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              ),
+              child: Text(widget.isArabic ? 'إرسال الإشعار' : 'Send Notification',style:TextStyle(color:Colors.white)),
             ),
             const SizedBox(height: 16),
           ],
@@ -1137,8 +1413,13 @@ class _NotificationModalState extends State<NotificationModal> {
 // عارض السجل
 class LogsViewer extends StatelessWidget {
   final Package package;
+  final bool isArabic;
 
-  const LogsViewer({super.key, required this.package});
+  const LogsViewer({
+    super.key,
+    required this.package,
+    this.isArabic = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1150,9 +1431,18 @@ class LogsViewer extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
             child: Row(
               children: [
-                Text('سجل الباقة: ${package.name}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const Spacer(),
-                Text(DateFormat('yyyy/MM/dd').format(package.createdAt), style: const TextStyle(color: Colors.grey)),
+                Expanded(
+                  child: Text(
+                    isArabic
+                        ? 'سجل الباقة: ${package.name}'
+                        : 'Package Logs: ${package.name}',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Text(
+                  DateFormat('yyyy/MM/dd').format(package.createdAt),
+                  style: const TextStyle(color: Colors.grey),
+                ),
               ],
             ),
           ),
@@ -1165,7 +1455,9 @@ class LogsViewer extends StatelessWidget {
                 return ListTile(
                   leading: const Icon(Icons.history),
                   title: Text(log.message),
-                  subtitle: Text(DateFormat('yyyy/MM/dd HH:mm').format(log.timestamp)),
+                  subtitle: Text(
+                    DateFormat('yyyy/MM/dd HH:mm').format(log.timestamp),
+                  ),
                 );
               },
             ),
