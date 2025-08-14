@@ -1,22 +1,62 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../providers/app_providers.dart';
 
 class DashboardStatsSection extends StatelessWidget {
   const DashboardStatsSection({super.key});
 
+  // خريطة النصوص باللغتين
+  static final Map<String, Map<String, String>> localizedStrings = {
+    'en': {
+      'number_of_users': 'Number of users',
+      'annual_subscribers': 'Annual Subscribers',
+      'total_admins': 'Number of Admins',
+      'whatsapp_messages': 'WhatsApp Messages Sent',
+      'telegram_messages': 'Telegram Messages Sent',
+      'whatsapp_groups': 'WhatsApp Groups',
+      'telegram_channels': 'Telegram Channels',
+      'usage_percentages': 'Usage Percentages',
+      'platform_stats': 'Platform Statistics',
+      'user_subscriptions': 'User Subscriptions',
+      'platforms': 'WhatsApp,Telegram,Haraj,Facebook,TikTok,Instagram,X,SMS,Email',
+      'months': 'January,February,March,April,May,June,July,August,September,October,November,December',
+    },
+    'ar': {
+      'number_of_users': 'عدد المستخدمين',
+      'annual_subscribers': 'عدد المشتركين سنويًا',
+      'total_admins': 'عدد المسؤولين',
+      'whatsapp_messages': 'عدد الرسائل المرسلة (واتساب)',
+      'telegram_messages': 'عدد الرسائل المرسلة (تليجرام)',
+      'whatsapp_groups': 'عدد جروبات الواتساب',
+      'telegram_channels': 'عدد قنوات التليجرام',
+      'usage_percentages': 'نسب الاستخدام',
+      'platform_stats': 'إحصائيات المنصات',
+      'user_subscriptions': 'اشتراكات المستخدمين',
+      'platforms': 'واتساب,تليجرام,حراج,فيسبوك,تيك توك,إنستقرام,إكس,SMS,البريد',
+      'months': 'يناير,فبراير,مارس,أبريل,مايو,يونيو,يوليو,أغسطس,سبتمبر,أكتوبر,نوفمبر,ديسمبر',
+    },
+  };
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final isArabic = localeProvider.locale.languageCode == 'ar';
+
+    final langCode = isArabic ? 'ar' : 'en';
+    final strings = localizedStrings[langCode]!;
 
     // تدرج لوني للخلفية (فاتح أو داكن حسب الوضع)
     final cardGradient = isDark
         ? LinearGradient(
-      colors: [Colors.grey.shade900, Colors.grey.shade800],
+      colors: [const Color(0xFF313D35), const Color(0xFF4D5D53)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     )
         : LinearGradient(
-      colors: [Colors.white, Colors.grey.shade100],
+      colors: [Colors.white, Colors.white],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     );
@@ -35,10 +75,10 @@ class DashboardStatsSection extends StatelessWidget {
       ),
     ];
 
-    final titleStyle = Theme.of(context)
-        .textTheme
-        .titleMedium!
-        .copyWith(fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black87);
+    final titleStyle = Theme.of(context).textTheme.titleMedium!.copyWith(
+      fontWeight: FontWeight.bold,
+      color: isDark ? Colors.white70 : Colors.black87,
+    );
 
     // بيانات إحصائيات وهمية (يمكن تغييرها للبيانات الحقيقية)
     const totalUsers = '2500';
@@ -49,195 +89,193 @@ class DashboardStatsSection extends StatelessWidget {
     const totalGroups = '120';
     const totalChannels = '75';
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // الصف الأول: المستخدمين، المشتركين، المسؤولين
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  context,
-                  'عدد المستخدمين',
-                  totalUsers,
-                  Icons.people,
-                  Color(0xFF65C4F8),
-                  gradient: cardGradient,
-                  shadows: shadowList,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatCard(
-                  context,
-                  'عدد المشتركين سنويًا',
-                  totalAnnualSubscribers,
-                  Icons.subscriptions,
-                  Colors.deepOrange.shade700,
-                  gradient: cardGradient,
-                  shadows: shadowList,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatCard(
-                  context,
-                  'عدد المسؤولين',
-                  totalAdmins,
-                  Icons.admin_panel_settings,
-                  Color(0xFF65C4F8),
-                  gradient: cardGradient,
-                  shadows: shadowList,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+    // استخراج قائمة المنصات والشهور من النصوص
+    final platformsList = strings['platforms']!.split(',');
+    final monthsList = strings['months']!.split(',');
 
-          // الصف الثاني: عدد الرسائل (واتساب وتليجرام)
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  context,
-                  'عدد الرسائل المرسلة (واتساب)',
-                  whatsappMessages,
-                  Icons.message,
-                  Colors.green.shade700,
-                  gradient: cardGradient,
-                  shadows: shadowList,
+    return Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // الصف الأول: المستخدمين، المشتركين، المسؤولين
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    isDark,
+                    context,
+                    strings['number_of_users']!,
+                    totalUsers,
+                    Icons.people,
+                    isDark ? const Color(0xFFD7EFDC) : const Color(0xFF65C4F8),
+                    gradient: cardGradient,
+                    shadows: shadowList,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatCard(
-                  context,
-                  'عدد الرسائل المرسلة (تليجرام)',
-                  telegramMessages,
-                  Icons.message,
-                  Color(0xFF65C4F8),
-                  gradient: cardGradient,
-                  shadows: shadowList,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildStatCard(
+                    isDark,
+                    context,
+                    strings['annual_subscribers']!,
+                    totalAnnualSubscribers,
+                    Icons.subscriptions,
+                    isDark ? const Color(0xFFD7EFDC) : Colors.deepOrange.shade700,
+                    gradient: cardGradient,
+                    shadows: shadowList,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildStatCard(
+                    isDark,
+                    context,
+                    strings['total_admins']!,
+                    totalAdmins,
+                    Icons.admin_panel_settings,
+                    isDark ? const Color(0xFFD7EFDC) : const Color(0xFF65C4F8),
+                    gradient: cardGradient,
+                    shadows: shadowList,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
 
-          // الصف الثالث: جروبات الواتساب وقنوات التليجرام جنب بعض
-          Row(
-            children: [
-              Expanded(
-                child: _build3DCard(
-                  context,
-                  title: 'عدد جروبات الواتساب',
-                  width: double.infinity,
-                  height: 120,
-                  cardColor: null,
-                  gradient: cardGradient,
-                  shadows: shadowList,
-                  titleStyle: titleStyle,
-                  child: Center(
-                    child: Text(
-                      totalGroups,
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green.shade700,
-                        shadows: [
-                          Shadow(
-                            color: Colors.green.shade200.withOpacity(0.8),
-                            blurRadius: 6,
-                            offset: const Offset(1, 1),
-                          )
-                        ],
+            // الصف الثاني: عدد الرسائل (واتساب وتليجرام)
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    isDark,
+                    context,
+                    strings['whatsapp_messages']!,
+                    whatsappMessages,
+                    Icons.message,
+                    isDark ? const Color(0xFFD7EFDC) : Colors.green.shade700,
+                    gradient: cardGradient,
+                    shadows: shadowList,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildStatCard(
+                    isDark,
+                    context,
+                    strings['telegram_messages']!,
+                    telegramMessages,
+                    Icons.message,
+                    isDark ? const Color(0xFFD7EFDC) : const Color(0xFF65C4F8),
+                    gradient: cardGradient,
+                    shadows: shadowList,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // الصف الثالث: جروبات الواتساب وقنوات التليجرام جنب بعض
+            Row(
+              children: [
+                Expanded(
+                  child: _build3DCard(
+                    context,
+                    title: strings['whatsapp_groups']!,
+                    width: double.infinity,
+                    height: 120,
+                    cardColor: null,
+                    gradient: cardGradient,
+                    shadows: shadowList,
+                    titleStyle: titleStyle,
+                    child: Center(
+                      child: Text(
+                        totalGroups,
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? const Color(0xFFD7EFDC) : Colors.green.shade700,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _build3DCard(
-                  context,
-                  title: 'عدد قنوات التليجرام',
-                  width: double.infinity,
-                  height: 120,
-                  cardColor: null,
-                  gradient: cardGradient,
-                  shadows: shadowList,
-                  titleStyle: titleStyle,
-                  child: Center(
-                    child: Text(
-                      totalChannels,
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF65C4F8),
-                        shadows: [
-                          Shadow(
-                            color: Colors.blue.shade200.withOpacity(0.8),
-                            blurRadius: 6,
-                            offset: const Offset(1, 1),
-                          )
-                        ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _build3DCard(
+                    context,
+                    title: strings['telegram_channels']!,
+                    width: double.infinity,
+                    height: 120,
+                    cardColor: null,
+                    gradient: cardGradient,
+                    shadows: shadowList,
+                    titleStyle: titleStyle,
+                    child: Center(
+                      child: Text(
+                        totalChannels,
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? const Color(0xFFD7EFDC) : const Color(0xFF65C4F8),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+              ],
+            ),
+            const SizedBox(height: 16),
 
-          // باقي الكروت الكبيرة (Pie, Bar, Line Charts)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _build3DCard(
-                  context,
-                  title: 'نسب الاستخدام',
-                  width: double.infinity,
-                  height: 350,
-                  child: _buildPieChart(context),
-                  cardColor: null,
-                  gradient: cardGradient,
-                  shadows: shadowList,
-                  titleStyle: titleStyle,
+            // باقي الكروت الكبيرة (Pie, Bar, Line Charts)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _build3DCard(
+                    context,
+                    title: strings['usage_percentages']!,
+                    width: double.infinity,
+                    height: 350,
+                    child: _buildPieChart(context, isDark),
+                    cardColor: null,
+                    gradient: cardGradient,
+                    shadows: shadowList,
+                    titleStyle: titleStyle,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _build3DCard(
-                  context,
-                  title: 'إحصائيات المنصات',
-                  width: double.infinity,
-                  height: 320,
-                  child: _buildBarChart(),
-                  cardColor: null,
-                  gradient: cardGradient,
-                  shadows: shadowList,
-                  titleStyle: titleStyle,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _build3DCard(
+                    context,
+                    title: strings['platform_stats']!,
+                    width: double.infinity,
+                    height: 320,
+                    child: _buildBarChart(isDark, platformsList),
+                    cardColor: null,
+                    gradient: cardGradient,
+                    shadows: shadowList,
+                    titleStyle: titleStyle,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _build3DCard(
-            context,
-            title: 'اشتراكات المستخدمين',
-            width: double.infinity,
-            height: 300,
-            child: _buildLineChart(),
-            cardColor: null,
-            gradient: cardGradient,
-            shadows: shadowList,
-            titleStyle: titleStyle,
-          ),
-          const SizedBox(height: 16),
-        ],
+              ],
+            ),
+            const SizedBox(height: 16),
+            _build3DCard(
+              context,
+              title: strings['user_subscriptions']!,
+              width: double.infinity,
+              height: 300,
+              child: _buildLineChart(isDark, monthsList),
+              cardColor: null,
+              gradient: cardGradient,
+              shadows: shadowList,
+              titleStyle: titleStyle,
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }
@@ -253,12 +291,13 @@ class DashboardStatsSection extends StatelessWidget {
         List<BoxShadow>? shadows,
         required TextStyle titleStyle,
       }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: width,
       height: height,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: isDark ? const Color(0xFFD7EFDC) : cardColor,
         gradient: gradient,
         borderRadius: BorderRadius.circular(20),
         boxShadow: shadows ??
@@ -287,6 +326,7 @@ class DashboardStatsSection extends StatelessWidget {
   }
 
   Widget _buildStatCard(
+      bool isDark,
       BuildContext context,
       String title,
       String value,
@@ -322,26 +362,21 @@ class DashboardStatsSection extends StatelessWidget {
               icon,
               color: color,
               size: 28,
-              shadows: [
-                Shadow(
-                  color: color.withOpacity(0.5),
-                  blurRadius: 4,
-                  offset: const Offset(1, 1),
-                )
-              ],
             ),
           ),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: TextStyle(
-                    fontFamily: 'Droid',
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                    fontWeight: FontWeight.w600,
-                  )),
+              Text(
+                title,
+                style: TextStyle(
+                  fontFamily: 'Droid',
+                  fontSize: 14,
+                  color: isDark ? const Color(0xFFD7EFDC) : Colors.grey.shade700,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 6),
               Text(
                 value,
@@ -350,13 +385,6 @@ class DashboardStatsSection extends StatelessWidget {
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: color,
-                  shadows: [
-                    Shadow(
-                      color: color.withOpacity(0.6),
-                      blurRadius: 5,
-                      offset: const Offset(1, 1),
-                    )
-                  ],
                 ),
               ),
             ],
@@ -366,9 +394,7 @@ class DashboardStatsSection extends StatelessWidget {
     );
   }
 
-  // باقي الرسمات كما هي بدون تعديل
-
-  Widget _buildBarChart() {
+  Widget _buildBarChart(bool isDark, List<String> platformsList) {
     return BarChart(
       BarChartData(
         alignment: BarChartAlignment.spaceAround,
@@ -395,14 +421,10 @@ class DashboardStatsSection extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               getTitlesWidget: (value, _) {
-                const platforms = [
-                  'واتساب', 'تليجرام', 'حراج', 'فيسبوك',
-                  'تيك توك', 'إنستقرام', 'إكس', 'SMS', 'البريد'
-                ];
                 return Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    platforms[value.toInt() % platforms.length],
+                    platformsList[value.toInt() % platformsList.length],
                     style: const TextStyle(fontSize: 9),
                     textAlign: TextAlign.center,
                   ),
@@ -421,7 +443,7 @@ class DashboardStatsSection extends StatelessWidget {
             barRods: [
               BarChartRodData(
                 toY: (5 + i).toDouble(),
-                color: Color(0xFF65C4F8),
+                color: isDark ? const Color(0xFFD7EFDC) : const Color(0xFF65C4F8),
                 borderRadius: BorderRadius.circular(6),
               ),
             ],
@@ -431,18 +453,57 @@ class DashboardStatsSection extends StatelessWidget {
     );
   }
 
-  Widget _buildPieChart(BuildContext context) {
+  Widget _buildPieChart(BuildContext context, bool isDark) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final isArabic = localeProvider.locale.languageCode == 'ar';
     final sections = [
-      {'title': 'واتساب', 'value': 25.0, 'color': Colors.green},
-      {'title': 'تليجرام', 'value': 20.0, 'color': Colors.blue},
-      {'title': 'حراج', 'value': 10.0, 'color': Colors.orange},
-      {'title': 'فيسبوك', 'value': 15.0, 'color': Colors.indigo},
-      {'title': 'تيك توك', 'value': 10.0, 'color': Colors.deepPurple},
-      {'title': 'إنستقرام', 'value': 10.0, 'color': Colors.pink},
-      {'title': 'إكس', 'value': 5.0, 'color': Colors.black},
-      {'title': 'SMS', 'value': 3.0, 'color': Colors.teal},
-      {'title': 'البريد', 'value': 2.0, 'color': Colors.brown},
+      {
+        'title': isArabic ? 'واتساب' : 'WhatsApp',
+        'value': 25.0,
+        'color': Colors.green,
+      },
+      {
+        'title': isArabic ? 'تليجرام' : 'Telegram',
+        'value': 20.0,
+        'color': Colors.blue,
+      },
+      {
+        'title': isArabic ? 'حراج' : 'Haraj',
+        'value': 10.0,
+        'color': Colors.orange,
+      },
+      {
+        'title': isArabic ? 'فيسبوك' : 'Facebook',
+        'value': 15.0,
+        'color': Colors.indigo,
+      },
+      {
+        'title': isArabic ? 'تيك توك' : 'TikTok',
+        'value': 10.0,
+        'color': Colors.deepPurple,
+      },
+      {
+        'title': isArabic ? 'إنستقرام' : 'Instagram',
+        'value': 10.0,
+        'color': Colors.pink,
+      },
+      {
+        'title': isArabic ? 'إكس' : 'X',
+        'value': 5.0,
+        'color': Colors.black,
+      },
+      {
+        'title': isArabic ? 'SMS' : 'SMS',
+        'value': 3.0,
+        'color': Colors.teal,
+      },
+      {
+        'title': isArabic ? 'البريد' : 'Email',
+        'value': 2.0,
+        'color': Colors.brown,
+      },
     ];
+
 
     return Card(
       elevation: 8,
@@ -473,10 +534,10 @@ class DashboardStatsSection extends StatelessWidget {
                   padding: const EdgeInsets.all(2.0),
                   child: Text(
                     e['title'].toString(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
-                      color: Colors.black54,
+                      color: isDark ? const Color(0xFFD7EFDC) : Colors.black54,
                     ),
                   ),
                 ),
@@ -492,15 +553,13 @@ class DashboardStatsSection extends StatelessWidget {
     );
   }
 
-  Widget _buildLineChart() {
+  Widget _buildLineChart(bool isDark, List<String> monthsList) {
     return LineChart(
       LineChartData(
         minX: 0,
         maxX: 11,
         minY: 0,
-        // يمكن تعديل maxY حسب أعلى قيمة لديك مثلاً:
         maxY: 20,
-
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
@@ -528,18 +587,11 @@ class DashboardStatsSection extends StatelessWidget {
               interval: 1, // عرض شهر لكل نقطة
               reservedSize: 28,
               getTitlesWidget: (value, _) {
-                const months = [
-                  'يناير', 'فبراير', 'مارس', 'أبريل',
-                  'مايو', 'يونيو', 'يوليو', 'أغسطس',
-                  'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
-                ];
-
-                // نعرض فقط إذا كانت قيمة صحيحة وضمن النطاق
-                if (value % 1 == 0 && value >= 0 && value < months.length) {
+                if (value % 1 == 0 && value >= 0 && value < monthsList.length) {
                   return Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      months[value.toInt()],
+                      monthsList[value.toInt()],
                       style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
@@ -553,75 +605,56 @@ class DashboardStatsSection extends StatelessWidget {
             ),
           ),
         ),
-
         gridData: FlGridData(
           show: true,
           drawVerticalLine: true,
           horizontalInterval: 5,
           verticalInterval: 1,
           getDrawingHorizontalLine: (value) => FlLine(
-            color: Colors.grey.withOpacity(0.15),
+            color: Colors.grey.withOpacity(0.2),
             strokeWidth: 1,
           ),
           getDrawingVerticalLine: (value) => FlLine(
-            color: Colors.grey.withOpacity(0.05),
+            color: Colors.grey.withOpacity(0.2),
             strokeWidth: 1,
           ),
         ),
-
         borderData: FlBorderData(
           show: true,
           border: const Border(
-            left: BorderSide(color: Colors.grey),
-            bottom: BorderSide(color: Colors.grey),
+            left: BorderSide(color: Colors.black54, width: 2),
+            bottom: BorderSide(color: Colors.black54, width: 2),
+            right: BorderSide(color: Colors.transparent),
+            top: BorderSide(color: Colors.transparent),
           ),
         ),
-
         lineBarsData: [
           LineChartBarData(
-            spots: [
-              FlSpot(0, 5),
-              FlSpot(1, 8),
-              FlSpot(2, 6),
-              FlSpot(3, 10),
-              FlSpot(4, 12),
+            spots: const [
+              FlSpot(0, 3),
+              FlSpot(1, 4),
+              FlSpot(2, 5),
+              FlSpot(3, 4),
+              FlSpot(4, 7),
               FlSpot(5, 9),
-              FlSpot(6, 14),
-              FlSpot(7, 11),
-              FlSpot(8, 13),
-              FlSpot(9, 16),
-              FlSpot(10, 14),
-              FlSpot(11, 18),
+              FlSpot(6, 13),
+              FlSpot(7, 10),
+              FlSpot(8, 14),
+              FlSpot(9, 15),
+              FlSpot(10, 17),
+              FlSpot(11, 19),
             ],
             isCurved: true,
-            color: Colors.blue.shade600,
+            color: isDark ? const Color(0xFFD7EFDC) : Colors.blue,
             barWidth: 3,
-            isStrokeCapRound: true,
-            dotData: FlDotData(
-              show: true,
-              getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                radius: 4,
-                color: Colors.blue.shade800,
-                strokeWidth: 0,
-              ),
-            ),
             belowBarData: BarAreaData(
               show: true,
-              gradient: LinearGradient(
-                colors: [
-                  Colors.teal.withOpacity(0.2),
-                  Colors.transparent
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
+              color: (isDark ? const Color(0xFFD7EFDC) : Colors.blue).withOpacity(0.3),
             ),
+            dotData: FlDotData(show: false),
           ),
         ],
       ),
-
     );
   }
-
-
 }

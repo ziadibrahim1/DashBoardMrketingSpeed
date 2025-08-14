@@ -27,6 +27,8 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
   late TextEditingController countryController;
   late TextEditingController cityController;
 
+  late bool isRTL;
+
   @override
   void initState() {
     super.initState();
@@ -49,128 +51,233 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final labelStyle = TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black);
+    final locale = Localizations.localeOf(context);
+    isRTL = ['ar', 'he', 'fa', 'ur'].contains(locale.languageCode);
 
-    return Scaffold(
-      appBar: AppBar(
-        iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 4,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+    final primaryColor = isDark ? const Color(0xFF4CAF50) : const Color(0xFF2196F3);
+    final labelStyle = TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : Colors.black87, fontSize: 15);
+    final hintStyle = TextStyle(color: isDark ? Colors.white30 : Colors.black26);
+
+    return Directionality(
+      textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        appBar: AppBar(
+          iconTheme: const IconThemeData(color: Colors.white),
+          elevation: 6,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+          ),
+          title: Text(
+            isRTL ? 'تفاصيل المستخدم' : 'User Details',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+          ),
+          backgroundColor: primaryColor,
+          actions: [
+            if (!isEditing)
+              IconButton(
+                icon: const Icon(Icons.edit),
+                tooltip: isRTL ? 'تعديل' : 'Edit',
+                onPressed: () => setState(() => isEditing = true),
+              ),
+            if (isEditing)
+              IconButton(
+                icon: const Icon(Icons.save),
+                tooltip: isRTL ? 'حفظ' : 'Save',
+                onPressed: () {
+                  setState(() => isEditing = false);
+                  // TODO: تنفيذ الحفظ
+                },
+              ),
+          ],
         ),
-        title: const Text('تفاصيل المستخدم',style:TextStyle(color:Colors.white)),
-        backgroundColor:isDark? Color(0xFF339E1D):Color(0xFF25B4FF),
-        actions: [
-          if (!isEditing)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              tooltip: 'تعديل',
-              onPressed: () {
-                setState(() => isEditing = true);
-              },
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDark
+              ? [Colors.grey[900]!, Colors.grey[850]!]
+              : [Colors.blue[50]!, Colors.white],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
-          if (isEditing)
-            IconButton(
-              icon: const Icon(Icons.save),
-              tooltip: 'حفظ',
-              onPressed: () {
-                setState(() => isEditing = false);
-                // TODO: تنفيذ الحفظ
-              },
-            ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            // ✅ الصورة الشخصية
-            Center(
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundImage: pickedImage != null
-                        ? FileImage(pickedImage!)
-                        : (widget.user['photoUrl'] != null
-                        ? NetworkImage(widget.user['photoUrl']) as ImageProvider
-                        : null),
-                    child: (pickedImage == null && widget.user['photoUrl'] == null)
-                        ? const Icon(Icons.person, size: 50)
-                        : null,
-                  ),
-                  if (isEditing)
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: pickImage,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // صورة المستخدم مع ظل و تراكب الأيقونة
+                Center(
+                  child: Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: isDark ? Colors.black54 : Colors.grey.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
                         child: CircleAvatar(
-                          radius: 16,
-                          backgroundColor: theme.colorScheme.primary,
-                          child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                          radius: 62,
+                          backgroundColor: isDark ? Colors.grey[700] : Colors.grey[300],
+                          backgroundImage: pickedImage != null
+                              ? FileImage(pickedImage!)
+                              : (widget.user['photoUrl'] != null
+                              ? NetworkImage(widget.user['photoUrl']) as ImageProvider
+                              : null),
+                          child: (pickedImage == null && widget.user['photoUrl'] == null)
+                              ? Icon(Icons.person, size: 62, color: isDark ? Colors.grey[400] : Colors.grey[600])
+                              : null,
                         ),
                       ),
+                      if (isEditing)
+                        Positioned(
+                          bottom: 0,
+                          right: isRTL ? null : 8,
+                          left: isRTL ? 8 : null,
+                          child: GestureDetector(
+                            onTap: pickImage,
+                            child: CircleAvatar(
+                              radius: 22,
+                              backgroundColor: primaryColor,
+                              child: Icon(Icons.edit, size: 22, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 36),
+                Row(
+                  children: [
+                    buildSectionTitle(
+                      context,
+                      isRTL ? 'البيانات الأساسية' : 'Basic Information',isDark
                     ),
-                ],
-              ),
+                  ],
+                ),
+
+                buildDoubleField(
+                  isRTL ? 'الاسم الأول' : 'First Name',
+                  firstNameController,
+                  isRTL ? 'الاسم الثاني' : 'Middle Name',
+                  middleNameController,
+                  labelStyle,
+                ),
+                buildDoubleField(
+                  isRTL ? 'الاسم الأخير' : 'Last Name',
+                  lastNameController,
+                  isRTL ? 'البريد الإلكتروني' : 'Email',
+                  emailController,
+                  labelStyle,
+                ),
+                buildSingleField(
+                  isRTL ? 'كلمة المرور' : 'Password',
+                  passwordController,
+                  labelStyle,
+                  obscureText: true,
+                  hintText: isEditing ? null : (isRTL ? '********' : '********'),
+                ),
+
+                const SizedBox(height: 36),
+
+                buildSectionTitle(context, isRTL ? 'البيانات التكميلية' : 'Additional Information', isDark),
+                buildDoubleField(
+                  isRTL ? 'نوع المؤسسة' : 'Organization Type',
+                  typeController,
+                  isRTL ? 'اسم المؤسسة' : 'Organization Name',
+                  orgNameController,
+                  labelStyle,
+                ),
+                buildSingleField(
+                  isRTL ? 'وصف المؤسسة' : 'Organization Description',
+                  orgDescController,
+                  labelStyle,
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 15),
+
+                buildDoubleField(
+                  isRTL ? 'رقم الجوال' : 'Phone Number',
+                  phoneController,
+                  isRTL ? 'الدولة' : 'Country',
+                  countryController,
+                  labelStyle,
+                ),
+                buildSingleField(
+                  isRTL ? 'المدينة' : 'City',
+                  cityController,
+                  labelStyle,
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
-
-            buildSectionTitle(context, 'البيانات الأساسية'),
-            buildDoubleField('الاسم الأول', firstNameController, 'الاسم الثاني', middleNameController, labelStyle),
-            buildDoubleField('الاسم الأخير', lastNameController, 'البريد الإلكتروني', emailController, labelStyle),
-            buildSingleField('كلمة المرور', passwordController, labelStyle, obscureText: true),
-
-            const SizedBox(height: 24),
-            buildSectionTitle(context, 'البيانات التكميلية'),
-            buildDoubleField('نوع المؤسسة', typeController, 'اسم المؤسسة', orgNameController, labelStyle),
-            buildSingleField('وصف المؤسسة', orgDescController, labelStyle, maxLines: 2),
-            buildDoubleField('رقم الجوال', phoneController, 'الدولة', countryController, labelStyle),
-            buildSingleField('المدينة', cityController, labelStyle),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget buildSectionTitle(BuildContext context, String title) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+  Widget buildSectionTitle(BuildContext context, String title, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
         child: Text(
           title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: isDark ? Colors.greenAccent[100] : Colors.blue[900],
+
+          ),
         ),
       ),
     );
   }
 
   Widget buildDoubleField(String label1, TextEditingController controller1, String label2, TextEditingController controller2, TextStyle labelStyle) {
-    return Row(
-      children: [
-        Expanded(child: buildSingleField(label1, controller1, labelStyle)),
-        const SizedBox(width: 16),
-        Expanded(child: buildSingleField(label2, controller2, labelStyle)),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Row(
+        children: [
+          Expanded(child: buildSingleField(label1, controller1, labelStyle)),
+          const SizedBox(width: 18),
+          Expanded(child: buildSingleField(label2, controller2, labelStyle)),
+        ],
+      ),
     );
   }
 
-  Widget buildSingleField(String label, TextEditingController controller, TextStyle labelStyle, {bool obscureText = false, int maxLines = 1}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextFormField(
-        controller: controller,
-        enabled: isEditing,
-        obscureText: obscureText,
-        maxLines: maxLines,
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: labelStyle,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          filled: true,
-          fillColor: Theme.of(context).cardColor,
+  Widget buildSingleField(String label, TextEditingController controller, TextStyle labelStyle,
+      {bool obscureText = false, int maxLines = 1, String? hintText}) {
+    return TextFormField(
+      controller: controller,
+      enabled: isEditing,
+      obscureText: obscureText,
+      maxLines: maxLines,
+      style: TextStyle(color: isEditing ? null : Colors.grey.shade600, fontSize: 15),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hintText,
+        labelStyle: labelStyle,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+        filled: true,
+        fillColor: Theme.of(context).cardColor,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.grey.shade400, width: 1.3),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2.2),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
       ),
     );

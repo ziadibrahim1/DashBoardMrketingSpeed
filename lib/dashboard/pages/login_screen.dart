@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../generated/l10n.dart';
+import '../../providers/app_providers.dart';
 import '../dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -12,57 +15,75 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-
   String? errorMessage;
 
-  void handleLogin() {
+  void handleLogin(bool isArabic) {
     final email = emailController.text.trim();
     final password = passwordController.text;
 
-    // ✅ تحقق مبدئي (يمكن ربطه لاحقًا بـ API أو MySQL)
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const DashboardScreen()),
-    );
+    if (email.isNotEmpty && password.isNotEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DashboardScreen(
+            currentUserName: email,
+            onLogout: () {
+              // عند تسجيل الخروج، نرجع لشاشة تسجيل الدخول مجدداً
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+              );
+            },
+            onThemeToggle: () {
+            },
+            onLanguageToggle: () {
+            },
+            isArabic:  isArabic,
+          ),
+        ),
+      );
+    } else {
+      setState(() {
+        errorMessage = 'يرجى إدخال البريد وكلمة المرور';
+      });
+    }
   }
-
   void showForgotPasswordDialog() {
     final resetEmailController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("إعادة تعيين كلمة المرور"),
+        title: Text(S.of(context).resetPasswordTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("أدخل بريدك الإلكتروني لإرسال رابط إعادة التعيين:"),
+            Text(S.of(context).resetPasswordContent),
             const SizedBox(height: 10),
             TextField(
               controller: resetEmailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'البريد الإلكتروني',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: S.of(context).emailLabel,
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
         ),
         actions: [
           TextButton(
-            child: const Text("إلغاء"),
+            child: Text(S.of(context).cancel),
             onPressed: () => Navigator.pop(context),
           ),
           ElevatedButton(
-            child: const Text("إرسال"),
+            child: Text(S.of(context).send),
             onPressed: () {
               final email = resetEmailController.text.trim();
               if (email.isNotEmpty) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('تم إرسال رابط إعادة التعيين إلى $email')),
+                  SnackBar(content: Text(S.of(context).resetEmailSent(email))),
                 );
-                // يمكنك هنا ربط العملية بـ API فعلي لاحقاً
               }
             },
           ),
@@ -73,35 +94,37 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primary = isDark ? Colors.green[700] : Colors.blue;
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final isDarkMode = themeProvider.themeMode == ThemeMode.dark;
+    final primary = isDarkMode ? Colors.green[700] : Colors.blue;
+    final isArabic = localeProvider.locale.languageCode == 'ar';
 
     return Scaffold(
       body: Stack(
         children: [
-          // خلفية بها ضي أزرق
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.blue.shade50, Colors.white],
+                colors: isDarkMode
+                ? [Colors.green.shade900, Colors.black]
+                : [Colors.blue.shade50, Colors.white],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
             ),
           ),
-
-          // مركز الشاشة مع صندوق تسجيل الدخول وظله الأزرق
           Center(
             child: Container(
               constraints: const BoxConstraints(maxWidth: 400),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
+                color: isDarkMode ? Colors.grey[850] : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
                     blurRadius: 25,
-                    color: Colors.blue.withOpacity(0.3), // 🔵 هنا الضي الأزرق
+                    color: Colors.blue.withOpacity(0.3),
                     spreadRadius: 5,
                     offset: const Offset(0, 10),
                   ),
@@ -112,31 +135,63 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.language,
+                            color: isDarkMode ? Colors.white : Colors.black54,
+                          ),
+                          tooltip: 'Toggle Language',
+                          onPressed: () {
+                            localeProvider.toggleLocale();
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                            color: isDarkMode ? Colors.white : Colors.black54,
+                          ),
+                          tooltip: 'Toggle Theme',
+                          onPressed: () {
+                            themeProvider.toggleTheme();
+                          },
+                        ),
+                      ],
+                    ),
+
                     Text(
-                      'تسجيل دخول المسؤول',
+                      S.of(context).loginTitle,
                       style: TextStyle(
-                        color: Colors.black.withOpacity(.6),
+                        color: isDarkMode ? Colors.white : Colors.black.withOpacity(.6),
                         fontSize: 22,
                       ),
                     ),
                     const SizedBox(height: 20),
                     TextFormField(
                       controller: emailController,
-                      decoration: const InputDecoration(labelText: 'البريد الإلكتروني'),
-                      validator: (value) => value!.isEmpty ? 'أدخل البريد' : null,
+                      decoration: InputDecoration(labelText: S.of(context).emailLabel),
+                      validator: (value) =>
+                      value!.isEmpty ? S.of(context).emailEmptyError : null,
                     ),
                     const SizedBox(height: 10),
                     TextFormField(
                       controller: passwordController,
-                      decoration: const InputDecoration(labelText: 'كلمة المرور'),
+                      decoration: InputDecoration(labelText: S.of(context).passwordLabel),
                       obscureText: true,
-                      validator: (value) => value!.isEmpty ? 'أدخل كلمة المرور' : null,
+                      validator: (value) =>
+                      value!.isEmpty ? S.of(context).passwordEmptyError : null,
                     ),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton(
                         onPressed: showForgotPasswordDialog,
-                        child: const Text("نسيت كلمة المرور؟"),
+                        child: Text(
+                          S.of(context).forgotPassword,
+                          style: TextStyle(
+                              color: isDarkMode ? Colors.white : Colors.black.withOpacity(.6)),
+                        ),
                       ),
                     ),
                     if (errorMessage != null) ...[
@@ -150,10 +205,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: ElevatedButton.styleFrom(backgroundColor: primary),
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
-                            handleLogin();
+                            handleLogin(isArabic);
                           }
                         },
-                        child: const Text('دخول', style: TextStyle(color: Colors.white)),
+                        child: Text(
+                          S.of(context).loginButton,
+                          style: const TextStyle(color: Colors.white),
+                        ),
                       ),
                     ),
                   ],
@@ -165,5 +223,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
 }

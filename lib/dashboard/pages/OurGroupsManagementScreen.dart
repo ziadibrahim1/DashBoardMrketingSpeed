@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+
+import '../../providers/app_providers.dart';
 
 class OurGroupsManagementScreen extends StatefulWidget {
   const OurGroupsManagementScreen({super.key});
@@ -24,26 +27,75 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
   final TextEditingController categorySearchController = TextEditingController();
   final TextEditingController groupSearchController = TextEditingController();
 
-  List<Map<String, String>> allGroups = [
-    {'country': 'السعودية', 'category': 'عقارات', 'name': 'جروب العقار السعودي', 'link': '', 'membersCount': '15'},
-    {'country': 'مصر', 'category': 'توظيف', 'name': 'جروب وظائف مصر', 'link': '', 'membersCount': '40'},
-    {'country': 'السعودية', 'category': 'سيارات', 'name': 'جروب سيارات السعودية', 'link': '', 'membersCount': '27'},
-    {'country': 'الإمارات', 'category': 'عقارات', 'name': 'جروب عقارات دبي', 'link': '', 'membersCount': '33'},
+  List<Map<String, dynamic>> allGroups = [
+    {
+      'country': 'السعودية',
+      'category': 'عقارات',
+      'name': 'جروب العقار السعودي',
+      'link': '',
+      'membersCount': '2',
+      'members': [
+        {'name': 'أحمد', 'phone': '0501234567'},
+        {'name': 'سعيد', 'phone': '0557654321'},
+      ],
+      'isSendingLocked': false,
+      'isVisible': false,
+    },
+    {
+      'country': 'مصر',
+      'category': 'توظيف',
+      'name': 'جروب وظائف مصر',
+      'link': '',
+      'membersCount': '1',
+      'members': [
+        {'name': 'منى', 'phone': '01099887766'},
+      ],
+      'isSendingLocked': true,
+      'isVisible': true,
+    },
+    {
+      'country': 'السعودية',
+      'category': 'سيارات',
+      'name': 'جروب سيارات السعودية',
+      'link': '',
+      'membersCount': '0',
+      'members': [],
+      'isSendingLocked': false,
+      'isVisible': false,
+    },
+    {
+      'country': 'الإمارات',
+      'category': 'عقارات',
+      'name': 'جروب عقارات دبي',
+      'link': '',
+      'membersCount': '0',
+      'members': [],
+      'isSendingLocked': false,
+      'isVisible': false,
+    },
   ];
+
+  bool showLockedOnly = false;
 
   int currentPage = 0;
   final int groupsPerPage = 20;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final isArabic = localeProvider.locale.languageCode == 'ar';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final filteredGroups = allGroups.where((group) {
-      final nameMatch = group['name']!.contains(groupSearchController.text);
+    final primaryColor = isDark? Color(0xFFD7EFDC) : const Color(0xFF65C4F8); // أزرق فاتح
+    final titleColor = isDark ? Color(0xFFD7EFDC) : Colors.blueGrey.shade900;
+    final cardColor = isDark ? Colors.grey.shade900 : Colors.white;
+
+    List<Map<String, dynamic>> filteredGroups = allGroups.where((group) {
+      final nameMatch = group['name'].toString().toLowerCase().contains(groupSearchController.text.toLowerCase());
       final countryMatch = selectedCountries.isEmpty || selectedCountries.contains(group['country']);
       final categoryMatch = selectedCategories.isEmpty || selectedCategories.contains(group['category']);
-      return nameMatch && countryMatch && categoryMatch;
+      final lockMatch = !showLockedOnly || (group['isSendingLocked'] == true);
+      return nameMatch && countryMatch && categoryMatch && lockMatch;
     }).toList();
 
     final totalPages = (filteredGroups.length / groupsPerPage).ceil();
@@ -52,51 +104,127 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
-      appBar: AppBar(
-        title:   Text('إدارة جروباتنا', style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: Colors.blueGrey,
-        ),),
-        backgroundColor: primary,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight + 20), // ارتفاع الAppBar مع إضافة مساحة
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(15), // الحواف الدائرية
+            child: Container(
+              color: isDark ? const Color(0xFF4D5D53) : primaryColor,
+              child: SafeArea(
+                bottom: false,
+                child: Row(
+                  children: [
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        isArabic ? 'إدارة جروباتنا' : 'Our Groups Management',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? const Color(0xFFD7EFDC) : Colors.white,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      tooltip: isArabic ? 'إعادة تعيين الفلاتر' : 'Reset Filters',
+                      color: isDark ? const Color(0xFFD7EFDC) : Colors.white,
+                      onPressed: () {
+                        setState(() {
+                          selectedCountries.clear();
+                          selectedCategories.clear();
+                          groupSearchController.clear();
+                          categorySearchController.clear();
+                          showLockedOnly = false;
+                          currentPage = 0;
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    selectedCountries.clear();
-                    selectedCategories.clear();
-                    groupSearchController.clear();
-                    categorySearchController.clear();
-                    currentPage = 0;
-                  });
-                },
-                icon: const Icon(Icons.refresh),
-                label: const Text('إعادة تعيين الفلاتر'),
-              ),
-            ),
-            const SizedBox(height: 8),
             isSmallScreen
                 ? Column(
               children: [
-                _buildCountriesCard(),
+                _buildCountriesCard(titleColor, cardColor, isArabic, primaryColor,isDark),
                 const SizedBox(height: 12),
-                _buildCategoriesCard(),
+                _buildCategoriesCard(titleColor, cardColor, isArabic, primaryColor,isDark),
               ],
             )
                 : Row(
               children: [
-                Expanded(child: _buildCountriesCard()),
+                Expanded(child: _buildCountriesCard(titleColor, cardColor, isArabic, primaryColor,isDark)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildCategoriesCard()),
+                Expanded(child: _buildCategoriesCard(titleColor, cardColor, isArabic, primaryColor,isDark)),
               ],
             ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Card(
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                  shadowColor: isDark ? Colors.black54 : Colors.grey.withOpacity(0.2),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.lock,
+                          color: isDark
+                              ? const Color(0xFFD7EFDC)
+                              : Colors.blue[800],
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          isArabic
+                              ? 'عرض المجموعات المقفلة فقط'
+                              : 'Show Locked Groups Only',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isDark
+                                ? const Color(0xFFD7EFDC)
+                                : Colors.blue[900],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Switch(
+
+                          value: showLockedOnly,
+                          onChanged: (val) {
+                            setState(() {
+                              showLockedOnly = val;
+                              currentPage = 0;
+                            });
+                          },
+                          activeColor:isDark?Color(0xFFD7EFDC): Colors.blue,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
             const SizedBox(height: 16),
-            _buildGroupsCard(paginatedGroups),
+            _buildGroupsCard(paginatedGroups, titleColor, cardColor, primaryColor, isArabic,isDark),
             const SizedBox(height: 8),
             if (totalPages > 1)
               Row(
@@ -110,7 +238,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
                     })
                         : null,
                   ),
-                  Text('${currentPage + 1} / $totalPages'),
+                  Text('${currentPage + 1} / $totalPages', style: TextStyle(color: titleColor)),
                   IconButton(
                     icon: const Icon(Icons.arrow_forward_ios),
                     onPressed: currentPage < totalPages - 1
@@ -126,9 +254,12 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
       ),
     );
   }
-  Widget _buildCountriesCard() {
+
+  Widget _buildCountriesCard(Color titleColor, Color cardColor, bool isArabic, Color primaryColor,isDark) {
     return _buildSectionCard(
-      title: 'الدول (${allCountries.length})',
+      title: '${isArabic ? 'الدول' : 'Countries'} (${allCountries.length})',
+      titleColor: titleColor,
+      cardColor: cardColor,
       children: [
         Wrap(
           spacing: 6,
@@ -136,23 +267,30 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
           children: allCountries.map((country) {
             final selected = selectedCountries.contains(country);
             return FilterChip(
-              label: Text(country, style: const TextStyle(fontSize: 13)),
+              label: Text(country, style:TextStyle(fontSize: 13,color:isDark?Color(
+                  0xFFB2ECBC):Color(0xFF324E86))),
               selected: selected,
               onSelected: (_) {
                 setState(() {
                   selected ? selectedCountries.remove(country) : selectedCountries.add(country);
+                  currentPage = 0;
                 });
               },
               onDeleted: () {
                 showDialog(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('تأكيد الحذف'),
-                    content: Text('هل أنت متأكد من حذف الدولة "$country"؟'),
+                    title: Text(isArabic ? 'تأكيد الحذف' : 'Delete Confirmation',style:TextStyle(color:isDark?Color(
+                        0xFFB2ECBC):Color(0xFF324E86))),
+                    content: Text(isArabic
+                        ? 'هل أنت متأكد من حذف الدولة "$country"؟'
+                        : 'Are you sure you want to delete country "$country"?',style:TextStyle(color:isDark?Color(
+                        0xFFB2ECBC):Color(0xFF324E86))),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text('إلغاء'),
+                        child: Text(isArabic ? 'إلغاء' : 'Cancel',style:TextStyle(color:isDark?Color(
+                            0xFFB2ECBC):Color(0xFF324E86))),
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -165,38 +303,53 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
                           });
                           Navigator.pop(ctx);
                         },
-                        child: const Text('حذف'),
+                        child: Text(isArabic ? 'حذف' : 'Delete',style:TextStyle(color:isDark?Color(
+                            0xFFB2ECBC):Colors.white)),
                       ),
                     ],
                   ),
                 );
               },
+              selectedColor: primaryColor.withOpacity(0.2),
+              backgroundColor: cardColor,
+              checkmarkColor: primaryColor,
+              labelStyle: TextStyle(color: selected ? Colors.grey.shade700 : Colors.grey.shade700),
             );
           }).toList(),
         ),
         const SizedBox(height: 8),
         _buildSoftButton(
           icon: Icons.add_location_alt_outlined,
-          label: 'إضافة دولة',
-          onTap: () => _showInputDialog('إضافة دولة', 'أدخل اسم الدولة', (value) {
-            if (value.isNotEmpty && !allCountries.contains(value)) {
-              setState(() => allCountries.add(value));
-            }
-          }),
+          label: isArabic ? 'إضافة دولة' : 'Add Country',
+          onTap: () => _showInputDialog(
+            isArabic ? 'إضافة دولة' : 'Add Country',
+            isArabic ? 'أدخل اسم الدولة' : 'Enter country name',
+                (value) {
+              if (value.isNotEmpty && !allCountries.contains(value)) {
+                setState(() => allCountries.add(value));
+              }
+            },isDark,
+          ),
+          primaryColor: primaryColor,
+          textColor: primaryColor,
         ),
       ],
     );
   }
 
-  Widget _buildCategoriesCard() {
+  Widget _buildCategoriesCard(Color titleColor, Color cardColor, bool isArabic, Color primaryColor,isDark) {
     return _buildSectionCard(
-      title: 'المجالات (${allCategories.length})',
+      title: '${isArabic ? 'المجالات' : 'Categories'} (${allCategories.length})',
+      titleColor: titleColor,
+      cardColor: cardColor,
       children: [
         TextField(
           controller: categorySearchController,
-          onChanged: (_) => setState(() {}),
+          onChanged: (_) => setState(() {
+            currentPage = 0;
+          }),
           decoration: InputDecoration(
-            hintText: 'بحث عن مجال',
+            hintText: isArabic ? 'بحث عن مجال' : 'Search category',
             prefixIcon: const Icon(Icons.search),
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -208,27 +361,31 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
           spacing: 6,
           runSpacing: 6,
           children: allCategories
-              .where((c) => c.contains(categorySearchController.text))
+              .where((c) => c.toLowerCase().contains(categorySearchController.text.toLowerCase()))
               .map((category) {
             final selected = selectedCategories.contains(category);
             return FilterChip(
-              label: Text(category, style: const TextStyle(fontSize: 13)),
+              label: Text(category, style:  TextStyle(fontSize: 13,color:isDark?Color(
+                  0xFFB2ECBC):Color(0xFF324E86))),
               selected: selected,
               onSelected: (_) {
                 setState(() {
                   selected ? selectedCategories.remove(category) : selectedCategories.add(category);
+                  currentPage = 0;
                 });
               },
               onDeleted: () {
                 showDialog(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('تأكيد الحذف'),
-                    content: Text('هل أنت متأكد من حذف المجال "$category"؟'),
+                    title: Text(isArabic ? 'تأكيد الحذف' : 'Delete Confirmation'),
+                    content: Text(isArabic
+                        ? 'هل أنت متأكد من حذف المجال "$category"؟'
+                        : 'Are you sure you want to delete category "$category"?'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text('إلغاء'),
+                        child: Text(isArabic ? 'إلغاء' : 'Cancel'),
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -241,32 +398,51 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
                           });
                           Navigator.pop(ctx);
                         },
-                        child: const Text('حذف'),
+                        child: Text(isArabic ? 'حذف' : 'Delete'),
                       ),
                     ],
                   ),
                 );
               },
+              selectedColor: primaryColor.withOpacity(0.2),
+              backgroundColor: cardColor,
+              checkmarkColor: primaryColor,
+              labelStyle: TextStyle(color: selected ? primaryColor : Colors.grey.shade700),
             );
           }).toList(),
         ),
         const SizedBox(height: 8),
         _buildSoftButton(
           icon: Icons.add,
-          label: 'إضافة مجال',
-          onTap: () => _showInputDialog('إضافة مجال', 'أدخل اسم المجال', (value) {
-            if (value.isNotEmpty && !allCategories.contains(value)) {
-              setState(() => allCategories.add(value));
-            }
-          }),
+          label: isArabic ? 'إضافة مجال' : 'Add Category',
+          onTap: () => _showInputDialog(
+            isArabic ? 'إضافة مجال' : 'Add Category',
+            isArabic ? 'أدخل اسم المجال' : 'Enter category name',
+                (value) {
+              if (value.isNotEmpty && !allCategories.contains(value)) {
+                setState(() => allCategories.add(value));
+              }
+            },isDark,
+          ),
+          primaryColor: primaryColor,
+          textColor: primaryColor,
         ),
       ],
     );
   }
 
-  Widget _buildGroupsCard(List<Map<String, String>> groups) {
+  Widget _buildGroupsCard(
+      List<Map<String, dynamic>> groups,
+      Color titleColor,
+      Color cardColor,
+      Color primaryColor,
+      bool isArabic,
+      bool isDark
+      ) {
     return _buildSectionCard(
-      title: 'الجروبات (${allGroups.length})',
+      title: '${isArabic ? 'الجروبات' : 'Groups'} (${allGroups.length})',
+      titleColor: titleColor,
+      cardColor: cardColor,
       children: [
         Row(
           children: [
@@ -277,7 +453,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
                   currentPage = 0;
                 }),
                 decoration: InputDecoration(
-                  hintText: 'بحث عن جروب',
+                  hintText: isArabic ? 'بحث عن جروب' : 'Search group',
                   prefixIcon: const Icon(Icons.search),
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -286,14 +462,14 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
                     borderSide: BorderSide(color: Colors.grey.shade300),
                   ),
                   filled: true,
-                  fillColor: Theme.of(context).cardColor,
+                  fillColor: cardColor,
                 ),
               ),
             ),
             const SizedBox(width: 10),
             _buildSoftButton(
               icon: Icons.group_add,
-              label: 'إضافة جروب',
+              label: isArabic ? 'إضافة جروب' : 'Add Group',
               onTap: () => _showAddGroupDialog(
                 context: context,
                 allCountries: allCountries,
@@ -306,11 +482,16 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
                       'country': country,
                       'category': category,
                       'membersCount': '0',
+                      'members': [],
+                      'isSendingLocked': false,
+                      'isVisible': false,
                     });
                     currentPage = (allGroups.length / groupsPerPage).ceil() - 1;
                   });
                 },
-              ),
+                isArabic: isArabic, isDark: isDark),
+              primaryColor: primaryColor,
+              textColor: primaryColor,
             ),
           ],
         ),
@@ -320,7 +501,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
             padding: const EdgeInsets.all(12.0),
             child: Center(
               child: Text(
-                'لا توجد جروبات مطابقة',
+                isArabic ? 'لا توجد جروبات مطابقة' : 'No matching groups',
                 style: TextStyle(color: Colors.grey.shade600),
               ),
             ),
@@ -333,55 +514,77 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
             itemBuilder: (_, index) {
               final group = groups[index];
               final membersCount = group['membersCount'] ?? '0';
-              final channel = groups[index];
               return Card(
                 elevation: 3,
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                color: Theme.of(context).cardColor,
+                color: cardColor,
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                    child: const Icon(Icons.group, color: Colors.blue),
+                    backgroundColor: primaryColor.withOpacity(0.1),
+                    child: Icon(Icons.group, color: primaryColor),
                   ),
                   title: Text(
                     group['name'] ?? '',
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   subtitle: Text(
-                    'الدولة: ${group['country']} - المجال: ${group['category']} - عدد الأعضاء: $membersCount',
+                    '${isArabic ? 'الدولة' : 'Country'}: ${group['country']} - ${isArabic ? 'المجال' : 'Category'}: ${group['category']} - ${isArabic ? 'عدد الأعضاء' : 'Members'}: $membersCount',
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // زر السماح بالظهور في التطبيق
                       IconButton(
-                        icon: const Icon(Icons.link, color: Colors.blue),
-                        tooltip: 'فتح الرابط',
+                        icon: Icon(
+                          group['isVisible'] == true ? Icons.visibility : Icons.visibility_off,
+                          color: group['isVisible'] == true ? Colors.green : Colors.grey,
+                        ),
+                        tooltip: isArabic
+                            ? (group['isVisible'] == true ? 'إخفاء من التطبيق' : 'السماح بالظهور في التطبيق')
+                            : (group['isVisible'] == true ? 'Hide from app' : 'Allow visibility in app'),
                         onPressed: () {
-                          final link = channel['link'];
+                          setState(() {
+                            group['isVisible'] = !(group['isVisible'] == true);
+                          });
+                        },
+                      ),
+
+                      IconButton(
+                        icon: Icon(Icons.link, color: primaryColor),
+                        tooltip: isArabic ? 'فتح الرابط' : 'Open Link',
+                        onPressed: () {
+                          final link = group['link'];
                           if (link != null && link.isNotEmpty) {
                             _launchUrl(link);
                           }
                         },
                       ),
                       IconButton(
-                        icon: const Icon(Icons.copy, color: Colors.grey),
-                        tooltip: 'نسخ الرابط',
+                        icon: Icon(Icons.copy, color: Colors.grey),
+                        tooltip: isArabic ? 'نسخ الرابط' : 'Copy Link',
                         onPressed: () {
-                          final link = channel['link'] ?? '';
+                          final link = group['link'] ?? '';
                           if (link.isNotEmpty) {
                             Clipboard.setData(ClipboardData(text: link));
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('تم نسخ الرابط')),
+                              SnackBar(content: Text(isArabic ? 'تم نسخ الرابط' : 'Link copied')),
                             );
                           }
                         },
                       ),
                       IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.orange),
-                        tooltip: 'تعديل الجروب',
+                        icon: Icon(Icons.group, color: primaryColor),
+                        tooltip: isArabic ? 'عرض الأعضاء' : 'Show Members',
+                        onPressed: () {
+                          _showMembersDialog(group, isArabic);
+                        },
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.edit, color: Colors.orange),
+                        tooltip: isArabic ? 'تعديل الجروب' : 'Edit Group',
                         onPressed: () {
                           _showAddGroupDialog(
                             context: context,
@@ -396,22 +599,25 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
                                 group['category'] = category;
                               });
                             },
+                            isArabic: isArabic,isDark:isDark
                           );
                         },
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        tooltip: 'حذف الجروب',
+                        icon: Icon(Icons.delete, color: Colors.red),
+                        tooltip: isArabic ? 'حذف الجروب' : 'Delete Group',
                         onPressed: () {
                           showDialog(
                             context: context,
                             builder: (context) => AlertDialog(
-                              title: const Text('تأكيد الحذف'),
-                              content: Text('هل أنت متأكد من حذف الجروب "${group['name']}"؟'),
+                              title: Text(isArabic ? 'تأكيد الحذف' : 'Delete Confirmation'),
+                              content: Text(isArabic
+                                  ? 'هل أنت متأكد من حذف الجروب "${group['name']}"؟'
+                                  : 'Are you sure you want to delete group "${group['name']}"?'),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(context),
-                                  child: const Text('إلغاء'),
+                                  child: Text(isArabic ? 'إلغاء' : 'Cancel'),
                                 ),
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -419,7 +625,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
                                     setState(() => allGroups.remove(group));
                                     Navigator.pop(context);
                                   },
-                                  child: const Text('حذف'),
+                                  child: Text(isArabic ? 'حذف' : 'Delete'),
                                 ),
                               ],
                             ),
@@ -435,18 +641,69 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
       ],
     );
   }
-  Widget _buildSectionCard({required String title, required List<Widget> children}) {
+
+  void _showMembersDialog(Map<String, dynamic> group, bool isArabic) {
+    final List members = group['members'] ?? [];
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(isArabic ? 'أعضاء الجروب' : 'Group Members'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: members.isEmpty
+              ? Text(isArabic ? 'لا يوجد أعضاء' : 'No members')
+              : ListView.builder(
+            shrinkWrap: true,
+            itemCount: members.length,
+            itemBuilder: (_, index) {
+              final member = members[index];
+              final name = member['name'] ?? '';
+              final phone = member['phone'] ?? '';
+              return ListTile(
+                leading: const Icon(Icons.person),
+                title: Text(name),
+                subtitle: Text(phone),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(isArabic ? 'إغلاق' : 'Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // هنا يمكنك إضافة منطق التصدير إلى Excel/PDF حسب الحاجة
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(isArabic ? 'تم تصدير الأعضاء (وهمياً)' : 'Members exported (dummy)')),
+              );
+            },
+            child: Text(isArabic ? 'تصدير إلى Excel/PDF' : 'Export to Excel/PDF'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required String title,
+    required Color titleColor,
+    required Color cardColor,
+    required List<Widget> children,
+  }) {
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Theme.of(context).cardColor,
+      color: cardColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: titleColor, fontSize: 18)),
             const SizedBox(height: 12),
             ...children,
           ],
@@ -455,26 +712,32 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
     );
   }
 
-  Widget _buildSoftButton({required IconData icon, required String label, required VoidCallback onTap}) {
+  Widget _buildSoftButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color? primaryColor,
+    Color? textColor,
+  }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
-        splashColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-        highlightColor: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+        splashColor: (primaryColor ?? Colors.blue).withOpacity(0.1),
+        highlightColor: (primaryColor ?? Colors.blue).withOpacity(0.05),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.08),
+            color: (primaryColor ?? Colors.blue).withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+              Icon(icon, size: 18, color: textColor ?? (primaryColor ?? Colors.blue)),
               const SizedBox(width: 6),
-              Text(label, style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+              Text(label, style: TextStyle(color: textColor ?? (primaryColor ?? Colors.blue))),
             ],
           ),
         ),
@@ -482,7 +745,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
     );
   }
 
-  void _showInputDialog(String title, String hint, void Function(String value) onSubmit) {
+  void _showInputDialog(String title, String hint, void Function(String value) onSubmit,isDark) {
     final controller = TextEditingController();
     showDialog(
       context: context,
@@ -494,11 +757,13 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
         ),
         actions: [
           TextButton(
-            child: const Text('إلغاء'),
+            child:  Text('إلغاء',style:TextStyle(color:isDark?Color(
+          0xFFB2ECBC):Color(0xFF324E86))),
             onPressed: () => Navigator.pop(context),
           ),
           ElevatedButton(
-            child: const Text('حفظ'),
+            child:   Text('حفظ',style:TextStyle(color:isDark?Color(
+                0xFFB2ECBC):Color(0xFF324E86))),
             onPressed: () {
               Navigator.pop(context);
               onSubmit(controller.text.trim());
@@ -508,174 +773,95 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen> {
       ),
     );
   }
-}
 
-void _showAddGroupDialog({
-  required BuildContext context,
-  required List<String> allCountries,
-  required List<String> allCategories,
-  required void Function({
-  required String name,
-  required String link,
-  required String country,
-  required String category,
-  }) onAddOrEdit,
-  Map<String, String>? existingGroup,
-}) {
-  String? selectedCountry = existingGroup?['country'];
-  String? selectedCategory = existingGroup?['category'];
-  final nameController = TextEditingController(text: existingGroup?['name']);
-  final linkController = TextEditingController(text: existingGroup?['link']);
+  void _showAddGroupDialog({
+    required BuildContext context,
+    required List<String> allCountries,
+    required List<String> allCategories,
+    Map<String, dynamic>? existingGroup,
+    required Function({
+    required String name,
+    required String link,
+    required String country,
+    required String category,
+    }) onAddOrEdit,
+    bool isArabic = true,
+    required  bool isDark ,
+  }) {
+    final nameController = TextEditingController(text: existingGroup != null ? existingGroup['name'] : '');
+    final linkController = TextEditingController(text: existingGroup != null ? existingGroup['link'] : '');
+    String selectedCountry = existingGroup != null ? existingGroup['country'] : (allCountries.isNotEmpty ? allCountries.first : '');
+    String selectedCategory = existingGroup != null ? existingGroup['category'] : (allCategories.isNotEmpty ? allCategories.first : '');
 
-  final primaryColor = Theme.of(context).colorScheme.primary;
-
-  showDialog(
-    context: context,
-    builder: (ctx) {
-      return StatefulBuilder(
-        builder: (context, setStateDialog) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            backgroundColor: Theme.of(context).cardColor,
-            titlePadding: const EdgeInsets.only(top: 20, right: 20, left: 20),
-            contentPadding: const EdgeInsets.all(20),
-            title: Row(
-              children: [
-                Icon(
-                  existingGroup == null ? Icons.group_add : Icons.edit,
-                  color: primaryColor,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    existingGroup == null ? 'إضافة جروب جديد' : 'تعديل الجروب',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildDropdown(
-                    context: context,
-                    label: 'اختر الدولة',
-                    value: selectedCountry,
-                    items: allCountries,
-                    onChanged: (val) {
-                      setStateDialog(() {
-                        selectedCountry = val;
-                        selectedCategory = null;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDropdown(
-                    context: context,
-                    label: 'اختر المجال',
-                    value: selectedCategory,
-                    items: selectedCountry == null ? [] : allCategories,
-                    onChanged: (val) {
-                      setStateDialog(() {
-                        selectedCategory = val;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _buildTextField(
-                    context: context,
-                    label: 'اسم الجروب',
-                    controller: nameController,
-                    icon: Icons.title,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildTextField(
-                    context: context,
-                    label: 'رابط الجروب',
-                    controller: linkController,
-                    icon: Icons.link,
-                  ),
-                ],
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(isArabic ? (existingGroup != null ? 'تعديل الجروب' : 'إضافة جروب') : (existingGroup != null ? 'Edit Group' : 'Add Group'),style:TextStyle(color:isDark?Color(
+            0xFFB2ECBC):Color(0xFF324E86))),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(labelText: isArabic ? 'اسم الجروب' : 'Group Name'),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('إلغاء'),
+              TextField(
+                controller: linkController,
+                decoration: InputDecoration(labelText: isArabic ? 'رابط الجروب' : 'Group Link'),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  if (selectedCountry != null &&
-                      selectedCategory != null &&
-                      nameController.text.trim().isNotEmpty) {
-                    onAddOrEdit(
-                      name: nameController.text.trim(),
-                      link: linkController.text.trim(),
-                      country: selectedCountry!,
-                      category: selectedCategory!,
-                    );
-                    Navigator.pop(ctx);
-                  }
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: selectedCountry,
+                decoration: InputDecoration(labelText: isArabic ? 'الدولة' : 'Country'),
+                items: allCountries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => selectedCountry = val);
                 },
-                child: const Text('حفظ'),
+              ),
+              DropdownButtonFormField<String>(
+                value: selectedCategory,
+                decoration: InputDecoration(labelText: isArabic ? 'المجال' : 'Category'),
+                items: allCategories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => selectedCategory = val);
+                },
               ),
             ],
-          );
-        },
-      );
-    },
-  );
-}
-
-Widget _buildDropdown({
-  required BuildContext context,
-  required String label,
-  required String? value,
-  required List<String> items,
-  required ValueChanged<String?> onChanged,
-}) {
-  return InputDecorator(
-    decoration: InputDecoration(
-      labelText: label,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        isExpanded: true,
-        value: value,
-        items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-        onChanged: onChanged,
-        hint: Text('اختر $label'),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(isArabic ? 'إلغاء' : 'Cancel',style:TextStyle(color:isDark?Color(
+                0xFFB2ECBC):Color(0xFF324E86))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (nameController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isArabic ? 'الرجاء إدخال اسم الجروب' : 'Please enter group name',style:TextStyle(color:isDark?Color(
+                    0xFFB2ECBC):Color(0xFF324E86)))));
+                return;
+              }
+              onAddOrEdit(
+                name: nameController.text.trim(),
+                link: linkController.text.trim(),
+                country: selectedCountry,
+                category: selectedCategory,
+              );
+              Navigator.pop(context);
+            },
+            child: Text(isArabic ? 'حفظ' : 'Save',style:TextStyle(color:isDark?Color(
+                0xFFB2ECBC):Color(0xFF324E86))),
+          ),
+        ],
       ),
-    ),
-  );
+    );
+  }
+
+  void _launchUrl(String url) {
+
+    debugPrint('فتح الرابط: $url');
+  }
 }
 
-Widget _buildTextField({
-  required BuildContext context,
-  required String label,
-  required TextEditingController controller,
-  IconData? icon,
-}) {
-  return TextField(
-    controller: controller,
-    decoration: InputDecoration(
-      labelText: label,
-      prefixIcon: icon != null ? Icon(icon) : null,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-    ),
-  );
-}
-Future<void> _launchUrl(String url) async {
-  // To open the URL in a real app, use url_launcher package:
-  // await launchUrl(Uri.parse(url));
-  // Here just debug print as internet is disabled.
-  debugPrint('فتح الرابط: $url');
-}

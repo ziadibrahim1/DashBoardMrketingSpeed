@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart'; // تأكد من استيراد Provider
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../providers/app_providers.dart';
 import 'OurGroupsManagementScreen.dart';
+import 'select_user_screen.dart';
 
+// --- هنا تعريف شاشات داخلية بدون Scaffold ---
+// قم باستبدال هذه الأكواد بمحتوى الشاشات الحقيقية (بدون Scaffold) لديك
+
+// --- شاشة الإحصائيات الرئيسية ---
 class StatsPage extends StatefulWidget {
   const StatsPage({super.key});
 
@@ -13,7 +20,15 @@ class StatsPage extends StatefulWidget {
   State<StatsPage> createState() => _StatsPageState();
 }
 
+enum BodyContent {
+  mainDashboard,
+  groups,
+  marketing,
+}
+
 class _StatsPageState extends State<StatsPage> {
+  BodyContent currentContent = BodyContent.mainDashboard;
+
   List<GroupRequest> groupRequests = [
     GroupRequest(
       name: 'جروب واتساب التسويق العقاري - السعودية',
@@ -29,119 +44,221 @@ class _StatsPageState extends State<StatsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final isArabic = localeProvider.locale.languageCode == 'ar';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? const Color(0xFFD7EFDC) : const Color(0xFF65C4F8);
     final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
-    final cardColor = Theme.of(context).cardColor;
+    final cardColor = isDark ? const Color(0xFF4D5D53) : Theme.of(context).cardColor;
+
+    final titles = {
+      'groupRequests': isArabic ? 'طلبات إضافة الجروبات' : 'Group Addition Requests',
+      'copyLink': isArabic ? 'نسخ الرابط' : 'Copy Link',
+      'openLink': isArabic ? 'فتح الرابط' : 'Open Link',
+      'linkCopied': isArabic ? 'تم نسخ الرابط إلى الحافظة' : 'Link copied to clipboard',
+      'linkOpenError': isArabic ? 'تعذر فتح الرابط' : 'Failed to open link',
+      'approved': isArabic ? 'تمت الموافقة' : 'Approved',
+      'approve': isArabic ? 'موافقة' : 'Approve',
+    };
+
+    Widget contentWidget;
+    switch (currentContent) {
+      case BodyContent.groups:
+        contentWidget = const OurGroupsManagementScreen();
+        break;
+      case BodyContent.marketing:
+        contentWidget =   SelectUserScreen();
+        break;
+      case BodyContent.mainDashboard:
+      default:
+        contentWidget = _buildMainDashboard(
+            isArabic, isDark, primaryColor, backgroundColor, cardColor, titles);
+    }
 
     return Scaffold(
       backgroundColor: backgroundColor,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
-        child: ListView(
-          physics: const BouncingScrollPhysics(),
+        child: Column(
           children: [
-            // كروت الواتساب والجروبات
-            Row(
-              children: [
-                Expanded(
-                  child: DashboardCard(
-                    title: 'واتساب',
-                    icon: FontAwesomeIcons.whatsapp,
-                    color: Colors.green,
-                    onTap: () {
-                      // وظيفة فتح صفحة واتساب
-                    },
-                  ),
+            Expanded(child: contentWidget),
+            if (currentContent != BodyContent.mainDashboard)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: ElevatedButton.icon(
+                  icon:  Icon(Icons.arrow_back,color:isDark?Color(0xFFD7EFDC):Colors.blue[900]),
+                  label: Text(isArabic ? 'عودة للوحة التحكم' : 'Back to Dashboard',style:TextStyle(color:isDark?Color(0xFFD7EFDC):Colors.blue[900])),
+                  onPressed: () {
+                    setState(() {
+                      currentContent = BodyContent.mainDashboard;
+                    });
+                  },
                 ),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: DashboardCard(
-                    title: 'جروباتنا',
-                    icon: Icons.groups,
-                    color: primaryColor,
-                    onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) => const OurGroupsManagementScreen(),
-                      ));
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-
-            // بطاقات الإحصائيات
-            Wrap(
-              spacing: 24,
-              runSpacing: 24,
-              children: [
-                _buildStatCard("رسائل الجروبات", 3280, primaryColor, cardColor),
-                _buildStatCard("رسائل الدردشات", 1850, primaryColor, cardColor),
-                _buildStatCard("رسائل الأعضاء", 920, primaryColor, cardColor),
-                _buildStatCard("جروباتنا الخاصة", 36, primaryColor, cardColor),
-              ],
-            ),
-            const SizedBox(height: 40),
-
-            // الرسوم البيانية
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: _buildBarChart(cardColor)),
-                const SizedBox(width: 24),
-                Expanded(child: _buildPieChart(cardColor)),
-              ],
-            ),
-            const SizedBox(height: 40),
-
-            // جدول طلبات الجروبات مع تحسين التصميم
-            _buildGroupRequestsTable(cardColor),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatCard(String title, int value, Color primary, Color cardColor) {
-    return Container(
-      width: 260,
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 18,
-            offset: Offset(0, 10),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style: const TextStyle(
+  Widget _buildMainDashboard(bool isArabic, bool isDark, Color primaryColor,
+      Color backgroundColor, Color cardColor, Map<String, String> titles) {
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: DashboardCard(
+                title: isArabic ? 'واتساب' : 'WhatsApp',
+                icon: FontAwesomeIcons.whatsapp,
+                color: Colors.green,
+                onTap: () {
+                  // وظيفة فتح صفحة واتساب
+                },
+              ),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: DashboardCard(
+                title: isArabic ? 'اضغط لعرض جروباتنا' : 'Press to show Our Groups',
+                icon: Icons.groups,
+                color: primaryColor,
+                onTap: () {
+                  setState(() {
+                    currentContent = BodyContent.groups;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 32),
+        Wrap(
+          spacing: 24,
+          runSpacing: 24,
+          children: [
+            _buildStatCard(
+                isArabic ? 'رسائل الجروبات' : 'Group Messages',
+                3280,
+                primaryColor,
+                cardColor,
+                isDark,
+                false),
+            _buildStatCard(
+                isArabic ? 'رسائل الدردشات' : 'Chat Messages',
+                1850,
+                primaryColor,
+                cardColor,
+                isDark,
+                false),
+            _buildStatCard(
+                isArabic ? 'رسائل الأعضاء' : 'Member Messages',
+                920,
+                primaryColor,
+                cardColor,
+                isDark,
+                false),
+            _buildStatCard(
+                isArabic ? 'جروباتنا الخاصة' : 'Our Private Groups',
+                36,
+                primaryColor,
+                cardColor,
+                isDark,
+                false),
+            _buildStatCard(
+              isArabic ? 'اضغط للتسويق للعملاء' : 'Press to Customer Marketing',
+              36,
+              primaryColor,
+              cardColor,
+              isDark,
+              true,
+              onTap: () {
+                setState(() {
+                  currentContent = BodyContent.marketing;
+                });
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 40),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _buildBarChart(cardColor, isArabic ? ['س', 'ح', 'ن', 'ث', 'ر', 'خ', 'ج'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S'])),
+            const SizedBox(width: 24),
+            Expanded(child: _buildPieChart(cardColor, isArabic ? ['السعودية', 'مصر', 'الإمارات', 'أخرى'] : ['KSA', 'Egypt', 'UAE', 'Others'])),
+          ],
+        ),
+        const SizedBox(height: 40),
+        _buildGroupRequestsTable(cardColor, titles, isArabic, isDark),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(
+      String title,
+      int value,
+      Color primary,
+      Color cardColor,
+      bool isDark,
+      bool isMarketing, {
+        VoidCallback? onTap,
+      }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 150,
+        width: isMarketing ? 400 : null,
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF4D5D53) : const Color(0xFFC1EAFF),
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.grey[900]! : Colors.black12,
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: isMarketing ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
+                color: isDark ? const Color(0xFFD7EFDC) : Colors.blue.shade900,
                 letterSpacing: 0.6,
-              )),
-          const SizedBox(height: 20),
-          Text(
-            '$value',
-            style: TextStyle(
-              fontSize: 40,
-              fontWeight: FontWeight.bold,
-              color: primary,
-              letterSpacing: 1.2,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            if (!isMarketing)
+              Text(
+                value.toString(),
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? const Color(0xFFD7EFDC) : Colors.blue.shade900,
+                  letterSpacing: 1.2,
+                ),
+                textAlign: TextAlign.start,
+              )
+            else
+              Icon(
+                Icons.campaign,
+                size: 40,
+                color: isDark ? Colors.white70 : Colors.blue.shade900,
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildBarChart(Color cardColor) {
+  Widget _buildBarChart(Color cardColor, List<String> days) {
     return Container(
       height: 280,
       padding: const EdgeInsets.all(24),
@@ -174,7 +291,6 @@ class _StatsPageState extends State<StatsPage> {
               sideTitles: SideTitles(
                 showTitles: true,
                 getTitlesWidget: (value, _) {
-                  const days = ['س', 'ح', 'ن', 'ث', 'ر', 'خ', 'ج'];
                   return Text(days[value.toInt() % 7], style: const TextStyle(fontSize: 14));
                 },
               ),
@@ -203,7 +319,7 @@ class _StatsPageState extends State<StatsPage> {
     );
   }
 
-  Widget _buildPieChart(Color cardColor) {
+  Widget _buildPieChart(Color cardColor, List<String> countries) {
     return Container(
       height: 280,
       padding: const EdgeInsets.all(24),
@@ -223,17 +339,17 @@ class _StatsPageState extends State<StatsPage> {
           sectionsSpace: 6,
           centerSpaceRadius: 48,
           sections: [
-            PieChartSectionData(value: 40, color: Colors.blue, title: 'السعودية', radius: 80),
-            PieChartSectionData(value: 30, color: Colors.orange, title: 'مصر', radius: 70),
-            PieChartSectionData(value: 20, color: Colors.green, title: 'الإمارات', radius: 60),
-            PieChartSectionData(value: 10, color: Colors.purple, title: 'أخرى', radius: 50),
+            PieChartSectionData(value: 40, color: Colors.blue, title: countries[0], radius: 80),
+            PieChartSectionData(value: 30, color: Colors.orange, title: countries[1], radius: 70),
+            PieChartSectionData(value: 20, color: Colors.green, title: countries[2], radius: 60),
+            PieChartSectionData(value: 10, color: Colors.purple, title: countries[3], radius: 50),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildGroupRequestsTable(Color cardColor) {
+  Widget _buildGroupRequestsTable(Color cardColor, Map<String, String> titles, bool isArabic, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
@@ -250,9 +366,9 @@ class _StatsPageState extends State<StatsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "طلبات إضافة الجروبات",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 0.7),
+          Text(
+            titles['groupRequests']!,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 0.7),
           ),
           const Divider(height: 36, thickness: 2),
           SizedBox(
@@ -262,7 +378,7 @@ class _StatsPageState extends State<StatsPage> {
               separatorBuilder: (_, __) => const Divider(height: 24),
               itemBuilder: (context, index) {
                 final request = groupRequests[index];
-                return _buildRequestRow(request);
+                return _buildRequestRow(request, titles, isArabic, isDark);
               },
             ),
           )
@@ -271,7 +387,7 @@ class _StatsPageState extends State<StatsPage> {
     );
   }
 
-  Widget _buildRequestRow(GroupRequest request) {
+  Widget _buildRequestRow(GroupRequest request, Map<String, String> titles, bool isArabic, bool isDark) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       title: Text(
@@ -294,25 +410,20 @@ class _StatsPageState extends State<StatsPage> {
               ),
             ),
             const SizedBox(width: 12),
-
-            // زر نسخ الرابط
             Tooltip(
-              message: 'نسخ الرابط',
+              message: titles['copyLink']!,
               child: IconButton(
-                icon: const Icon(Icons.copy, size: 22),
-                color: Colors.grey.shade700,
+                icon: Icon(Icons.copy, size: 22, color: isDark ? const Color(0xFFD7EFDC) : Colors.blue.shade900),
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: request.link));
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('تم نسخ الرابط إلى الحافظة')),
+                    SnackBar(content: Text(titles['linkCopied']!)),
                   );
                 },
               ),
             ),
-
-            // زر فتح الرابط
             Tooltip(
-              message: 'فتح الرابط',
+              message: titles['openLink']!,
               child: IconButton(
                 icon: const Icon(Icons.open_in_new, size: 22),
                 color: Colors.blue.shade700,
@@ -322,7 +433,7 @@ class _StatsPageState extends State<StatsPage> {
                     await launchUrl(url, mode: LaunchMode.externalApplication);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('تعذر فتح الرابط')),
+                      SnackBar(content: Text(titles['linkOpenError']!)),
                     );
                   }
                 },
@@ -340,12 +451,12 @@ class _StatsPageState extends State<StatsPage> {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.check_circle, color: Colors.green, size: 22),
-            SizedBox(width: 8),
+          children: [
+            const Icon(Icons.check_circle, color: Colors.green, size: 22),
+            const SizedBox(width: 8),
             Text(
-              "تمت الموافقة",
-              style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+              titles['approved']!,
+              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -357,7 +468,7 @@ class _StatsPageState extends State<StatsPage> {
           });
         },
         icon: const Icon(Icons.check, size: 20),
-        label: const Text("موافقة"),
+        label: Text(titles['approve']!),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.green,
           foregroundColor: Colors.white,
@@ -398,6 +509,7 @@ class DashboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -406,24 +518,28 @@ class DashboardCard extends StatelessWidget {
           height: 130,
           padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
+            color: isDark ? const Color(0xFF4D5D53) : Colors.white,
             borderRadius: BorderRadius.circular(28),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
-                color: Colors.black12,
+                color: isDark ? Colors.grey[900]! : Colors.black12,
                 blurRadius: 18,
-                offset: Offset(0, 8),
+                offset: const Offset(0, 8),
               )
             ],
           ),
           child: Row(
             children: [
-              Icon(icon, size: 48, color: color),
+              Icon(icon, size: 48, color: isDark ? const Color(0xFFD7EFDC) : color),
               const SizedBox(width: 24),
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? const Color(0xFFD7EFDC) : Colors.blue.shade900,
+                  ),
                 ),
               )
             ],

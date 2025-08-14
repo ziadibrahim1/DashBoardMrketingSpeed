@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:io';
 
 class ChatRoomScreen extends StatefulWidget {
   final String userId;
@@ -43,7 +42,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       _controller.clear();
     });
 
-    // في المستقبل: ربط الرسالة بـ API
+    // ربط API لاحقًا
   }
 
   Future<void> _pickImage() async {
@@ -85,22 +84,32 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final backgroundColor = isDark ? Colors.black : Colors.grey[100];
+    final sentMessageColor = isDark ? Colors.teal[700] : Colors.teal[300];
+    final receivedMessageColor = isDark ? Colors.grey[800] : Colors.white;
+    final inputFillColor = isDark ? Colors.grey[900] : Colors.white;
+
     return Scaffold(
+      backgroundColor: backgroundColor,
       appBar: AppBar(
+        backgroundColor: primaryColor,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.title),
-            if (widget.multiMode)
-              Text(
-                '${widget.targets.length} ${_getTargetType()}',
-                style: TextStyle(fontSize: 12, color: Colors.white70),
-              )
-            else
-              Text(
-                widget.isGroup ? 'جروب' : 'دردشة',
-                style: TextStyle(fontSize: 12, color: Colors.white70),
-              ),
+            Text(
+              widget.title,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              widget.multiMode
+                  ? '${widget.targets.length} ${_getTargetType()}'
+                  : (widget.isGroup ? (isArabic ? 'جروب' : 'Group') : (isArabic ? 'دردشة' : 'Chat')),
+              style: TextStyle(fontSize: 13, color: Colors.white70),
+            ),
           ],
         ),
       ),
@@ -108,17 +117,18 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         children: [
           if (widget.multiMode)
             Container(
-              padding: EdgeInsets.all(8),
-              color: Colors.grey.shade200,
+              padding: const EdgeInsets.all(8),
               width: double.infinity,
+              color: isDark ? Colors.grey[900] : Colors.grey[300],
               child: Text(
-                'الأهداف:\n${widget.targets.join(", ")}',
-                style: TextStyle(fontSize: 12),
+                '${isArabic ? 'الأهداف:' : 'Targets:'}\n${widget.targets.join(", ")}',
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
+                textAlign: TextAlign.start,
               ),
             ),
           Expanded(
             child: ListView.builder(
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               itemCount: messages.length,
               itemBuilder: (_, index) {
                 final msg = messages[index];
@@ -126,49 +136,86 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 return Align(
                   alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
-                    margin: EdgeInsets.symmetric(vertical: 6),
-                    padding: EdgeInsets.all(10),
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
                     decoration: BoxDecoration(
-                      color: isMine
-                          ? Theme.of(context).primaryColorLight
-                          : Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(10),
+                      color: isMine ? sentMessageColor : receivedMessageColor,
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(16),
+                        topRight: const Radius.circular(16),
+                        bottomLeft: Radius.circular(isMine ? 16 : 4),
+                        bottomRight: Radius.circular(isMine ? 4 : 16),
+                      ),
+                      boxShadow: [
+                        if (!isMine)
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 3,
+                            offset: const Offset(1, 2),
+                          )
+                      ],
                     ),
-                    child: Text(msg, textDirection: TextDirection.rtl),
+                    child: Text(
+                      msg,
+                      style: TextStyle(
+                        color: isMine ? Colors.white : (isDark ? Colors.white : Colors.black87),
+                        fontSize: 15,
+                        height: 1.3,
+                      ),
+                      textDirection: TextDirection.rtl,
+                    ),
                   ),
                 );
               },
             ),
           ),
-          Divider(height: 1),
-          Padding(
+          const Divider(height: 1),
+          Container(
+            color: inputFillColor,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             child: Row(
               children: [
                 IconButton(
-                  icon: Icon(Icons.attach_file),
+                  icon: Icon(Icons.attach_file, color: primaryColor),
                   onPressed: _pickFile,
+                  tooltip: isArabic ? 'إرفاق ملف' : 'Attach File',
                 ),
                 IconButton(
-                  icon: Icon(Icons.image),
+                  icon: Icon(Icons.image, color: primaryColor),
                   onPressed: _pickImage,
+                  tooltip: isArabic ? 'إرفاق صورة' : 'Attach Image',
                 ),
                 Expanded(
                   child: TextField(
                     controller: _controller,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _sendMessage(),
                     decoration: InputDecoration(
-                      hintText: 'اكتب رسالة...',
-                      border: OutlineInputBorder(),
+                      hintText: isArabic ? 'اكتب رسالة...' : 'Type a message...',
+                      filled: true,
+                      fillColor: isDark ? Colors.grey[800] : Colors.grey[200],
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: Icon(Icons.send),
-                  onPressed: _sendMessage,
-                )
+                const SizedBox(width: 6),
+                CircleAvatar(
+                  backgroundColor: primaryColor,
+                  radius: 22,
+                  child: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.white),
+                    onPressed: _sendMessage,
+                    tooltip: isArabic ? 'إرسال' : 'Send',
+                  ),
+                ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );

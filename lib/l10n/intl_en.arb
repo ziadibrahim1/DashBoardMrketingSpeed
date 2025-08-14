@@ -1,0 +1,16 @@
+{
+  "@@locale": "en",
+  "appTitle": "Marketing Speed Dashboard",
+  "loginTitle": "Admin Login",
+  "emailLabel": "Email",
+  "emailEmptyError": "Please enter email",
+  "passwordLabel": "Password",
+  "passwordEmptyError": "Please enter password",
+  "forgotPassword": "Forgot password?",
+  "resetPasswordTitle": "Reset Password",
+  "resetPasswordContent": "Enter your email to send reset link:",
+  "cancel": "Cancel",
+  "send": "Send",
+  "resetEmailSent": "Reset link sent to {email}",
+  "loginButton": "Login"
+}

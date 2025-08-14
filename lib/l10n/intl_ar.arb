@@ -1,0 +1,16 @@
+{
+  "@@locale": "ar",
+  "appTitle": "لوحة تحكم سرعة التسويق",
+  "loginTitle": "تسجيل دخول المسؤول",
+  "emailLabel": "البريد الإلكتروني",
+  "emailEmptyError": "أدخل البريد",
+  "passwordLabel": "كلمة المرور",
+  "passwordEmptyError": "أدخل كلمة المرور",
+  "forgotPassword": "نسيت كلمة المرور؟",
+  "resetPasswordTitle": "إعادة تعيين كلمة المرور",
+  "resetPasswordContent": "أدخل بريدك الإلكتروني لإرسال رابط إعادة التعيين:",
+  "cancel": "إلغاء",
+  "send": "إرسال",
+  "resetEmailSent": "تم إرسال رابط إعادة التعيين إلى {email}",
+  "loginButton": "دخول"
+}

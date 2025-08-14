@@ -1,8 +1,42 @@
+import 'package:csv/csv.dart';
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-
+import 'package:provider/provider.dart';
 import 'PaymentStatsDashboard.dart';
+Future<void> exportToCSVFile(List<Payment> payments) async {
+  try {
+    final rows = <List<String>>[
+      ['الاسم', 'الباقة', 'المبلغ', 'الحالة', 'الوسيلة', 'التاريخ'],
+      ...payments.map((p) => [
+        p.username,
+        p.plan,
+        p.amount.toString(),
+        p.status,
+        p.method,
+        p.date.toIso8601String(),
+      ]),
+    ];
 
+    final csvContent = const ListToCsvConverter().convert(rows);
+    final bytes = csvContent.codeUnits;
+
+    final fileName = 'سجل_المدفوعات.csv';
+
+    final res = await FileSaver.instance.saveFile(
+      name: fileName,
+      bytes: Uint8List.fromList(bytes),
+      ext: 'csv',
+      mimeType: MimeType.csv,
+    );
+
+    debugPrint("تم حفظ الملف: $res");
+
+  } catch (e) {
+    debugPrint('خطأ أثناء التصدير: $e');
+  }
+}
 enum UserRole { admin, manager, viewer }
 
 class PaymentManagementSection extends StatefulWidget {
@@ -50,28 +84,31 @@ class _PaymentManagementSectionState extends State<PaymentManagementSection>
       });
     }
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor:isDark?Colors.grey[900]: Colors.white,
       appBar: AppBar(
         elevation: 4,
-        backgroundColor: theme.colorScheme.primary,
-        title: const Text(
+        backgroundColor:isDark?Colors.grey[900]:Colors.blue.shade300,
+        title:   Text(
           'إدارة الدفع',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color:   Colors.white ,
+          ),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(50),
           child: Container(
-            color: theme.colorScheme.primary,
+            color: isDark?Colors.grey[900]:Colors.blue.shade50,
             child: TabBar(
               controller: _tabController,
               isScrollable: true,
               tabs: tabs,
               labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white70,
+              labelColor:isDark?Colors.white: Colors.blue.shade700,
+              unselectedLabelColor: isDark?Colors.grey[300]:Colors.blue.shade900,
               indicator: UnderlineTabIndicator(
-                borderSide: BorderSide(width: 3, color: Colors.amber.shade200),
+                borderSide: BorderSide(width: 3, color: Colors.white),
                 insets: const EdgeInsets.symmetric(horizontal: 16),
               ),
             ),
@@ -94,30 +131,74 @@ class _PaymentManagementSectionState extends State<PaymentManagementSection>
   }
 }
 
+class Payment {
+  final String username;
+  final String plan;
+  final double amount;
+  final String status;
+  final String method;
+  final DateTime date;
 
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
+  Payment({
+    required this.username,
+    required this.plan,
+    required this.amount,
+    required this.status,
+    required this.method,
+    required this.date,
+  });
+}
 
-  const _StatCard({required this.title, required this.value});
+class PaymentViewModel extends ChangeNotifier {
+  final List<Payment> _payments = [];
+  List<Payment> get payments => _payments;
 
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: const TextStyle(fontSize: 16, color: Colors.grey)),
-            const SizedBox(height: 8),
-            Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
-    );
+  String _searchQuery = '';
+  String get searchQuery => _searchQuery;
+
+  PaymentViewModel() {
+    _generateInitialPayments();
+  }
+
+  void _generateInitialPayments() {
+    _payments.addAll(List.generate(50, (i) {
+      return Payment(
+        username: 'مستخدم $i',
+        plan: i % 2 == 0 ? 'شهري' : 'سنوي',
+        amount: 100 + i * 10,
+        status: i % 2 == 0 ? 'تم' : 'معلق',
+        method: 'بطاقة',
+        date: DateTime.now().subtract(Duration(days: i)),
+      );
+    }));
+  }
+
+  List<Payment> get filteredPayments {
+    if (_searchQuery.isEmpty) return _payments;
+    return _payments
+        .where((p) => p.username.contains(_searchQuery))
+        .toList();
+  }
+
+  void updateSearchQuery(String query) {
+    _searchQuery = query;
+    notifyListeners();
+  }
+
+  Future<void> exportToCSV() async {
+    final List<List<String>> rows = [
+      ['الاسم', 'الباقة', 'المبلغ', 'الحالة', 'الوسيلة', 'التاريخ'],
+      ...filteredPayments.map((p) => [
+        p.username,
+        p.plan,
+        p.amount.toString(),
+        p.status,
+        p.method,
+        p.date.toIso8601String(),
+      ])
+    ];
+    final csv = const ListToCsvConverter().convert(rows);
+    await Clipboard.setData(ClipboardData(text: csv));
   }
 }
 
@@ -126,73 +207,152 @@ class PaymentHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    labelText: 'ابحث باسم العميل أو رقم العملية',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.download),
-                label: const Text('تصدير'),
-              ),
-            ],
+    return ChangeNotifierProvider(
+      create: (_) => PaymentViewModel(),
+      child: Scaffold(
+
+        body: const SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: PaymentHistoryBody(),
           ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('المستخدم')),
-                  DataColumn(label: Text('الباقة')),
-                  DataColumn(label: Text('المبلغ')),
-                  DataColumn(label: Text('الحالة')),
-                  DataColumn(label: Text('الوسيلة')),
-                  DataColumn(label: Text('التاريخ')),
-                  DataColumn(label: Text('الإجراء')),
-                ],
-                rows: List.generate(5, (index) {
-                  return DataRow(cells: [
-                    const DataCell(Text('أحمد محمد')),
-                    const DataCell(Text('باقة شهرية')),
-                    const DataCell(Text('100 ر.س')),
-                    DataCell(
-                      Chip(
-                        label: const Text('تم'),
-                        backgroundColor: Colors.green.shade100,
-                        labelStyle: const TextStyle(color: Colors.green),
-                      ),
-                    ),
-                    const DataCell(Text('بطاقة')),
-                    const DataCell(Text('2025-08-05')),
-                    DataCell(
-                      IconButton(
-                        icon: const Icon(Icons.visibility),
-                        onPressed: () {},
-                      ),
-                    ),
-                  ]);
-                }),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
+
+class PaymentHistoryBody extends StatelessWidget {
+  const PaymentHistoryBody({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = context.watch<PaymentViewModel>();
+    final payments = vm.filteredPayments;
+    final theme = Theme.of(context);
+    var isDark = theme.brightness == Brightness.dark;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // شريط البحث والتصدير
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                onChanged: vm.updateSearchQuery,
+                decoration: InputDecoration(
+                  hintText: 'ابحث باسم العميل',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Theme.of(context).colorScheme.surfaceVariant,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.icon(
+              onPressed: () async {
+                final vm = context.read<PaymentViewModel>();
+                await exportToCSVFile(vm.filteredPayments);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('تم حفظ ملف CSV')),
+                );
+              },
+              icon: const Icon(Icons.download, color: Colors.white),
+              label: const Text('تصدير'),
+              style: FilledButton.styleFrom(
+                backgroundColor:isDark?Colors.green: Colors.blue,
+                foregroundColor: Colors.white, // لون النص والأيقونة
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 24),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final theme = Theme.of(context);
+            final isDark = theme.brightness == Brightness.dark;
+
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Container(
+                color: isDark ? Colors.grey[900] : Colors.grey[50], // خلفية ناعمة للطرفين
+                width: constraints.maxWidth,
+                child: PaginatedDataTable(
+                  columns: const [
+                    DataColumn(label: Text('المستخدم')),
+                    DataColumn(label: Text('الباقة')),
+                    DataColumn(label: Text('المبلغ')),
+                    DataColumn(label: Text('الحالة')),
+                    DataColumn(label: Text('الوسيلة')),
+                    DataColumn(label: Text('التاريخ')),
+                  ],
+                  source: PaymentDataSource(payments),
+                  header: const Text('عمليات الدفع'),
+                  rowsPerPage: 10,
+                  columnSpacing: 24,
+                  horizontalMargin: 12,
+                  showCheckboxColumn: false,
+                  headingRowColor: MaterialStateProperty.resolveWith<Color?>(
+                        (states) => isDark ? Colors.grey[850] : Colors.grey[200],
+                  ),
+                ),
+              ),
+            );
+          },
+        )
+
+
+        // جدول البيانات بكامل عرض الشاشة
+
+      ],
+    );
+  }
+}
+
+class PaymentDataSource extends DataTableSource {
+  final List<Payment> payments;
+
+  PaymentDataSource(this.payments);
+
+  @override
+  DataRow getRow(int index) {
+    if (index >= payments.length) return const DataRow(cells: []);
+    final p = payments[index];
+    return DataRow(cells: [
+      DataCell(Text(p.username)),
+      DataCell(Text(p.plan)),
+      DataCell(Text('${p.amount} ر.س')),
+      DataCell(
+        Chip(
+          label: Text(p.status),
+
+          labelStyle: TextStyle(
+            color: p.status == 'تم' ? Colors.green : Colors.blue,
+          ),
+        ),
+      ),
+      DataCell(Text(p.method)),
+      DataCell(Text(p.date.toString().split(' ').first)),
+    ]);
+  }
+
+  @override
+  bool get isRowCountApproximate => false;
+
+  @override
+  int get rowCount => payments.length;
+
+  @override
+  int get selectedRowCount => 0;
+}
+
 class CustomerPaymentsScreen extends StatefulWidget {
   const CustomerPaymentsScreen({super.key});
 
@@ -299,27 +459,22 @@ class _CustomerPaymentsScreenState extends State<CustomerPaymentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    var isDark = theme.brightness == Brightness.dark;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'اشتراكات العملاء',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-
-            // صف البحث والفلترة والفرز
             Row(
               children: [
                 // بحث (يوسع تلقائيًا)
                 Expanded(
                   child: TextField(
-                    decoration: const InputDecoration(
-                      labelText: 'ابحث عن عميل',
-                      prefixIcon: Icon(Icons.search),
+                    decoration: InputDecoration(
+                      labelText:  'ابحث عن عميل' ,
+                      prefixIcon: const Icon(Icons.search),
                     ),
                     onChanged: (value) {
                       setState(() {
@@ -380,6 +535,8 @@ class _CustomerPaymentsScreenState extends State<CustomerPaymentsScreen> {
                   final isExpired = sub.endDate.isBefore(DateTime.now());
 
                   return Card(
+                    color: isDark?Colors.grey.shade800:Colors.white,
+
                     margin: const EdgeInsets.only(bottom: 16),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -387,6 +544,7 @@ class _CustomerPaymentsScreenState extends State<CustomerPaymentsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           CircleAvatar(
+                            backgroundColor:isDark?Colors.green.shade200:Colors.blue.shade100,
                             child: Text(sub.name.characters.first),
                           ),
                           const SizedBox(width: 12),
@@ -395,10 +553,10 @@ class _CustomerPaymentsScreenState extends State<CustomerPaymentsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(sub.name,
-                                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    style:   TextStyle(fontWeight: FontWeight.bold,color:isDark?Colors.green.shade200:Colors.blue.shade900)),
                                 const SizedBox(height: 4),
                                 Text(
-                                    '${sub.packageName} - تنتهي في ${DateFormat('yyyy-MM-dd').format(sub.endDate)}'),
+                                    '${sub.packageName} - تنتهي في ${DateFormat('yyyy-MM-dd').format(sub.endDate)}',style:TextStyle(color:isDark?Colors.green.shade200:Colors.blue.shade900)),
                               ],
                             ),
                           ),
@@ -414,14 +572,12 @@ class _CustomerPaymentsScreenState extends State<CustomerPaymentsScreen> {
                                         : Colors.red,
                                   ),
                                 ),
-                                backgroundColor: sub.isActive && !isExpired
-                                    ? Colors.green[50]
-                                    : Colors.red[50],
+
                               ),
                               const SizedBox(height: 8),
                               ElevatedButton(
                                 onPressed: () => _renewSubscription(index),
-                                child: const Text('تجديد يدوي'),
+                                child:  Text('تجديد يدوي',style:TextStyle(color:isDark?Colors.green:Colors.blue)),
                               ),
                             ],
                           )
@@ -494,6 +650,8 @@ class GatewaysScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    var isDark = theme.brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: ListView(
@@ -515,10 +673,17 @@ class GatewaysScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
+          FilledButton.icon(
+
             onPressed: () {},
-            icon: const Icon(Icons.save),
-            label: const Text('حفظ الإعدادات'),
+            icon:   Icon(Icons.save,color:Colors.white),
+            label:   Text('حفظ الإعدادات',style:TextStyle(color: Colors.white)),
+            style: FilledButton.styleFrom(
+              backgroundColor:isDark?Colors.green: Colors.blue,
+              foregroundColor: Colors.white, // لون النص والأيقونة
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
