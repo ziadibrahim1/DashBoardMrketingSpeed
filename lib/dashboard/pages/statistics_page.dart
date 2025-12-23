@@ -86,7 +86,6 @@ class DashboardStatsSection extends StatelessWidget {
       color: isDark ? Colors.white70 : Colors.black87,
     );
 
-    // بيانات إحصائيات وهمية (يمكن تغييرها للبيانات الحقيقية)
     const totalUsers = '2500';
     const totalAdmins = '15';
     const totalAnnualSubscribers = '120';
@@ -113,7 +112,7 @@ class DashboardStatsSection extends StatelessWidget {
                     isDark,
                     context,
                     strings['number_of_users']!,
-                    totalUsers,
+                    "200",
                     Icons.people,
                     isDark ? const Color(0xFFD7EFDC) : const Color(0xFF65C4F8),
                     gradient: cardGradient,

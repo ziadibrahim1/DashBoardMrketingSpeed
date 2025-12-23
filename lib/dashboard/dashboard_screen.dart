@@ -336,7 +336,8 @@ class MovableSpeedDial extends StatefulWidget {
 }
 
 class _MovableSpeedDialState extends State<MovableSpeedDial> {
-  late Offset position;
+
+    Offset position = const Offset(50, 50);
 
   @override
   void initState() {

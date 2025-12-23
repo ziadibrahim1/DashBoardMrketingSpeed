@@ -1,8 +1,15 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 import '../../generated/l10n.dart';
 import '../../providers/app_providers.dart';
 import '../dashboard_screen.dart';
+import '../../core/web_session.dart';
+import '../../core/app_config.dart';
+import '../../core/user_session.dart';
+import 'MarketerProfileScreen.dart';
+import 'SupervisorsManagementScreen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,38 +23,146 @@ class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   String? errorMessage;
+  bool isLoading = false;
 
-  void handleLogin(bool isArabic) {
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> handleLogin(bool isArabic) async {
     final email = emailController.text.trim();
     final password = passwordController.text;
 
-    if (email.isNotEmpty && password.isNotEmpty) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => DashboardScreen(
-            currentUserName: email,
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => errorMessage = 'يرجى إدخال البريد وكلمة المرور');
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final uri = Uri.parse(AppConfig.loginUrl);
+
+      final res = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      );
+
+      if (!mounted) return;
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final rawUser = data['user'];
+
+        // ----------------------------
+        // 🔐 فك وترتيب الصلاحيات
+        // ----------------------------
+        final permissionsJson = rawUser['permissions_json'];
+        Map<String, List<String>> parsedPermissions = {};
+
+        if (permissionsJson != null && permissionsJson.toString().trim().isNotEmpty) {
+          final decoded = jsonDecode(permissionsJson);
+          decoded.forEach((key, value) {
+            parsedPermissions[key] = List<String>.from(value);
+          });
+        }
+
+        final user = {
+          'id': rawUser['id'],
+          'email': rawUser['email'],
+          'firstName': rawUser['firstName'],
+          'middleName': rawUser['middleName'],
+          'lastName': rawUser['lastName'],
+          'fullName': rawUser['fullName'],
+
+          'phone': rawUser['phone'],
+          'country': rawUser['country'],
+          'city': rawUser['city'],
+          'bank': rawUser['bank'],
+          'iban': rawUser['iban'],
+          'imagePath': rawUser['imagePath'],
+
+          'role': rawUser['role'],
+          'isActive': rawUser['isActive'],
+          'langAr': rawUser['langAr'],
+          'theme': rawUser['theme'],
+
+          // 🌟 روابط النظام الجديدة
+          'supervisorId': rawUser['supervisorId'],
+          'marketerId': rawUser['marketerId'],
+          'marketerSupervisorId': rawUser['marketerSupervisorId'],
+
+          'permissions': parsedPermissions,
+        };
+
+        // ----------------------------
+        // 💾 حفظ السيشن
+        // ----------------------------
+        UserSession.saveUser(user);
+        print("RAW user from API: $user");
+
+        // ----------------------------
+        // 🚀 الانتقال للداشبورد
+        // ----------------------------
+        final role = (user['role'] ?? '').toString().toLowerCase();
+
+        Widget targetScreen;
+
+        if (role == 'admin') {
+          targetScreen = DashboardScreen(
+            currentUserName: (user['fullName'] ?? user['email'] ?? email).toString(),
             onLogout: () {
-              // عند تسجيل الخروج، نرجع لشاشة تسجيل الدخول مجدداً
+              WebSession.clear();
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginScreen()),
               );
             },
-            onThemeToggle: () {
-            },
-            onLanguageToggle: () {
-            },
-            isArabic:  isArabic,
-          ),
-        ),
-      );
-    } else {
-      setState(() {
-        errorMessage = 'يرجى إدخال البريد وكلمة المرور';
-      });
+            onThemeToggle: () {},
+            onLanguageToggle: () {},
+            isArabic: isArabic,
+          );
+        }
+        else if (role == 'supervisor') {
+          targetScreen = SupervisorsMarketersPage(); // 👈 صفحة المشرفين اللي عرضتها قبل كده
+        }
+        else if (role == 'marketer') {
+          print("MARKETER ID: ${user['marketerId']}");
+          targetScreen = MarketerProfileScreen();
+        }
+        else {
+          setState(() => errorMessage = "Unknown role");
+          return;
+        }
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => targetScreen),
+        );
+
+      }
+
+      // -------------- أخطاء تسجيل الدخول --------------
+      else if (res.statusCode == 401) {
+        setState(() => errorMessage = 'بيانات الدخول غير صحيحة');
+      } else if (res.statusCode == 403) {
+        setState(() => errorMessage = 'هذا الحساب غير مصرح له بالدخول');
+      } else {
+
+      }
+    } catch (e) {
+    } finally {
+      if (mounted) setState(() => isLoading = false);
     }
   }
+
   void showForgotPasswordDialog() {
     final resetEmailController = TextEditingController();
 
@@ -91,6 +206,39 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+  @override
+  void initState() {
+    super.initState();
+    final user = WebSession.getUser();
+    if (user != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final isArabic = Provider.of<LocaleProvider>(context, listen: false).locale.languageCode == 'ar';
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DashboardScreen(
+              currentUserName: (user['fullName'] ?? user['email'] ?? '').toString(),
+              onLogout: () {
+                WebSession.clear();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                );
+              },
+              onThemeToggle: () {},
+              onLanguageToggle: () {},
+              isArabic: isArabic,
+            ),
+          ),
+        );
+      });
+    }
+    if (user != null) {
+      print("RAW permissions_json from API: ${user['permissions_json']}");
+
+    }
+
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,8 +255,8 @@ class _LoginScreenState extends State<LoginScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: isDarkMode
-                ? [Colors.green.shade900, Colors.black]
-                : [Colors.blue.shade50, Colors.white],
+                    ? [Colors.green.shade900, Colors.black]
+                    : [Colors.blue.shade50, Colors.white],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -144,9 +292,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: isDarkMode ? Colors.white : Colors.black54,
                           ),
                           tooltip: 'Toggle Language',
-                          onPressed: () {
-                            localeProvider.toggleLocale();
-                          },
+                          onPressed: () => localeProvider.toggleLocale(),
                         ),
                         IconButton(
                           icon: Icon(
@@ -154,9 +300,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: isDarkMode ? Colors.white : Colors.black54,
                           ),
                           tooltip: 'Toggle Theme',
-                          onPressed: () {
-                            themeProvider.toggleTheme();
-                          },
+                          onPressed: () => themeProvider.toggleTheme(),
                         ),
                       ],
                     ),
@@ -169,20 +313,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
+
                     TextFormField(
                       controller: emailController,
                       decoration: InputDecoration(labelText: S.of(context).emailLabel),
                       validator: (value) =>
-                      value!.isEmpty ? S.of(context).emailEmptyError : null,
+                      (value == null || value.isEmpty) ? S.of(context).emailEmptyError : null,
                     ),
                     const SizedBox(height: 10),
+
                     TextFormField(
                       controller: passwordController,
                       decoration: InputDecoration(labelText: S.of(context).passwordLabel),
                       obscureText: true,
                       validator: (value) =>
-                      value!.isEmpty ? S.of(context).passwordEmptyError : null,
+                      (value == null || value.isEmpty) ? S.of(context).passwordEmptyError : null,
                     ),
+
                     Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton(
@@ -190,25 +337,36 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Text(
                           S.of(context).forgotPassword,
                           style: TextStyle(
-                              color: isDarkMode ? Colors.white : Colors.black.withOpacity(.6)),
+                            color: isDarkMode ? Colors.white : Colors.black.withOpacity(.6),
+                          ),
                         ),
                       ),
                     ),
+
                     if (errorMessage != null) ...[
                       const SizedBox(height: 10),
                       Text(errorMessage!, style: const TextStyle(color: Colors.red)),
                     ],
+
                     const SizedBox(height: 10),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(backgroundColor: primary),
-                        onPressed: () {
+                        onPressed: isLoading
+                            ? null
+                            : () async {
                           if (_formKey.currentState!.validate()) {
-                            handleLogin(isArabic);
+                            await handleLogin(isArabic);
                           }
                         },
-                        child: Text(
+                        child: isLoading
+                            ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                            : Text(
                           S.of(context).loginButton,
                           style: const TextStyle(color: Colors.white),
                         ),
