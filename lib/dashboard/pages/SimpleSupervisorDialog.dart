@@ -10,6 +10,7 @@ class AddEditUserWidget extends StatefulWidget {
   final bool addSuper;
   final bool addMarketer;
   final bool isSupervisor;
+  final bool isAdmin;
   final bool isArabic;
   final VoidCallback onCancel;
   final Function(User) onSave;
@@ -22,6 +23,7 @@ class AddEditUserWidget extends StatefulWidget {
     required this.addSuper,
     required this.addMarketer,
     required this.isSupervisor,
+    required this.isAdmin,
     required this.isArabic,
     required this.onCancel,
     required this.onSave,
@@ -39,6 +41,7 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
   bool _emailVerified = false;
   bool _sendingCode = false;
   bool _verifyingCode = false;
+  bool _enablePasswordEdit = false; // متغير جديد للتحكم في تفعيل تعديل كلمة المرور
 
   late TextEditingController _firstNameController, _lastNameController, _countryController,
       _cityController, _ageController, _bankController, _accountNumberController,
@@ -53,7 +56,12 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
   void initState() {
     super.initState();
     _initializeControllers();
-    if (widget.user != null) _emailVerified = true;
+    if (widget.user != null) {
+      _emailVerified = true;
+      _enablePasswordEdit = false; // في حالة التعديل، الحقل معطل افتراضياً
+    } else {
+      _enablePasswordEdit = true; // في حالة الإضافة، الحقل مفعل
+    }
   }
 
   void _initializeControllers() {
@@ -67,7 +75,7 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
     _accountNumberController = TextEditingController(text: user?.accountNumber ?? '');
     _phoneController = TextEditingController(text: user?.phone ?? '');
     _emailController = TextEditingController(text: user?.email ?? '');
-    _passwordController = TextEditingController(text: user?.password ?? '');
+    _passwordController = TextEditingController(text: ''); // فارغ في حالة التعديل
 
     _pointsController = TextEditingController(text: (user is Marketer) ? user.points.toString() : '0');
     _pointPriceController = TextEditingController(text: (user is Marketer) ? user.pointPrice.toString() : '0');
@@ -76,7 +84,6 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
     _totalDueAmountController = TextEditingController(text: (user is Marketer) ? user.totalDueAmount.toString() : '0');
   }
 
-  // --- ضوابط التحقق الخاصة بك (لم تتغير) ---
   String? emailValidator(String? v) {
     if (v == null || v.trim().isEmpty) return tr('البريد مطلوب', 'Email is required');
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
@@ -84,7 +91,6 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
     return null;
   }
 
-  // --- تصميم الحقل النصي (تطوير المظهر مع الحفاظ على الضوابط) ---
   Widget _buildField({
     required TextEditingController controller,
     required String label,
@@ -133,6 +139,11 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
           contentPadding: const EdgeInsets.symmetric(vertical: 18),
         ),
         validator: (v) {
+          // في حالة كلمة المرور: إذا كان في وضع التعديل وغير مفعل، لا نحتاج للتحقق
+          if (isPassword && widget.user != null && !_enablePasswordEdit) {
+            return null;
+          }
+
           if (v == null || v.trim().isEmpty) return tr('هذا الحقل مطلوب', 'Required');
           if (isPhone) {
             if (v.startsWith('05')) { if (v.length != 10) return tr('يجب أن يكون 10 أرقام', 'Must be 10 digits'); }
@@ -148,6 +159,72 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
           return null;
         },
       ),
+    );
+  }
+
+  // حقل كلمة المرور الجديد مع زر التفعيل
+  Widget _buildPasswordField() {
+    bool isEditMode = widget.user != null;
+
+    return Column(
+      children: [
+        // زر التفعيل (يظهر فقط في وضع التعديل)
+        if (isEditMode)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: _enablePasswordEdit ? Colors.orange.shade50 : Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _enablePasswordEdit ? Colors.orange.shade200 : Colors.blue.shade200,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _enablePasswordEdit ? Icons.lock_open_rounded : Icons.lock_outline,
+                  color: _enablePasswordEdit ? Colors.orange : Colors.blue,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _enablePasswordEdit
+                        ? tr('يمكنك الآن تعديل كلمة المرور', 'You can now edit password')
+                        : tr('كلمة المرور لن يتم تعديلها', 'Password will not be changed'),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _enablePasswordEdit ? Colors.orange.shade800 : Colors.blue.shade800,
+                    ),
+                  ),
+                ),
+                Switch(
+                  value: _enablePasswordEdit,
+                  onChanged: (value) {
+                    setState(() {
+                      _enablePasswordEdit = value;
+                      if (!value) {
+                        _passwordController.clear(); // مسح الحقل عند التعطيل
+                      }
+                    });
+                  },
+                  activeColor: Colors.orange,
+                ),
+              ],
+            ),
+          ),
+
+        // حقل كلمة المرور
+        _buildField(
+          controller: _passwordController,
+          label: tr('كلمة المرور', 'Password'),
+          icon: Icons.lock_outline,
+          isPassword: true,
+          enabled: !isEditMode || _enablePasswordEdit, // مفعل في الإضافة أو عند تفعيل التعديل
+        ),
+      ],
     );
   }
 
@@ -181,7 +258,7 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
                   ]),
                   _buildEmailVerificationSection(),
                   _buildField(controller: _phoneController, label: tr('رقم الهاتف (05/966)', 'Phone'), icon: Icons.phone_android, isPhone: true),
-                  _buildField(controller: _passwordController, label: tr('كلمة المرور', 'Password'), icon: Icons.lock_outline, isPassword: true),
+                  _buildPasswordField(), // استخدام الحقل الجديد
                 ],
               ),
               _buildModernSection(
@@ -206,7 +283,7 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
                   _buildField(controller: _accountNumberController, label: tr('رقم الحساب (IBAN)', 'IBAN'), icon: Icons.credit_card, isIBAN: true),
                 ],
               ),
-              if (!widget.isSupervisor)
+              if (widget.isAdmin)
                 _buildModernSection(
                   title: tr('إحصائيات النقاط', 'Points Stats'),
                   icon: Icons.auto_graph_rounded,
@@ -229,8 +306,6 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
     );
   }
 
-
-  // --- واجهة توثيق البريد (مع الحفاظ على منطقك) ---
   Widget _buildEmailVerificationSection() {
     return Column(
       children: [
@@ -322,7 +397,6 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
     );
   }
 
-  // --- منطق الحفظ (لم يتغير) ---
   Future<void> _sendEmailCode() async {
     final email = _emailController.text.trim();
     if (emailValidator(email) != null) {
@@ -377,7 +451,22 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
     final accountNumber = _accountNumberController.text.trim();
     final phone = _phoneController.text.trim();
     final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+
+    // منطق كلمة المرور الجديد
+    String password;
+    if (widget.user == null) {
+      // في حالة الإضافة: استخدم كلمة المرور المدخلة
+      password = _passwordController.text.trim();
+    } else {
+      // في حالة التعديل
+      if (_enablePasswordEdit && _passwordController.text.trim().isNotEmpty) {
+        // إذا تم تفعيل التعديل وتم إدخال كلمة مرور جديدة
+        password = _passwordController.text.trim();
+      } else {
+        // إذا لم يتم تفعيل التعديل أو الحقل فارغ، أرسل "1"
+        password = "1";
+      }
+    }
 
     if (widget.isSupervisor) {
       widget.onSave(Supervisor(
@@ -404,6 +493,7 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
         discountCode: _discountCodeController.text.trim(),
         totalDueAmount: double.tryParse(_totalDueAmountController.text) ?? 0,
         status: widget.user?.status ?? UserStatus.active,
+        isWithdrawalPending: false,
       ));
     }
   }

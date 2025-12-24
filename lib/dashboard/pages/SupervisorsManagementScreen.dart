@@ -128,7 +128,7 @@ class Marketer extends User {
   String reviewLink;
   double totalDueAmount;
   double? age;
-
+  bool isWithdrawalPending;
 
   Marketer({
     required this.id,
@@ -149,6 +149,8 @@ class Marketer extends User {
     this.reviewLink = '',
     this.totalDueAmount = 0,
     UserStatus status = UserStatus.active,
+    required this.isWithdrawalPending,
+
   }) : super(
     firstName: firstName,
     lastName: lastName,
@@ -181,9 +183,8 @@ class Marketer extends User {
       points: json['pointsAccumulated'] ?? 0,
       pointPrice: json['pointPrice'] ?? 0,
       discountCode: json['promoCode'] ?? '',
-      status: json['isActive'] == true
-          ? UserStatus.active
-          : UserStatus.frozen,
+      status: json['isActive'] == true ? UserStatus.active : UserStatus.frozen,
+      isWithdrawalPending: json['isWithdrawalPending'] ,
     );
   }
 
@@ -206,6 +207,7 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
   User? editingUser;
   bool isEditingSupervisor = false;
   bool isAdding = false;
+  bool isAdminEd = false;
   late Future<void> _loadFuture;
   final hierarchyService = HierarchyService(AppConfig.baseUrl);
   String currentRole = '';
@@ -271,11 +273,12 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
 
   void openAddEdit(
       bool isAddMarketer,
-      bool isAddSupervisor, // 👈 اسم مختلف
+      bool isAddSupervisor,
           {User? user, required bool supervisor}
       ) {
     setState(() {
-      addSuper = isAddSupervisor; // ✅ صح
+      isAdminEd=currentRole=='admin';
+      addSuper = isAddSupervisor;
       addMarketer = isAddMarketer;
       editingUser = user;
       isEditingSupervisor = supervisor;
@@ -322,38 +325,7 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
                 showDeleteConfirmation(sup,isDark);
               },
             ),
-            ListTile(
-              leading: Icon(sup.status == UserStatus.active ? Icons.pause : Icons.play_arrow),
-              title: Text(sup.status == UserStatus.active ? tr('تجميد', 'Freeze') : tr('تفعيل', 'Activate')),
-              onTap: () async {
-                Navigator.pop(context);
 
-                final dynamic target = selectedUser;
-
-                if (target == null) return;
-
-                await hierarchyService.updateUserStatus(
-                  dashboardUserId: target.id,
-                  isActive: false,
-                  isDeleted: true,
-                );
-
-
-                setState(() {
-                  if (target is Supervisor) {
-                    supervisors.remove(target);
-                    selectedSupervisor = null;
-                    selectedUser = null;
-                  } else if (target is Marketer) {
-                    selectedSupervisor?.marketers.remove(target);
-                    selectedUser = null;
-                  }
-                });
-
-
-              },
-
-            ),
           ],
         ),
       ),
@@ -497,6 +469,7 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
                 openAddEdit(false,false,user: marketer, supervisor: false);
               },
             ),
+
             ListTile(
               leading: const Icon(Icons.delete),
               title: Text(tr('حذف', 'Delete')),
@@ -570,7 +543,7 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
          ;
   }
 
-  @override
+
   @override
   Widget build(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context);
@@ -659,6 +632,7 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
                       addSuper: addSuper,
                       addMarketer: addMarketer,
                       isSupervisor: isEditingSupervisor,
+                      isAdmin: currentRole == 'admin',
                       isArabic: isArabic,
                       supervisorId: selectedSupervisor?.id,
                       onCancel: closeAddEdit,
@@ -679,7 +653,60 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
             );
           },
         ),
-        floatingActionButton: currentRole != 'admin' ? _buildLogoutFAB() : null,
+        floatingActionButton: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            // زر التحديث
+            FloatingActionButton(
+              heroTag: 'refresh',
+              backgroundColor: Colors.green,
+              elevation: 4,
+              child: Icon(Icons.refresh_rounded, color: Colors.white),
+              onPressed: () async {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Text(tr('جاري تحديث البيانات...', 'Refreshing data...')),
+                      ],
+                    ),
+                    duration: Duration(seconds: 2),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+
+                await _reloadPage();
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.white),
+                        SizedBox(width: 12),
+                        Text(tr('تم التحديث بنجاح', 'Refreshed successfully')),
+                      ],
+                    ),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+            ),
+            SizedBox(height: 10),
+            // زر تسجيل الخروج (إذا كان موجود)
+            if (currentRole != 'admin') _buildLogoutFAB(),
+          ],
+        ),
       ),
     );
   }
@@ -1006,35 +1033,6 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
       ],
     );
   }
-// ويدجت مساعد لإنشاء بطاقات الأقسام
-  Widget _buildModernInfoCard({required String title, required IconData icon, required bool isDark, required List<Widget> children}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 20, color: Colors.blueAccent),
-              const SizedBox(width: 10),
-              Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-            ],
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(thickness: 0.5),
-          ),
-          ...children,
-        ],
-      ),
-    );
-  }
 
   Widget buildMarketerDetails(Marketer marketer) {
     final textColor = isDark ? const Color(0xFFD7EFDC) : Colors.blue[900];
@@ -1194,60 +1192,53 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
       child: ElevatedButton.icon(
         icon: const Icon(Icons.payments_rounded, size: 20, color: Colors.white),
         label: Text(
-          hasDue
-              ? 'صرف المبلغ المستحق : $totalDue'
-              : 'لا يوجد رصيد مستحق',
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          marketer.isWithdrawalPending
+              ? 'في انتظار الموافقة ⏳'
+              : (hasDue ? 'طلب صرف المبلغ المستحق : $totalDue' : 'لا يوجد رصيد مستحق'),
+          style: const TextStyle(
+              fontWeight: FontWeight.bold, color: Colors.white),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: hasDue ? Colors.green : Colors.grey,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: marketer.isWithdrawalPending
+              ? Colors.orange
+              : (hasDue ? Colors.green : Colors.grey),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16)),
         ),
-        onPressed: hasDue
+        onPressed: (hasDue && !marketer.isWithdrawalPending)
             ? () async {
+
+          setState(() {
+            marketer.isWithdrawalPending = true;
+          });
+
           try {
-            // استدعاء API لتحديث المبلغ المستحق إلى صفر
-            final resetUrl = Uri.parse(
-                '${AppConfig.baseUrl}admin/S_M_Users/reset-marketer-due/${marketer.id}');
-            final resetRes = await http.put(resetUrl, headers: {
-              'Content-Type': 'application/json',
-              'Authorization': ''
-            });
+            final res = await http.post(
+              Uri.parse('${AppConfig.baseUrl}withdrawals/request'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({"marketerId": marketer.id}),
+            );
 
-            if (resetRes.statusCode == 200) {
-              // بعد الصرف، إرسال بريد تفصيلي
-              final emailUrl =
-              Uri.parse('${AppConfig.baseUrl}admin/user/send-payment');
-              final emailRes = await http.post(emailUrl,
-                  headers: {'Content-Type': 'application/json'},
-                  body: jsonEncode({
-                    'Email': marketer.email,
-                    'FullName': '${marketer.firstName} ${marketer.lastName}',
-                    'Amount': totalDue,
-                  }));
-
-              setState(() {
-                marketer.points = 0; // تحديث الواجهة بعد الصرف
-              });
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('تم صرف المبلغ بنجاح 💰')),
-              );
+            if (res.statusCode == 200) {
+              // الطلب تم بنجاح
+              print('تم إرسال طلب الصرف بنجاح ⏳');
             } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('فشل صرف المبلغ: ${resetRes.body}')),
-              );
+              // فشل إرسال الطلب، إعادة الزر
+              setState(() {
+                marketer.isWithdrawalPending = false;
+              });
             }
           } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('حدث خطأ: $e')),
-            );
+            setState(() {
+              marketer.isWithdrawalPending = false;
+            });
           }
         }
             : null,
       ),
     );
   }
+
 
 // ويدجت فرعي لعناوين الأقسام داخل التفاصيل
   Widget _buildSectionTitle(String title, IconData icon, Color color) {
@@ -1395,17 +1386,19 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
                       onPressed: () async {
                         Navigator.pop(context);
                         final service = DashboardUserService(baseUrl: AppConfig.baseUrl);
-
+                        var res = '';
                         try {
                           if (user is Supervisor) {
-                            await service.deleteSupervisor(user.id);
+                           final result = await service.deleteSupervisor(user.id);
+                           res = result['message'];
                           } else if (user is Marketer) {
-                            await service.deleteMarketer(user.id);
+                            final result = await service.deleteMarketer(user.id);
+                            res = result['message'];
                           }
 
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(tr('تم الحذف بنجاح', 'Deleted successfully')),
+                              content: Text(res),
                               behavior: SnackBarBehavior.floating,
                               backgroundColor: Colors.green,
                             ),

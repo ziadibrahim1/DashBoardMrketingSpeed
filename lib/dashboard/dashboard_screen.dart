@@ -1,3 +1,4 @@
+import 'package:admin_dashboard/dashboard/pages/WithdrawalsScreen.dart';
 import 'package:admin_dashboard/dashboard/pages/statistics_page.dart' show DashboardStatsSection;
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -140,6 +141,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       BottomNavigationBarItem(icon: Icon(Icons.card_giftcard), label: widget.isArabic ? 'ادارة المكافئات' : 'Manage Rewards'),
       BottomNavigationBarItem(icon: Icon(Icons.text_snippet), label: widget.isArabic ? 'ادارة الاقتراحات' : 'Manage Suggestions'),
       BottomNavigationBarItem(icon: Icon(FontAwesomeIcons.bullhorn), label: widget.isArabic ? 'ادارة المسوقين' : 'Manage Marketers'),
+      BottomNavigationBarItem(icon: Icon(Icons.balance), label: widget.isArabic ? 'الحسابات' : 'financial'),
       BottomNavigationBarItem(icon: Icon(Icons.code), label: widget.isArabic ? 'ادارة ال API ' : 'Manage API'),
       BottomNavigationBarItem(icon: Icon(Icons.payment), label: widget.isArabic ? 'ادارة الدفع ' : 'Manage Payments'),
       BottomNavigationBarItem(icon: Icon(Icons.info_outline), label: widget.isArabic ? 'شرح الاستخدام ' : 'User Guide'),
@@ -167,6 +169,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const ReferralRewardsPage(), // ادارة المكافئات
       const SuggestionsManagementPage(), // ادارة الاقتراحات
       const SupervisorsMarketersPage(), // ادارة المسوقين
+      const WithdrawalsScreen(), // ادارة المسوقين
       const ApiDashboardScreen(), // ادارة API's
       const PaymentManagementSection(), // ادارة الدفع
       AdminAboutAppScreen(), // إدارة فيديوهات الاستخدام

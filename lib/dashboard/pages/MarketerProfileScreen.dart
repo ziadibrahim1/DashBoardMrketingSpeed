@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // للنسخ إلى الحافظة
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/app_config.dart';
 import '../../core/user_session.dart';
 import '../../core/web_session.dart';
@@ -288,24 +289,56 @@ class _MarketerProfileScreenState extends State<MarketerProfileScreen> {
       ),
       child: Row(
         children: [
-          const CircleAvatar(backgroundColor: Colors.white12, child: Icon(Icons.person_pin_rounded, color: Colors.white)),
+          const CircleAvatar(
+            backgroundColor: Colors.white12,
+            child: Icon(Icons.person_pin_rounded, color: Colors.white),
+          ),
           const SizedBox(width: 15),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("${supervisor!['firstName']} ${supervisor!['lastName']}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                Text(supervisor!['phone'] ?? "", style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                Text(
+                  "${supervisor!['firstName']} ${supervisor!['lastName']}",
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  supervisor!['phone'] ?? "",
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
               ],
             ),
           ),
           IconButton(
-            onPressed: () {}, // إجراء الاتصال
-            icon: const Icon(Icons.phone_in_talk_rounded, color: Colors.greenAccent),
-          )
+            onPressed: () {
+              final phone = supervisor!['phone'];
+              if (phone != null && phone.toString().isNotEmpty) {
+                _makePhoneCall(phone.toString());
+              }
+            },
+            icon: const Icon(
+              Icons.phone_in_talk_rounded,
+              color: Colors.greenAccent,
+            ),
+          ),
         ],
       ),
+
     );
+  }
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    if (phoneNumber.isEmpty) return;
+
+    final Uri uri = Uri(
+      scheme: 'tel',
+      path: phoneNumber,
+    );
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      throw 'Could not launch $uri';
+    }
   }
 
   Widget _buildSectionTitle(String title) {
