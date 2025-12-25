@@ -46,6 +46,7 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
     emailController = TextEditingController(text: widget.user.email);
     phoneController = TextEditingController(text: "N/A"); // افتراضي
     statusController = TextEditingController(text: widget.user.status);
+
   }
 
   @override
@@ -58,7 +59,6 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
     super.dispose();
   }
 
-  // ------------------------------------
   // 📸 وظيفة تحميل صورة
   // ------------------------------------
   Future<void> _pickImage() async {
@@ -81,7 +81,7 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
     //   name: "${firstNameController.text} ${lastNameController.text}",
     //   email: emailController.text,
     //   status: statusController.text, // أو حسب التحديث
-    //   // ... باقي الخصائص
+
     // );
     // callApiUpdateUser(updatedUser);
   }
@@ -90,7 +90,7 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
   // 🖼️ عناصر البناء المحسنة
   // ------------------------------------
 
-  // 1. حقل إدخال مُحسن
+
   Widget _buildField({
     required String label,
     required TextEditingController controller,
@@ -214,7 +214,6 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
     final isDark = theme.brightness == Brightness.dark;
     final locale = Localizations.localeOf(context);
     isRTL = locale.languageCode == 'ar';
-
     final activeColor = isDark ? primaryColorDark : primaryColorLight;
 
     return Directionality(
@@ -300,6 +299,39 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
               ),
 
               const SizedBox(height: 30),
+              _buildSectionTitle(isRTL ? "تفاصيل الاشتراك" : "Subscription Details", activeColor, isDark),
+
+              _buildField(
+                label: isRTL ? "الخطة" : "Plan",
+                controller: TextEditingController(text: widget.user.planName ?? "N/A"),
+                isDark: isDark,
+                activeColor: activeColor,
+                enabled: false,
+              ),
+              _buildField(
+                label: isRTL ? "السعر" : "Price",
+                controller: TextEditingController(text: widget.user.price?.toString() ?? "N/A"),
+                isDark: isDark,
+                activeColor: activeColor,
+                enabled: false,
+              ),
+              _buildField(
+                label: isRTL ? "تاريخ البداية" : "Start Date",
+                controller: TextEditingController(text: widget.user.startDate ?? "N/A"),
+                isDark: isDark,
+                activeColor: activeColor,
+                enabled: false,
+              ),
+              _buildField(
+                label: isRTL ? "تاريخ النهاية" : "End Date",
+                controller: TextEditingController(text: widget.user.endDate ?? "N/A"),
+                isDark: isDark,
+                activeColor: activeColor,
+                enabled: false,
+              ),
+
+
+              const SizedBox(height: 30),
 
               _buildSectionTitle(isRTL ? "إحصائيات الاشتراك" : "Subscription Statistics", activeColor, isDark),
 
@@ -323,7 +355,7 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
                   ),
                   _buildStatisticCard(
                     label: isRTL ? "مرات الاشتراك" : "Subscription Count",
-                    value: widget.user.subscriptionCount,
+                    value: widget.user.subscriptionsCount,
                     icon: Icons.repeat_one_on_rounded,
                     color: Colors.orange.shade700,
                     isDark: isDark,

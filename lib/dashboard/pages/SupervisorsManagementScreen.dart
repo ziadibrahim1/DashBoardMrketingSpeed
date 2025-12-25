@@ -28,6 +28,9 @@ abstract class User {
   String password;
   UserStatus status;
   double? age;
+  int points;
+  double pointPrice;
+
 
 
   User({
@@ -42,6 +45,8 @@ abstract class User {
     required this.password,
     this.status = UserStatus.active,
     this.age = 0,
+    this.points = 0,
+    this.pointPrice = 0,
   });
 }
 
@@ -53,8 +58,9 @@ UserStatus statusFromFlags(bool isFrozen) =>
 class Supervisor extends User {
   int id;
   List<Marketer> marketers;
-  double totalDueAmount;
+  int totalDueAmount;
   double pointPrice;
+  bool isWithdrawalPending;
 
   Supervisor({
     required this.id,
@@ -69,10 +75,11 @@ class Supervisor extends User {
     required String Role,
     required String email,
     required String password,
-    this.marketers = const [],
     this.totalDueAmount = 0,
     this.pointPrice = 0,
     UserStatus status = UserStatus.active,
+    required this.isWithdrawalPending,
+    this.marketers = const [],
   }) : super(
     firstName: firstName,
     lastName: lastName,
@@ -85,6 +92,9 @@ class Supervisor extends User {
     email: email,
     password: password,
     status: status,
+    points: totalDueAmount,
+    pointPrice: pointPrice,
+
   );
 
   factory Supervisor.fromJson(Map<String, dynamic> json) {
@@ -103,16 +113,12 @@ class Supervisor extends User {
       Role: json['role'] ?? 'Supervisor',
       email: json['email'] ?? '',
       password: '',
-      status: json['isActive'] == true
-          ? UserStatus.active
-          : UserStatus.frozen,
-      totalDueAmount:
-      (json['totalDueAmount'] ?? 0).toDouble(),
-      pointPrice:
-      (json['pointPrice'] ?? 0).toDouble(),
-      marketers: (json['marketers'] as List? ?? [])
-          .map((e) => Marketer.fromJson(e))
-          .toList(),
+      isWithdrawalPending: json['isWithdrawalPending'],
+      status: json['isActive'] == true ? UserStatus.active : UserStatus.frozen,
+      totalDueAmount: (json['amountDue'] ?? 0).toDouble(),
+      pointPrice: (json['pointPrice'] ?? 0).toDouble(),
+      marketers: (json['marketers'] as List? ?? []).map((e) => Marketer.fromJson(e)).toList(),
+
     );
   }
 
@@ -356,6 +362,8 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
               'Role': "Supervisor",
               'isActive': newUser.status == UserStatus.active,
              'Password': newUser.password,
+              'PointPrice': newUser.pointPrice,
+              'AmountDue': newUser.totalDueAmount,
             },
           );
         } else {
@@ -371,6 +379,9 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
             Age: newUser.age!,
             Bank: newUser.bank,
             AccountNumber: newUser.accountNumber,
+            AmountDue: newUser.totalDueAmount,
+            PointPrice: newUser.pointPrice,
+            isWithdrawalPending: false,
           );
         }
       }
@@ -809,9 +820,11 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
       onPressed: () => _confirmLogout(context),
     );
   }
-  Widget buildSupervisorDetails(Supervisor sup) {
-    final textColor = isDark ? const Color(0xFFD7EFDC) : Colors.blue[900];
 
+  Widget buildSupervisorDetails(Supervisor sup) {
+    final textColor = isDark ?   Color(0xFFD7EFDC) : Colors.blue[900];
+    final double totalDue = sup.totalDueAmount * sup.pointPrice;
+    final bool hasDue = totalDue > 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -880,7 +893,50 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
                             buildDetailRow(tr('رقم الحساب', 'Account Number'), sup.accountNumber, Colors.white),
                             buildDetailRow(tr('رقم الهاتف', 'Phone'), sup.phone, Colors.white),
                             buildDetailRow(tr('البريد الإلكتروني', 'Email'), sup.email, Colors.white),
+                            buildDetailRow(tr('النقاط', 'Points'), sup.totalDueAmount.toString(), Colors.white),
+                            buildDetailRow(tr('المستحق', 'Due Amount'), (sup.totalDueAmount * sup.pointPrice).toString(), Colors.white),
+                            _buildActionButton(
+                              label: sup.isWithdrawalPending
+                                  ? 'في انتظار الموافقة ⏳'
+                                  : (hasDue
+                                  ? 'طلب صرف المبلغ المستحق : $totalDue'
+                                  : 'لا يوجد رصيد مستحق'),
+                              icon: Icons.edit,
+                              color: Colors.white.withOpacity(0.2),
+                              onPressed: (hasDue && !sup.isWithdrawalPending)
+                                  ? () async {
+                                setState(() {
+                                  sup.isWithdrawalPending = true;
+                                });
 
+                                print('تم الضغط على زر الصرف ✅');
+
+                                try {
+                                  final res = await http.post(
+                                    Uri.parse('${AppConfig.baseUrl}withdrawals/subrequest'),
+                                    headers: {'Content-Type': 'application/json'},
+                                    body: jsonEncode({
+                                      "supervisorId": sup.id,
+                                    }),
+                                  );
+
+                                  print('Status Code: ${res.statusCode}');
+                                  print('Response: ${res.body}');
+
+                                  if (res.statusCode != 200) {
+                                    setState(() {
+                                      sup.isWithdrawalPending = false;
+                                    });
+                                  }
+                                } catch (e) {
+                                  print('خطأ في الاتصال ❌ $e');
+                                  setState(() {
+                                    sup.isWithdrawalPending = false;
+                                  });
+                                }
+                              }
+                                  : null,
+                            ),
                             if (currentRole == 'admin')
                               Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 10),
@@ -1192,9 +1248,7 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
       child: ElevatedButton.icon(
         icon: const Icon(Icons.payments_rounded, size: 20, color: Colors.white),
         label: Text(
-          marketer.isWithdrawalPending
-              ? 'في انتظار الموافقة ⏳'
-              : (hasDue ? 'طلب صرف المبلغ المستحق : $totalDue' : 'لا يوجد رصيد مستحق'),
+          marketer.isWithdrawalPending ? 'في انتظار الموافقة ⏳' : (hasDue ? 'طلب صرف المبلغ المستحق : $totalDue' : 'لا يوجد رصيد مستحق'),
           style: const TextStyle(
               fontWeight: FontWeight.bold, color: Colors.white),
         ),
@@ -1205,13 +1259,10 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16)),
         ),
-        onPressed: (hasDue && !marketer.isWithdrawalPending)
-            ? () async {
-
+        onPressed: (hasDue && !marketer.isWithdrawalPending) ? () async {
           setState(() {
             marketer.isWithdrawalPending = true;
           });
-
           try {
             final res = await http.post(
               Uri.parse('${AppConfig.baseUrl}withdrawals/request'),
@@ -1433,7 +1484,7 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
     required String label,
     required IconData icon,
     required Color color,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
   }) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4),

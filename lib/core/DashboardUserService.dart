@@ -18,6 +18,9 @@ class DashboardUserService {
     required double Age,
     required String Bank,
     required String AccountNumber,
+    required int AmountDue,
+    required double PointPrice,
+    required bool isWithdrawalPending,
   })
   async {
     final response = await http.post(
@@ -36,6 +39,9 @@ class DashboardUserService {
         'Age': Age,
         'Bank': Bank,
         'AccountNumber': AccountNumber,
+        'AmountDue': AmountDue,
+        'PointPrice': PointPrice,
+        'isWithdrawalPending': isWithdrawalPending,
       }),
     );
 

@@ -77,8 +77,8 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
     _emailController = TextEditingController(text: user?.email ?? '');
     _passwordController = TextEditingController(text: ''); // فارغ في حالة التعديل
 
-    _pointsController = TextEditingController(text: (user is Marketer) ? user.points.toString() : '0');
-    _pointPriceController = TextEditingController(text: (user is Marketer) ? user.pointPrice.toString() : '0');
+    _pointsController = TextEditingController(text: user!.points.toString());
+    _pointPriceController = TextEditingController(text: user.pointPrice.toString() );
     _discountCodeController = TextEditingController(text: (user is Marketer) ? user.discountCode : '');
     _reviewLinkController = TextEditingController(text: (user is Marketer) ? user.reviewLink : widget.generateReviewLink());
     _totalDueAmountController = TextEditingController(text: (user is Marketer) ? user.totalDueAmount.toString() : '0');
@@ -469,13 +469,17 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
     }
 
     if (widget.isSupervisor) {
-      widget.onSave(Supervisor(
+      widget.onSave(
+          Supervisor(
         id: widget.addSuper ? 0 : (widget.user as Supervisor).id,
         firstName: firstName, lastName: lastName, country: country, city: city,
         Age: age, bank: bank, accountNumber: accountNumber, phone: phone,
         Role: "Supervisor", email: email, password: password,
         status: widget.user?.status ?? UserStatus.active,
         marketers: widget.user is Supervisor ? (widget.user as Supervisor).marketers : [],
+        isWithdrawalPending:widget.addSuper ? false:(widget.user as Supervisor).isWithdrawalPending,
+        pointPrice: double.tryParse(_pointPriceController.text) ?? 0,
+        totalDueAmount: int.tryParse(_pointsController.text) ?? 0,
       ));
     } else {
       if (widget.supervisorId == null) {
