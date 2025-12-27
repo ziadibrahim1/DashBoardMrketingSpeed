@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 
 /// Web only
 // ignore: avoid_web_libraries_in_flutter
@@ -10,15 +11,44 @@ import 'package:open_file/open_file.dart';
 import 'app_config.dart';
 
 class ReportDownload {
-  static Future<void> downloadReport(String type) async {
-    final url = '${AppConfig.baseUrl}withdrawals/export/$type';
+  static Future<void> downloadReport(
+      String type, {
+        DateTimeRange? dateRange,
+        String? role,
+        String? status,
+        RangeValues? pointsRange,
+      }) async {
+    final query = <String, String>{};
+
+    if (dateRange != null) {
+      query['from'] = dateRange.start.toIso8601String();
+      query['to'] = dateRange.end.toIso8601String();
+    }
+
+    if (role != null && role.isNotEmpty) {
+      query['role'] = role;
+    }
+
+    if (status != null && status.isNotEmpty) {
+      query['status'] = status;
+    }
+
+    if (pointsRange != null) {
+      query['pointsFrom'] = pointsRange.start.toInt().toString();
+      query['pointsTo'] = pointsRange.end.toInt().toString();
+    }
+
+    final uri = Uri.parse(
+      '${AppConfig.baseUrl}withdrawals/export/$type',
+    ).replace(queryParameters: query);
 
     if (kIsWeb) {
-      _downloadWeb(url, type);
+      _downloadWeb(uri.toString(), type);
     } else {
-      await _downloadMobile(url, type);
+      await _downloadMobile(uri.toString(), type);
     }
   }
+
 
   static void _downloadWeb(String url, String type) {
     html.AnchorElement(href: url)
