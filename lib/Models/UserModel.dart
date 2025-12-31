@@ -46,25 +46,34 @@ class UserModel {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final sub = json['latestSubscription'];
+
     return UserModel(
       id: json['id'] ?? 0,
       name: json['fullName'] ?? 'Unknown',
       email: json['email'] ?? 'noemail@example.com',
       status: json['status'] ?? 'inactive',
+      phone: json['phone'] ?? 'لايوجد',
+
       totalMessages: json['totalMessages'] ?? 0,
       subscriptionDaysLeft: json['subscriptionDaysLeft'] ?? 0,
       groups: json['groups'] ?? 0,
+
       blockedGroups: json['blockedGroups'] ?? 0,
       leftGroups: json['leftGroups'] ?? 0,
       blockedChats: json['blockedChats'] ?? 0,
       subscriptionsCount: json['subscriptionsCount'] ?? 0,
       suggestionsCount: json['suggestionsCount'] ?? 0,
       suggestionRepliesCount: json['suggestionRepliesCount'] ?? 0,
-      planName: json['PlanName'],
-      price: (json['Price'] != null) ? double.tryParse(json['Price'].toString()) : null,
-      startDate: json['StartDate'],
-      endDate: json['EndDate'],
+
+      planName: sub?['planName'],
+      price: sub?['price'] != null
+          ? (sub['price'] as num).toDouble()
+          : null,
+      startDate: sub?['startDate'],
+      endDate: sub?['endDate'],
     );
   }
+
 
 }

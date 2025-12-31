@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import '../../Models/Marketer.dart';
 import '../../core/app_config.dart';
 import 'SupervisorsManagementScreen.dart';
 
@@ -41,15 +42,12 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
   bool _emailVerified = false;
   bool _sendingCode = false;
   bool _verifyingCode = false;
-  bool _enablePasswordEdit = false; // متغير جديد للتحكم في تفعيل تعديل كلمة المرور
-
+  bool _enablePasswordEdit = false;
   late TextEditingController _firstNameController, _lastNameController, _countryController,
       _cityController, _ageController, _bankController, _accountNumberController,
       _phoneController, _emailController, _passwordController, _pointsController,
       _pointPriceController, _discountCodeController, _reviewLinkController, _totalDueAmountController;
-
   final TextEditingController _emailCodeController = TextEditingController();
-
   String tr(String ar, String en) => widget.isArabic ? ar : en;
 
   @override
@@ -63,7 +61,6 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
       _enablePasswordEdit = true; // في حالة الإضافة، الحقل مفعل
     }
   }
-
   void _initializeControllers() {
     final user = widget.user;
     _firstNameController = TextEditingController(text: user?.firstName ?? '');
@@ -75,22 +72,19 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
     _accountNumberController = TextEditingController(text: user?.accountNumber ?? '');
     _phoneController = TextEditingController(text: user?.phone ?? '');
     _emailController = TextEditingController(text: user?.email ?? '');
-    _passwordController = TextEditingController(text: ''); // فارغ في حالة التعديل
-
-    _pointsController = TextEditingController(text: user!.points.toString());
-    _pointPriceController = TextEditingController(text: user.pointPrice.toString() );
+    _passwordController = TextEditingController(text: '');
+    _pointsController = TextEditingController(text: user?.points.toString());
+    _pointPriceController = TextEditingController(text: user?.pointPrice.toString() );
     _discountCodeController = TextEditingController(text: (user is Marketer) ? user.discountCode : '');
     _reviewLinkController = TextEditingController(text: (user is Marketer) ? user.reviewLink : widget.generateReviewLink());
     _totalDueAmountController = TextEditingController(text: (user is Marketer) ? user.totalDueAmount.toString() : '0');
   }
-
   String? emailValidator(String? v) {
     if (v == null || v.trim().isEmpty) return tr('البريد مطلوب', 'Email is required');
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegex.hasMatch(v.trim())) return tr('بريد إلكتروني غير صالح', 'Invalid email format');
     return null;
   }
-
   Widget _buildField({
     required TextEditingController controller,
     required String label,

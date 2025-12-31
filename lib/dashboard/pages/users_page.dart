@@ -64,10 +64,8 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
       // 2️⃣ حالة المستخدم: active, inactive أو all
       final matchStatus = _statusFilter == 'all' || u.status == _statusFilter;
 
-
-        final matchMessages = u.totalMessages > 10;
-        final matchSubscription = u.subscriptionDaysLeft > 0;
-
+      final matchMessages = u.totalMessages > 10;
+      final matchSubscription = u.subscriptionDaysLeft > 0;
 
       return matchSearch && matchStatus;
     }).toList();
@@ -83,6 +81,26 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
               ? const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
               : _buildContentGrid(filtered, isAr, isDark),
         ],
+      ),
+      // ✅ الزر العائم هنا
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _isLoading ? null : _fetchData,
+        backgroundColor: ThemeLib.primary,
+        elevation: 8,
+        icon: _isLoading
+            ? const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+        )
+            : const Icon(Icons.refresh_rounded, color: Colors.white),
+        label: Text(
+          isAr ? "تحديث" : "Refresh",
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -172,8 +190,6 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
             _buildFilterAction(Icons.filter_list_rounded, isDark),
           ],
         ),
-
-
       ),
     );
   }
@@ -222,7 +238,6 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
       ),
     );
   }
-
 }
 
 // --- 4. بطاقة المستخدم الاحترافية (The User Card) ---

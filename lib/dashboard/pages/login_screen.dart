@@ -54,6 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'password': password}),
       );
+      print("RAW response from API: ${res.statusCode.toString()}");
 
       if (!mounted) return;
 
@@ -158,6 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       }
     } catch (e) {
+      print(e);
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
