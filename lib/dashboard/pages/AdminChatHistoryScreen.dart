@@ -150,7 +150,6 @@ class _AdminChatHistoryScreenState extends State<AdminChatHistoryScreen> {
       child: Row(
         children: [
           _filterChip("الكل", Icons.all_inclusive, isStatusFilter: true),
-          _filterChip("متصل", Icons.bolt, color: Colors.green, isStatusFilter: true),
           _filterChip("محلولة", Icons.check_circle_outline, color: Colors.blue, isStatusFilter: false),
           _filterChip("بانتظار الرد", Icons.hourglass_empty_rounded, color: Colors.orange, isStatusFilter: false),
         ],
@@ -361,29 +360,7 @@ class _AdminChatHistoryScreenState extends State<AdminChatHistoryScreen> {
             ),
           ),
         ),
-        const SizedBox(width: 8),
-        if (chat.online)
-          Row(
-            children: [
-              Container(
-                width: 6,
-                height: 6,
-                decoration: const BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                "متصل الآن",
-                style: TextStyle(
-                  color: Colors.green[600],
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
+
       ],
     );
   }

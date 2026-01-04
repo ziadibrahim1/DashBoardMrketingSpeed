@@ -7,6 +7,7 @@ import 'dart:async'; // ✅ إضافة للـ Timer
 
 import '../../core/ConversationModel.dart';
 import '../../core/app_config.dart';
+import '../../core/user_session.dart';
 
 class AdminLiveChatScreen extends StatefulWidget {
   final String conversationId;
@@ -38,8 +39,8 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
   WebSocketChannel? _channel;
   bool _isConnected = true;
 
-  Timer? _refreshTimer; // ✅ Timer للتحديث التلقائي
-  bool _isRefreshing = false; // ✅ لمنع التحديثات المتداخلة
+  Timer? _refreshTimer; //
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -52,7 +53,7 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
 
   // ✅ دالة لبدء التحديث التلقائي كل ثانيتين
   void _startAutoRefresh() {
-    _refreshTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (mounted && !_isRefreshing) {
         _refreshMessages();
       }
@@ -250,9 +251,6 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
           _scrollToBottom();
           break;
 
-        case 'user_typing':
-          _showTypingIndicator();
-          break;
 
         case 'user_online':
           setState(() {
@@ -277,10 +275,6 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
     } catch (e) {
       debugPrint('Error handling message: $e');
     }
-  }
-
-  void _showTypingIndicator() {
-    // يمكنك إضافة مؤشر "المستخدم يكتب..." هنا
   }
 
   void _updateMessageStatus(String messageId, String status) {
@@ -393,7 +387,7 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
         color = Colors.lightBlueAccent;
         break;
       default:
-        icon = Icons.schedule;
+        icon = Icons.check;
         color = Colors.white70;
     }
 
@@ -404,13 +398,11 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
     if (dateTime == null) return '';
     final hour = dateTime.hour.toString().padLeft(2, '0');
     final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+    return ' ${dateTime.day}/${dateTime.month < 10 ? '0${dateTime.month}' : dateTime.month} ${dateTime.hour >= 12 ? 'PM' : 'AM'} $hour:$minute ';
   }
 
   Widget _buildMessageContent(ChatMessage msg, bool isAdmin, bool isDark) {
-    if (msg.attachmentUrl != null && msg.attachmentUrl!.isNotEmpty) {
-      return _buildAttachment(msg.attachmentUrl!, isAdmin);
-    }
+
     return Text(
       msg.text ?? "",
       style: TextStyle(
@@ -421,34 +413,6 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
     );
   }
 
-  Widget _buildAttachment(String url, bool isAdmin) {
-    bool isImage = url.contains(RegExp(r'\.(jpg|jpeg|png|gif)'));
-    if (isImage) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.network(url, fit: BoxFit.cover),
-      );
-    }
-    return InkWell(
-      onTap: () => html.window.open(url, '_blank'),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.insert_drive_file_rounded, color: isAdmin ? Colors.white : primaryBlue),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              "Download File",
-              style: TextStyle(
-                color: isAdmin ? Colors.white : primaryBlue,
-                decoration: TextDecoration.underline,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -582,10 +546,7 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
       child: SafeArea(
         child: Row(
           children: [
-            IconButton(
-              icon: Icon(Icons.attach_file, color: primaryBlue),
-              onPressed: _pickFile,
-            ),
+
             Expanded(
               child: TextField(
                 controller: _controller,
@@ -636,6 +597,7 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty || !_isConnected) return;
 
+
     final messageText = text.trim();
     _controller.clear();
 
@@ -646,6 +608,7 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
         'text': messageText,
         'sender': 'support',
         'timestamp': DateTime.now().toIso8601String(),
+
       }));
     }
 
@@ -671,7 +634,5 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
     }
   }
 
-  Future<void> _pickFile() async {
-    // يمكنك إضافة منطق اختيار الملفات هنا
-  }
+
 }

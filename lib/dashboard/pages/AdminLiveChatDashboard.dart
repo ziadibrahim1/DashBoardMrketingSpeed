@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:async'; // ✅ إضافة للـ Timer
+import 'package:intl/intl.dart';
+import 'dart:async';
 import '../../core/ConversationModel.dart';
 import '../../core/app_config.dart';
+import '../../core/user_session.dart';
 import 'AdminLiveChatScreen.dart';
 
 // ==================== Constants ====================
@@ -38,14 +40,14 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
   bool _isLoading = true;
   String _searchQuery = '';
 
-  Timer? _refreshTimer; // ✅ Timer للتحديث التلقائي
-  bool _isRefreshing = false; // ✅ لمنع التحديثات المتداخلة
+  Timer? _refreshTimer;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
     _initializeData();
-    _startAutoRefresh(); // ✅ بدء التحديث التلقائي
+    _startAutoRefresh();
   }
 
   Future<void> _initializeData() async {
@@ -55,7 +57,6 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
     }
   }
 
-  // ✅ دالة لبدء التحديث التلقائي كل ثانيتين
   void _startAutoRefresh() {
     _refreshTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
       if (mounted && !_isRefreshing) {
@@ -64,28 +65,24 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
     });
   }
 
-  // ✅ دالة التحديث الصامت (بدون إظهار loading)
   Future<void> _refreshConversations() async {
     if (_isRefreshing || _isLoading) return;
 
     _isRefreshing = true;
 
     try {
-      final oldCount = _chatStateManager.allConversations.length;
-      await _chatStateManager.fetchConversations();
+      final updates = await _chatStateManager.fetchConversationsWithUpdates();
 
       if (mounted) {
-        final newCount = _chatStateManager.allConversations.length;
+        final newConvCount = updates['newConversations'] as int;
+        final newMessages = updates['newMessages'] as List<ConversationModel>;
 
-        // تحديث الـ UI فقط في حالة وجود تغيير
-        if (newCount != oldCount) {
-          setState(() {});
+        // ✅ تحديث الـ UI
+        setState(() {});
 
-          // إظهار إشعار بالمحادثات الجديدة
-          if (newCount > oldCount) {
-            final diff = newCount - oldCount;
-            _showNewConversationsNotification(diff);
-          }
+        // ✅ إشعار بالمحادثات الجديدة
+        if (newConvCount > 0) {
+          _showNewConversationsNotification(newConvCount);
         }
       }
     } catch (e) {
@@ -118,17 +115,16 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
         action: SnackBarAction(
           label: 'عرض',
           textColor: Colors.white,
-          onPressed: () {
-            // يمكن إضافة منطق لفتح المحادثة الجديدة
-          },
+          onPressed: () {},
         ),
       ),
     );
   }
 
+
   @override
   void dispose() {
-    _refreshTimer?.cancel(); // ✅ إيقاف التحديث التلقائي
+    _refreshTimer?.cancel();
     super.dispose();
   }
 
@@ -146,11 +142,12 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
             activeChat: _chatStateManager.activeChat,
             isLoading: _isLoading,
             searchQuery: _searchQuery,
-            isRefreshing: _isRefreshing, // ✅ تمرير حالة التحديث
+            isRefreshing: _isRefreshing,
+            chatStateManager: _chatStateManager,
             onSearchChanged: (query) => setState(() => _searchQuery = query),
             onChatSelected: (conv) => setState(() => _chatStateManager.openChat(conv)),
             onConversationClosed: _handleConversationClose,
-            onRefresh: _refreshConversations, // ✅ إضافة خاصية التحديث اليدوي
+            onRefresh: _refreshConversations,
             isArabic: isArabic,
           ),
           Expanded(
@@ -160,7 +157,10 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
                   _ChatTopTabs(
                     openedChats: _chatStateManager.openedChats,
                     activeChat: _chatStateManager.activeChat,
-                    onTabSelected: (chat) => setState(() => _chatStateManager.activeChat = chat),
+                    onTabSelected: (chat) async {
+                      setState(() => _chatStateManager.activeChat = chat);
+                      await _chatStateManager.markConversationAsRead(chat.id);
+                    },
                     onTabClosed: (chatId) => setState(() => _chatStateManager.closeChat(chatId)),
                   ),
                 Expanded(
@@ -217,7 +217,8 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
           ),
         ],
       ),
-    ) ?? false;
+    ) ??
+        false;
   }
 
   void _showSnackBar(String message, {required bool isError}) {
@@ -239,12 +240,42 @@ class ChatStateManager {
   final List<ConversationModel> minimizedChats = [];
   ConversationModel? activeChat;
 
+  // ✅ Map لتتبع عدد الرسائل غير المقروءة
+  final Map<int, int> unreadCounts = {};
+  Future<void> markConversationAsRead(int conversationId) async {
+    try {
+      await http.put(
+        Uri.parse(
+          '${AppConfig.baseUrl}admin/conversations/$conversationId/read',
+        ),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer YOUR_TOKEN",
+        },
+      );
+
+      // ✅ تحديث محلي
+      unreadCounts.remove(conversationId);
+
+      final index =
+      allConversations.indexWhere((c) => c.id == conversationId);
+      if (index != -1) {
+        allConversations[index] =
+            allConversations[index].copyWith(hasUnread: false);
+      }
+    } catch (e) {
+      debugPrint("Error marking as read: $e");
+    }
+  }
+
   void openChat(ConversationModel conv) {
     if (!openedChats.any((c) => c.id == conv.id)) {
       openedChats.add(conv);
     }
     activeChat = conv;
     minimizedChats.removeWhere((c) => c.id == conv.id);
+    // ✅ مسح العداد عند فتح المحادثة
+    unreadCounts.remove(conv.id);
   }
 
   void closeChat(int id) {
@@ -266,20 +297,72 @@ class ChatStateManager {
     }
   }
 
-  Future<void> fetchConversations() async {
+  // ✅ دالة محدثة للتحقق من الرسائل الجديدة
+
+  Future<Map<String, dynamic>> fetchConversationsWithUpdates() async {
     try {
+      final agentId = UserSession.userId;
       final response = await http.get(
-        Uri.parse('${AppConfig.baseUrl}admin/conversations/active'),
+        Uri.parse('${AppConfig.baseUrl}admin/conversations/$agentId/active'),
         headers: {'Authorization': 'Bearer YOUR_TOKEN'},
       );
 
       if (response.statusCode == 200) {
         final List data = json.decode(response.body);
-        allConversations = data.map((e) => ConversationModel.fromJson(e)).toList();
+        final newConversations =
+        data.map((e) => ConversationModel.fromJson(e)).toList();
+
+        int newConvCount = 0;
+
+        for (var conv in newConversations) {
+          // محادثة جديدة
+          if (!allConversations.any((c) => c.id == conv.id)) {
+            newConvCount++;
+          }
+
+          // تحديث العداد من السيرفر
+          if (conv.unreadCount! > 0) {
+            unreadCounts[conv.id] = conv.unreadCount!;
+          } else {
+            unreadCounts.remove(conv.id);
+          }
+        }
+
+        allConversations = newConversations;
+
+        return {
+          'newConversations': newConvCount,
+          'newMessages': newConversations
+              .where((c) => c.unreadCount! > 0)
+              .toList(),
+        };
       }
     } catch (e) {
       debugPrint("Error fetching chats: $e");
     }
+
+    return {'newConversations': 0, 'newMessages': []};
+  }
+
+  Future<void> fetchConversations() async {
+    await fetchConversationsWithUpdates();
+  }
+  Widget _buildDotBadge() {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        color: ChatColors.primaryBlue,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: ChatColors.primaryBlue.withOpacity(0.6),
+            blurRadius: 6,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> closeConversation(int conversationId) async {
@@ -290,6 +373,7 @@ class ChatStateManager {
     );
 
     allConversations.removeWhere((c) => c.id == conversationId);
+    unreadCounts.remove(conversationId);
     if (activeChat?.id == conversationId) {
       activeChat = null;
     }
@@ -303,6 +387,7 @@ class _ChatSidebar extends StatelessWidget {
   final bool isLoading;
   final bool isRefreshing;
   final String searchQuery;
+  final ChatStateManager? chatStateManager;
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<ConversationModel> onChatSelected;
   final ValueChanged<ConversationModel> onConversationClosed;
@@ -315,6 +400,7 @@ class _ChatSidebar extends StatelessWidget {
     required this.isLoading,
     required this.isRefreshing,
     required this.searchQuery,
+    this.chatStateManager,
     required this.onSearchChanged,
     required this.onChatSelected,
     required this.onConversationClosed,
@@ -352,6 +438,7 @@ class _ChatSidebar extends StatelessWidget {
                 : _ConversationsList(
               conversations: filtered,
               activeChat: activeChat,
+              chatStateManager: chatStateManager,
               onChatSelected: onChatSelected,
               onConversationClosed: onConversationClosed,
             ),
@@ -414,7 +501,7 @@ class _SidebarHeader extends StatelessWidget {
               ),
               IconButton(
                 icon: isRefreshing
-                    ? SizedBox(
+                    ? const SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
@@ -459,12 +546,14 @@ class _SidebarHeader extends StatelessWidget {
 class _ConversationsList extends StatelessWidget {
   final List<ConversationModel> conversations;
   final ConversationModel? activeChat;
+  final ChatStateManager? chatStateManager;
   final ValueChanged<ConversationModel> onChatSelected;
   final ValueChanged<ConversationModel> onConversationClosed;
 
   const _ConversationsList({
     required this.conversations,
     required this.activeChat,
+    this.chatStateManager,
     required this.onChatSelected,
     required this.onConversationClosed,
   });
@@ -501,6 +590,7 @@ class _ConversationsList extends StatelessWidget {
       itemBuilder: (_, i) => _ConversationTile(
         conversation: conversations[i],
         isActive: activeChat?.id == conversations[i].id,
+        chatStateManager: chatStateManager,
         onTap: () => onChatSelected(conversations[i]),
         onClose: () => onConversationClosed(conversations[i]),
       ),
@@ -514,91 +604,134 @@ class _ConversationTile extends StatelessWidget {
   final bool isActive;
   final VoidCallback onTap;
   final VoidCallback onClose;
+  final ChatStateManager? chatStateManager;
 
   const _ConversationTile({
     required this.conversation,
     required this.isActive,
     required this.onTap,
     required this.onClose,
+    this.chatStateManager,
   });
 
   @override
   Widget build(BuildContext context) {
+    final unreadCount = chatStateManager?.unreadCounts[conversation.id] ?? 0;
+    final bool hasUnread = unreadCount > 0;
+
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeOutCubic,
       tween: Tween(begin: 0.0, end: 1.0),
       builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(0, 10 * (1 - value)),
+        return Transform.scale(
+          scale: 0.98 + (0.02 * value),
           child: Opacity(opacity: value, child: child),
         );
       },
       child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 2), // تقليل المارجن لتوفير مساحة
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(ChatDimensions.borderRadius),
-          boxShadow: isActive
-              ? [
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: isActive ? [
             BoxShadow(
-              color: ChatColors.primaryBlue.withOpacity(0.15),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-              spreadRadius: -5,
-            ),
-          ]
-              : [],
+              color: ChatColors.primaryBlue.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ] : [],
         ),
         child: Material(
-          color: Colors.transparent,
+          color: isActive ? Colors.white : Colors.white.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(16),
           child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(ChatDimensions.borderRadius),
-            splashColor: ChatColors.primaryBlue.withOpacity(0.1),
-            highlightColor: ChatColors.primaryBlue.withOpacity(0.05),
+            onTap: () async {
+              onTap();
+              if (chatStateManager != null) {
+                await chatStateManager!.markConversationAsRead(conversation.id);
+              }
+            },
+            borderRadius: BorderRadius.circular(16),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeInOutCubic,
-              padding: const EdgeInsets.all(ChatDimensions.cardPadding),
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                gradient: isActive
-                    ? LinearGradient(
-                  colors: [
-                    ChatColors.primaryBlue.withOpacity(0.12),
-                    ChatColors.primaryBlue.withOpacity(0.03),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-                    : LinearGradient(
-                  colors: [
-                    Colors.grey.withOpacity(0.02),
-                    Colors.grey.withOpacity(0.01),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(ChatDimensions.borderRadius),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isActive
-                      ? ChatColors.primaryBlue.withOpacity(0.3)
-                      : Colors.grey.withOpacity(0.08),
-                  width: isActive ? 1.5 : 1,
+                  color: isActive ? ChatColors.primaryBlue : Colors.transparent,
+                  width: 1.5,
                 ),
               ),
               child: Row(
                 children: [
-                  _AnimatedAvatar(
-                    userName: conversation.userName,
-                    isActive: isActive,
+                  // القسم 1: الصورة والبادج
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      _AnimatedAvatar(
+                        userName: conversation.userName,
+                        isActive: isActive,
+                      ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          right: -6,
+                          top: -6,
+                          child: _UnreadBadge(count: unreadCount),
+                        ),
+                    ],
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 12),
+
+                  // القسم 2: المعلومات النصية
                   Expanded(
-                    child: _ConversationInfo(
-                      userName: conversation.userName,
-                      isActive: isActive,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // الاسم
+                            Expanded( // أهم تعديل: Expanded هنا يمنع تجاوز النص
+                              child: Text(
+                                conversation.userName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: hasUnread ? FontWeight.w800 : FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            // التاريخ
+                            if (conversation.lastMessageAt != null)
+                              Text(
+                                formatChatDate(conversation.lastMessageAt, true),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: hasUnread ? ChatColors.primaryBlue : Colors.grey[500],
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+
+                        _ConversationSubtext(
+                          hasUnread: hasUnread, isActive: isActive,
+                          lastMessage: conversation.lastMessage,
+                        ),
+                      ],
                     ),
                   ),
-                  if (conversation.status == 'active')
-                    _CloseButton(onPressed: onClose),
-                  if (isActive) _ActiveIndicator(),
+
+                  // القسم 3: زر الإغلاق (يظهر فقط عند التفاعل أو النشاط)
+                  if (conversation.status == 'active' || isActive)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: _CloseButton(onPressed: onClose),
+                    ),
                 ],
               ),
             ),
@@ -607,6 +740,7 @@ class _ConversationTile extends StatelessWidget {
       ),
     );
   }
+
 }
 
 // ==================== Animated Avatar ====================
@@ -634,10 +768,7 @@ class _AnimatedAvatar extends StatelessWidget {
             shape: BoxShape.circle,
             gradient: isActive
                 ? LinearGradient(
-              colors: [
-                ChatColors.primaryBlue,
-                ChatColors.primaryBlue.withOpacity(0.8)
-              ],
+              colors: [ChatColors.primaryBlue, ChatColors.primaryBlue.withOpacity(0.8)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             )
@@ -646,9 +777,7 @@ class _AnimatedAvatar extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: isActive
-                    ? ChatColors.primaryBlue.withOpacity(0.3)
-                    : Colors.black.withOpacity(0.05),
+                color: isActive ? ChatColors.primaryBlue.withOpacity(0.3) : Colors.black.withOpacity(0.05),
                 blurRadius: isActive ? 12 : 6,
                 offset: const Offset(0, 4),
               ),
@@ -704,7 +833,6 @@ class _PulseEffect extends StatelessWidget {
     );
   }
 }
-
 class _OnlineIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -735,7 +863,26 @@ class _OnlineIndicator extends StatelessWidget {
     );
   }
 }
+String formatChatDate(DateTime? date, bool isArabic) {
+  if (date == null) return '';
 
+  final now = DateTime.now();
+  final difference = now.difference(date);
+
+  if (difference.inMinutes < 1) {
+    return isArabic ? 'الآن' : 'Now';
+  } else if (difference.inHours < 1) {
+    return isArabic
+        ? 'منذ ${difference.inMinutes} د'
+        : '${difference.inMinutes}m ago';
+  } else if (difference.inDays == 0) {
+    return DateFormat('hh:mm a', isArabic ? 'ar' : 'en').format(date);
+  } else if (difference.inDays == 1) {
+    return isArabic ? 'أمس' : 'Yesterday';
+  } else {
+    return DateFormat('dd/MM/yyyy').format(date);
+  }
+}
 class _ConversationInfo extends StatelessWidget {
   final String userName;
   final bool isActive;
@@ -921,6 +1068,7 @@ class _ChatTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
+
               Expanded(
                 child: Text(
                   chat.userName,
@@ -956,7 +1104,7 @@ class _ChatTab extends StatelessWidget {
   }
 }
 
-// ==================== Main Content ====================
+// ==================== MainContent ====================
 class _ChatMainContent extends StatelessWidget {
   final ConversationModel? activeChat;
   final bool isArabic;
@@ -1489,6 +1637,76 @@ class _MinimizedChatsBar extends StatelessWidget {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+}
+class _ConversationSubtext extends StatelessWidget {
+  final bool isActive;
+  final bool hasUnread;
+  final String? lastMessage;
+
+
+  const _ConversationSubtext({
+    required this.isActive,
+    required this.hasUnread,
+    this.lastMessage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        // اختيارياً: يمكنك إضافة أيقونة الحالة (تم الإرسال/تمت القراءة)
+        Icon(
+          Icons.done_all,
+          size: 14,
+          color: hasUnread ? ChatColors.primaryBlue : Colors.grey[400],
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            lastMessage!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 13,
+              // جعل النص أغمق إذا كانت الرسالة غير مقروءة
+              color: hasUnread ? Colors.black87 : Colors.grey[600],
+              fontWeight: hasUnread ? FontWeight.w500 : FontWeight.normal,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+class _UnreadBadge extends StatelessWidget {
+  final int count;
+
+  const _UnreadBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.redAccent,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.redAccent.withOpacity(0.5),
+            blurRadius: 6,
+          ),
+        ],
+      ),
+      child: Text(
+        count > 99 ? '99+' : count.toString(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

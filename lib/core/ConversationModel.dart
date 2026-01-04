@@ -1,18 +1,26 @@
 import 'dart:convert';
+import 'package:admin_dashboard/core/user_session.dart';
 import 'package:http/http.dart' as http;
 
 import 'app_config.dart';
 
 class ConversationModel {
   final int id;
-  final int userId;
+  final int? userId;
+  final int? agentId;
   final String userName;
   final String status;
   final String email;
   final String phone;
   final String country;
   final String city;
+  final bool hasUnread;
   final SubscriptionModel? subscription;
+  final DateTime? lastMessageAt;
+  final String? lastMessage;
+  final int? unreadCount;
+
+
 
   ConversationModel({
     required this.id,
@@ -23,7 +31,12 @@ class ConversationModel {
     required this.phone,
     required this.country,
     required this.city,
+    this.hasUnread = false,
     this.subscription,
+    this.lastMessageAt,
+    this.lastMessage,
+    this.unreadCount,
+    this.agentId,
   });
 
   factory ConversationModel.fromJson(Map<String, dynamic> json) {
@@ -37,16 +50,38 @@ class ConversationModel {
       userName: user?['first_name'] ?? 'Unknown',
       email: user?['email'] ?? 'Unknown',
       phone: user?['phone'] ?? 'Unknown',
-      country: user?['country'] != null
-          ? (user['country']['nameAr'] ?? user['country']['nameEn'] ?? 'غير معروف')
-          : 'غير معروف',
-      city: user?['city'] != null
-          ? (user['city']['nameAr'] ?? user['city']['nameEn'] ?? 'غير معروف')
-          : 'غير معروف',
+      country: user?['country'] != null ? (user['country']['nameAr'] ?? user['country']['nameEn'] ?? 'غير معروف') : 'غير معروف',
+      city: user?['city'] != null? (user['city']['nameAr'] ?? user['city']['nameEn'] ?? 'غير معروف') : 'غير معروف',
+      hasUnread: json['hasUnread'] ?? false,
       subscription: sub != null ? SubscriptionModel.fromJson(sub) : null,
+      lastMessageAt: json['lastMessageAt'] != null ? DateTime.parse(json['lastMessageAt']) : null,
+      lastMessage: json['lastMessage'] ?? '',
+      unreadCount: json['unreadCount'] ?? 0,
+      agentId: json['agentId'] ??0,
+
+
     );
   }
-
+  ConversationModel copyWith({
+    bool? hasUnread,
+    String? status,
+  }) {
+    return ConversationModel(
+      id: id,
+      userName: userName,
+      status: status ?? this.status,
+      hasUnread: hasUnread ?? this.hasUnread,
+      email: email,
+      phone: phone,
+      country: country,
+      city: city,
+      subscription: subscription, userId: userId,
+      lastMessageAt: lastMessageAt,
+      lastMessage: lastMessage,
+      unreadCount: unreadCount,
+      agentId: agentId,
+    );
+  }
 }
 
 class SubscriptionModel {
@@ -146,14 +181,17 @@ class ChatApi {
   }
 
   static Future<void> sendMessage(
+
       int conversationId,
       String? text,
       ) async {
+    final agentId  = UserSession.userId;
     await http.post(
       Uri.parse('${AppConfig.baseUrl}admin/conversations/$conversationId/messages'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "messageText": text,
+        "AgentId": agentId
       }),
     );
   }

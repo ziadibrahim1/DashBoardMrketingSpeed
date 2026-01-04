@@ -8,10 +8,10 @@ import '../providers/app_providers.dart';
 import 'pages/AdminManagementScreen.dart';
 import 'pages/AdminVideoManager.dart';
 import 'pages/FlexManagement.dart';
+import 'pages/NotificationHistoryPage.dart';
 import 'pages/StatsPageTelgram.dart';
 import 'pages/AdminLiveChatDashboard.dart';
 import 'pages/AdminChatHistoryScreen.dart';
-import 'pages/SelectTelegramUserScreen.dart';
 import 'pages/SendNotificationScreen.dart';
 import 'pages/PlatformManagementPage.dart';
 import 'pages/ReferralRewardsPage.dart';
@@ -53,6 +53,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int platformPageIndex = 0;
   bool showChatPage = false;
   int chatPageIndex = 0;
+  bool  showNoti  = false;
+  int NotiPageIndex = 0;
   final ScrollController _scrollController = ScrollController();
   double _dragStartX = 0;
   double _scrollStartX = 0;
@@ -67,6 +69,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final List<Widget> chatPages = [
     const AdminLiveChatDashboard(), // المحادثات الحية
     const AdminChatHistoryScreen(), // سجل المحادثات
+  ];
+  final List<Widget> notification = [
+    const  SendNotificationPage(), // ارسال الاشعارات
+    const NotificationHistoryPage(), // سجل الاشعارات
   ];
 
 
@@ -133,7 +139,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       BottomNavigationBarItem(icon: Icon(Icons.subscriptions), label: widget.isArabic ? 'الاشتراكات' : 'Subscriptions'),
       BottomNavigationBarItem(icon: Icon(Icons.language), label: widget.isArabic ? 'المنصات' : 'Platforms'),
       BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: widget.isArabic ? 'محادثات' : 'Chats'),
-      BottomNavigationBarItem(icon: Icon(Icons.notifications), label: widget.isArabic ? 'إرسال إشعار' : 'Send Notification'),
+      BottomNavigationBarItem(icon: Icon(Icons.notifications), label: widget.isArabic ? 'الاشعارات' : ' Notifications'),
       BottomNavigationBarItem(icon: Icon(Icons.settings), label: widget.isArabic ? 'إدارة منصات' : 'Manage Platforms'),
       BottomNavigationBarItem(icon: Icon(FontAwesomeIcons.userTie), label: widget.isArabic ? 'المسؤولين' : 'Admins'),
       BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: widget.isArabic ? 'إدارة فليكس' : 'Manage Flex'),
@@ -161,7 +167,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const SubscriptionsPage(), // الاشتراكات
       const SizedBox.shrink(), // منصات (غير مستخدمة مباشرة)
       const SizedBox.shrink(), // محادثات (منسدلة)
-      const SendNotificationPage(), // إرسال إشعار
+      const SizedBox.shrink(), // إرسال إشعار (منسدلة)
       const PlatformManagementPage(), // إدارة منصات
       const AdminManagementScreen(), // المسؤولين
        PackagesPage( isArabic: isArabic), // إدارة فليكس
@@ -205,7 +211,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     ...List.generate(navItems.length, (index) {
                       final item = navItems[index];
-                      final isSelected = selectedIndex == index && !showPlatformPage && !showChatPage;
+                      final isSelected = selectedIndex == index && !showPlatformPage && !showChatPage && !showNoti;
+                      final isDark = Theme.of(context).brightness == Brightness.dark;
 
                       Widget buttonContent = Row(
                         mainAxisSize: MainAxisSize.min,
@@ -243,12 +250,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               showPlatformPage = true;
                               platformPageIndex = platformIndex!;
                               showChatPage = false;
+                              showNoti = false;
                               selectedIndex = index;
                             });
                           },
                         );
                       }
-
                       if (index == 5) {
                         return _buildDropdownButton(
                           isDark: isDark,
@@ -265,11 +272,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               chatPageIndex = chatIndex!;
                               showPlatformPage = false;
                               selectedIndex = index;
+                              showNoti = false;
                             });
                           },
                         );
                       }
-
+                      if (index == 6) {
+                        return _buildDropdownButton(
+                          isDark: isDark,
+                          isSelected: showNoti,
+                          value: showNoti ? NotiPageIndex : null,
+                          buttonContent: buttonContent,
+                          items: [
+                            _buildDropdownItem(Icons.notification_add,isArabic? 'إرسال الاشعارات':'Send Notifications', 0, isSelected, isDark),
+                            _buildDropdownItem(Icons.history,isArabic? 'سجل الاشعارات':'Notifications archive', 1, isSelected, isDark),
+                          ],
+                          onChanged: (chatIndex) {
+                            setState(() {
+                              showChatPage = false;
+                              showPlatformPage = false;
+                              selectedIndex = index;
+                              showNoti = true;
+                              NotiPageIndex = chatIndex!;
+                            });
+                          },
+                        );
+                      }
                       return Container(
                         margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                         child: Card(
@@ -283,6 +311,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 selectedIndex = index;
                                 showPlatformPage = false;
                                 showChatPage = false;
+                                showNoti = false;
                               });
                             },
                             child: Padding(
@@ -307,7 +336,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           switchOutCurve: Curves.easeOut,
           child: showPlatformPage
               ? platformPages[platformPageIndex]
-              : showChatPage
+              :showNoti ? notification[NotiPageIndex] :  showChatPage
               ? chatPages[chatPageIndex]
               : basePages[selectedIndex],
         ),
