@@ -1,3 +1,9 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
+import '../../core/app_config.dart';
+
 enum PackageStatus { active, paused }
 
 class LogEntry {
@@ -13,7 +19,7 @@ class Package {
   double price;
   int durationDays;
   double? discount;
-  List<String> features;
+  List<PackageFeature> features;
   int subscribers;
   bool isArchived;
   PackageStatus status;
@@ -42,20 +48,91 @@ class Package {
       lastZeroSubscriberDetected = DateTime.now();
     }
   }
+  factory Package.fromJson(Map<String, dynamic> json, bool isArabic) {
+    final subscribers = json['subscriber_count'] ?? 0;
+    return Package(
+      id: json['id'],
+      name: isArabic ? json['name'] : json['nameEn'],
+      price: (json['price'] as num).toDouble(),
+      durationDays: json['durationDays'],
+      discount: json['discount'] != null
+          ? (json['discount'] as num).toDouble()
+          : null,
+      features: (json['features'] as List<dynamic>? ?? [])
+          .map((f) => PackageFeature.fromJson(f, isArabic))
+          .toList(),
+      subscribers: subscribers,
+      isArchived: json['archived'] == 1 || json['archived'] == true,
+      status: json['status'] == 'active'
+          ? PackageStatus.active
+          : PackageStatus.paused,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
+      startDate: json['scheduled_at'] != null
+          ? DateTime.parse(json['scheduled_at'])
+          : null,
+
+      // مهم 👇 عشان البانر الذكي
+      lastZeroSubscriberDetected:
+      subscribers == 0 ? DateTime.now() : null,
+    );
+  }
+  Map<String, dynamic> toJson(bool isArabic) {
+    return {
+      "nameAr": isArabic ? name : null,
+      "nameEn": isArabic ? null : name,
+      "price": price,
+      "durationDays": durationDays,
+      "discount": discount,
+      "status": status == PackageStatus.active ? "active" : "inactive",
+      "scheduledAt": startDate?.toIso8601String(),
+      "features": features.map((f) => f.toJson()).toList(),
+    };
+  }
 
   void addLog(String msg) {
     logs.insert(0, LogEntry(msg));
   }
-
   bool get isScheduledFuture {
     if (startDate == null) return false;
     return startDate!.isAfter(DateTime.now());
   }
-
   bool get shouldShowInactiveBanner {
     if (subscribers > 0) return false;
     if (lastZeroSubscriberDetected == null) return true;
     final diff = DateTime.now().difference(lastZeroSubscriberDetected!);
     return diff.inDays >= 30;
+  }
+}
+class PackageFeature {
+  final String feature;
+  final String? featureAr;
+  final String? featureEn;
+  final int limitCount;
+
+  PackageFeature({
+    required this.feature,
+    this.featureAr,
+    this.featureEn,
+    required this.limitCount,
+  });
+
+  factory PackageFeature.fromJson(Map<String, dynamic> json, bool isArabic) {
+    return PackageFeature(
+      feature: json['feature'],
+      featureAr: json['featureAr'],
+      featureEn: json['featureEn'],
+      limitCount: json['limitCount'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "feature": feature ?? '',
+      "featureAr": featureAr ?? feature ?? '',
+      "featureEn": featureEn ?? feature ?? '',
+      "limitCount": limitCount,
+    };
   }
 }

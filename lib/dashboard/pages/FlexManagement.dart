@@ -1,8 +1,16 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart' show DateFormat;
 
+import '../../Models/PackageEditor.dart';
+import '../../Models/packageNotificationModal.dart';
+import '../../core/app_config.dart';
+import '../../services/api_service.dart';
 import 'Package.dart';
+
+
 
 class PackagesPage extends StatefulWidget {
   final bool isArabic;
@@ -11,7 +19,6 @@ class PackagesPage extends StatefulWidget {
   @override
   State<PackagesPage> createState() => _PackagesPageState();
 }
-
 class _PackagesPageState extends State<PackagesPage> {
   // نخزن الباقات هنا بشكل داخلي، لإمكانية التعديل عليها
   late List<Package> _packages;
@@ -23,60 +30,12 @@ class _PackagesPageState extends State<PackagesPage> {
   @override
   void initState() {
     super.initState();
-
-    // تهيئة الباقات حسب اللغة
-    _packages = [
-      Package(
-        name: widget.isArabic ? 'فليكس وتساب' : 'Flex WhatsApp',
-        id: 439750,
-        price: 100,
-        durationDays: 30,
-        discount: 20,
-        features: widget.isArabic
-            ? [
-          'الإرسال على المجموعات',
-          'الإرسال على الدردشات',
-          'الوصول إلى 10000 عضو',
-          'تنبيه توصيات تسويق',
-        ]
-            : [
-          'Group sending',
-          'Chat sending',
-          'Access up to 10000 members',
-          'Marketing recommendation alerts',
-        ],
-        subscribers: 0,
-      ),
-      Package(
-        name: widget.isArabic ? 'فيسبوك شاملة' : 'Facebook Complete',
-        id: 574186,
-        price: 200,
-        durationDays: 60,
-        discount: null,
-        features: widget.isArabic
-            ? ['الإعلانات المدفوعة', 'إدارة الصفحات']
-            : ['Paid Ads', 'Page Management'],
-        subscribers: 3,
-      ),
-      Package(
-        name: widget.isArabic ? 'إنستجرام بلس' : 'Instagram Plus',
-        id: 772345,
-        price: 150,
-        durationDays: 45,
-        discount: 15,
-        features: widget.isArabic
-            ? ['تحليل البيانات', 'جدولة المنشورات']
-            : ['Data Analysis', 'Post Scheduling'],
-        subscribers: 12,
-      ),
-    ];
-
-    // تهيئة الفلاتر والترتيب والقيمة الافتراضية لعرض المؤرشفة حسب اللغة
+    _packages = [];
     selectedFilter = widget.isArabic ? 'الكل' : 'All';
     selectedSort = 'id';
     showArchived = false;
+    _loadPackages();
   }
-
   int generateUniqueId() {
     final rand = Random();
     int newId;
@@ -84,6 +43,19 @@ class _PackagesPageState extends State<PackagesPage> {
       newId = 100000 + rand.nextInt(900000);
     } while (_packages.any((p) => p.id == newId));
     return newId;
+  }
+  Future<void> _loadPackages() async {
+    final res = await http.get(
+      Uri.parse('${AppConfig.baseUrl}admin/packages'),
+    );
+
+    final List data = jsonDecode(res.body);
+
+    setState(() {
+      _packages = data
+          .map((e) => Package.fromJson(e, widget.isArabic))
+          .toList();
+    });
   }
 
   int get totalSubscribers => _packages.fold(0, (sum, p) => sum + p.subscribers);
@@ -153,25 +125,78 @@ class _PackagesPageState extends State<PackagesPage> {
     );
   }
 
-  void _toggleArchive(int index) {
-    setState(() {
-      final p = _packages[index];
-      p.isArchived = !p.isArchived;
-      p.addLog(p.isArchived
-          ? (widget.isArabic ? 'أرشفة الباقة' : 'Package archived')
-          : (widget.isArabic ? 'استرجاع الباقة' : 'Package restored'));
-    });
+  Future<void> _toggleArchiveById(int packageId) async {
+    try {
+      final pkg = _packages.firstWhere((p) => p.id == packageId);
+
+      final newValue = await ApiService.toggleArchive(pkg.id);
+
+      setState(() {
+        pkg.isArchived = newValue;
+        pkg.addLog(
+          newValue
+              ? (widget.isArabic ? 'أرشفة الباقة' : 'Package archived')
+              : (widget.isArabic ? 'استرجاع الباقة' : 'Package restored'),
+        );
+      });
+
+      await _loadPackages(); // تحديث من السيرفر
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            newValue
+                ? (widget.isArabic ? 'تمت الأرشفة بنجاح' : 'Archived successfully')
+                : (widget.isArabic ? 'تم الاسترجاع بنجاح' : 'Restored successfully'),
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(widget.isArabic ? 'فشل تنفيذ العملية' : 'Operation failed'),
+        ),
+      );
+    }
   }
 
-  void _toggleStatus(int index) {
-    setState(() {
-      final p = _packages[index];
-      p.status = p.status == PackageStatus.active ? PackageStatus.paused : PackageStatus.active;
-      p.addLog(widget.isArabic
-          ? 'تغيير الحالة إلى ${p.status == PackageStatus.active ? 'مفعلة' : 'معطله'}'
-          : 'Status changed to ${p.status == PackageStatus.active ? 'Active' : 'Paused'}');
-    });
+  Future<void> _toggleStatus(int index) async {
+    final pkg = _packages.firstWhere((p) => p.id == index);
+    try {
+      // نرسل request للباك اند لتبديل الحالة
+      final res = await http.patch(
+        Uri.parse('${AppConfig.baseUrl}admin/packages/${pkg.id}/status'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (res.statusCode == 200) {
+        // السيرفر رجع الحالة الجديدة
+        final newStatus = res.body.replaceAll('"', ''); // لو رجع string مرفوع بين " "
+        setState(() {
+          pkg.status = newStatus == 'active' ? PackageStatus.active : PackageStatus.paused;
+          pkg.addLog(widget.isArabic
+              ? 'تغيير الحالة إلى ${pkg.status == PackageStatus.active ? 'مفعلة' : 'معطله'}'
+              : 'Status changed to ${pkg.status == PackageStatus.active ? 'Active' : 'Paused'}');
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(widget.isArabic ? 'فشل تغيير الحالة' : 'Failed to update status'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(widget.isArabic ? 'خطأ في الاتصال بالسيرفر' : 'Server error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
+
 
   void _openNotificationModal(Package package) {
     showModalBottomSheet(
@@ -317,7 +342,6 @@ class _PackagesPageState extends State<PackagesPage> {
                 ),
                 const SizedBox(height: 24),
 
-                // شبكة الباقات
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -333,8 +357,8 @@ class _PackagesPageState extends State<PackagesPage> {
                     return PackageCardAdvanced(
                       package: p,
                       onEdit: () => _openPackageEditor(existing: p, index: i),
-                      onArchive: () => _toggleArchive(i),
-                      onToggleStatus: () => _toggleStatus(i),
+                      onArchive: () => _toggleArchiveById(p.id),
+                      onToggleStatus: () => _toggleStatus(p.id),
                       onNotify: () => _openNotificationModal(p),
                       onViewLogs: () => showModalBottomSheet(
                         context: context,
@@ -354,8 +378,6 @@ class _PackagesPageState extends State<PackagesPage> {
     );
   }
 }
-
-
 // بطاقة إحصائيات مزودة بتدرج
 class StatCardGradient extends StatelessWidget {
   final String title;
@@ -426,7 +448,6 @@ class StatCardGradient extends StatelessWidget {
     );
   }
 }
-
 // كارت باقة متقدم مع أرشفة وتغيير حالة ومعاينة ذكية
 class PackageCardAdvanced extends StatelessWidget {
   final Package package;
@@ -585,7 +606,7 @@ class PackageCardAdvanced extends StatelessWidget {
                             .map(
                               (f) => Padding(
                             padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Text('• $f',
+                            child: Text('• ${f.feature}',
                                 style:
                                  TextStyle(color:isDark?Colors.white:Colors.white, fontSize: 13)),
                           ),
@@ -614,9 +635,12 @@ class PackageCardAdvanced extends StatelessWidget {
                     children: [
                       _smallAction(Icons.edit, isArabic ? 'تعديل' : 'Edit', onEdit),
                       _smallAction(
-                          package.isArchived ? Icons.unarchive : Icons.archive,
-                          package.isArchived ? (isArabic ? 'استرجاع' : 'Restore') : (isArabic ? 'أرشفة' : 'Archive'),
-                          onArchive),
+                        package.isArchived ? Icons.unarchive : Icons.archive,
+                        package.isArchived
+                            ? (isArabic ? 'استرجاع' : 'Restore')
+                            : (isArabic ? 'أرشفة' : 'Archive'),
+                        onArchive,
+                      ),
                       _smallAction(
                           package.status == PackageStatus.active
                               ? Icons.pause_circle
@@ -626,7 +650,6 @@ class PackageCardAdvanced extends StatelessWidget {
                               : (isArabic ? 'تفعيل' : 'Activate'),
                           onToggleStatus),
                       _smallAction(Icons.notifications_active, isArabic ? 'إشعار' : 'Notify', onNotify),
-                      _smallAction(Icons.history, isArabic ? 'سجل' : 'Logs', onViewLogs),
                     ],
                   ),
                 ],
@@ -677,678 +700,6 @@ class PackageCardAdvanced extends StatelessWidget {
     );
   }
 }
-
-// محرر الباقة (معاينة + جدولة)
-class PackageEditor extends StatefulWidget {
-  final Package? existing;
-  final int Function() generateId;
-  final void Function(Package) onSave;
-  final bool isArabic;  // إضافة
-
-  const PackageEditor({
-    super.key,
-    this.existing,
-    required this.generateId,
-    required this.onSave,
-    required this.isArabic,  // إضافة
-  });
-
-  @override
-  State<PackageEditor> createState() => _PackageEditorState();
-}
-
-class _PackageEditorState extends State<PackageEditor> {
-  late TextEditingController _name;
-  late TextEditingController _price;
-  late TextEditingController _duration;
-  late TextEditingController _discount;
-  List<String> features = [];
-  String newFeature = '';
-  late int id;
-  DateTime? startDate;
-  PackageStatus status = PackageStatus.active;
-
-  final _formKey = GlobalKey<FormState>();
-
-  final List<String> predefinedFeatures = [
-    'الإرسال على المجموعات',
-    'الإرسال على الدردشات',
-    'الوصول إلى 10000 عضو',
-    'تنبيه توصيات تسويق',
-    'تحليل البيانات',
-    'جدولة المنشورات',
-    'إعلانات مدفوعة',
-    'إدارة الصفحات',
-  ];
-
-  @override
-  void initState() {
-    final e = widget.existing;
-    _name = TextEditingController(text: e?.name ?? '');
-    _price = TextEditingController(text: e?.price.toString() ?? '');
-    _duration = TextEditingController(text: e?.durationDays.toString() ?? '');
-    _discount = TextEditingController(text: e?.discount?.toString() ?? '');
-    features = e?.features.toList() ?? [];
-    id = e?.id ?? widget.generateId();
-    startDate = e?.startDate;
-    status = e?.status ?? PackageStatus.active;
-    super.initState();
-  }
-
-  void addFeature() {
-    if (newFeature.trim().isNotEmpty && !features.contains(newFeature.trim())) {
-      setState(() {
-        features.add(newFeature.trim());
-        newFeature = '';
-      });
-    }
-  }
-
-  Future<void> _pickStartDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: startDate ?? now,
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365)),
-      locale: Locale(widget.isArabic ? 'ar' : 'en'),
-    );
-    if (picked != null) {
-      setState(() {
-        startDate = picked;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final previewPackage = Package(
-      name: _name.text.trim().isEmpty
-          ? (widget.isArabic ? 'اسم الباقة' : 'Package Name')
-          : _name.text.trim(),
-      id: id,
-      price: double.tryParse(_price.text.trim()) ?? 0,
-      durationDays: int.tryParse(_duration.text.trim()) ?? 0,
-      discount: _discount.text.trim().isEmpty
-          ? null
-          : double.tryParse(_discount.text.trim()),
-      features: features,
-      subscribers: widget.existing?.subscribers ?? 0,
-      status: status,
-      startDate: startDate,
-      isArchived: widget.existing?.isArchived ?? false,
-      logs: widget.existing?.logs ?? [],
-      lastZeroSubscriberDetected: widget.existing?.lastZeroSubscriberDetected,
-    );
-
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-        left: 16,
-        right: 16,
-        top: 16,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            // رأس
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  widget.existing == null
-                      ? (widget.isArabic ? 'إضافة باقة جديدة' : 'Add New Package')
-                      : (widget.isArabic ? 'تعديل الباقة' : 'Edit Package'),
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                     color:isDark?Color(0xFFD7EFDC): Colors.blue[900],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                )
-              ],
-            ),
-            const SizedBox(height: 8),
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _name,
-                          decoration: InputDecoration(
-                            labelText: widget.isArabic ? 'اسم الباقة *' : 'Package Name *',
-                            labelStyle: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
-                          ),
-                          validator: (v) => v == null || v.trim().isEmpty
-                              ? (widget.isArabic ? 'الرجاء إدخال اسم' : 'Please enter a name')
-                              : null,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: status == PackageStatus.active
-                              ? Colors.green.shade50
-                              : Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              widget.isArabic ? 'الحالة: ' : 'Status: ',
-                              style: TextStyle(color:isDark? Colors.green: Colors.blue[900]),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              status == PackageStatus.active
-                                  ? (widget.isArabic ? 'مفعلة' : 'Active')
-                                  : (widget.isArabic ? 'معطله' : 'Paused'),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: status == PackageStatus.active
-                                    ? Colors.green
-                                    : Colors.grey[700],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            InkWell(
-                              onTap: () {
-                                setState(() {
-                                  status = status == PackageStatus.active
-                                      ? PackageStatus.paused
-                                      : PackageStatus.active;
-                                });
-                              },
-                              child: Icon(
-                                status == PackageStatus.active
-                                    ? Icons.pause_circle
-                                    : Icons.play_circle_fill,
-                                color: status == PackageStatus.active
-                                    ? Colors.green
-                                    : Colors.grey[700],
-                              ),
-                            )
-                          ],
-                        ),
-                      )
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _price,
-                          decoration: InputDecoration(
-                            labelText: widget.isArabic ? 'السعر *' : 'Price *',
-                            labelStyle: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
-                          ),
-                          keyboardType: TextInputType.number,
-                          validator: (v) {
-                            final d = double.tryParse(v ?? '');
-                            if (d == null || d <= 0) {
-                              return widget.isArabic ? 'سعر غير صالح' : 'Invalid price';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _duration,
-                          decoration: InputDecoration(
-                            labelText: widget.isArabic ? 'مدة (يوم) *' : 'Duration (days) *',
-                            labelStyle: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
-                          ),
-                          keyboardType: TextInputType.number,
-                          validator: (v) {
-                            final d = int.tryParse(v ?? '');
-                            if (d == null || d <= 0) {
-                              return widget.isArabic ? 'مدة غير صالحة' : 'Invalid duration';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _discount,
-                    decoration: InputDecoration(
-                      labelText: widget.isArabic ? 'خصم (اختياري)' : 'Discount (optional)',
-                      labelStyle: TextStyle(color: isDark?Color(0xFFD7EFDC):Colors.blue[900]),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          children: predefinedFeatures.map((f) {
-                            final selected = features.contains(f);
-                            return FilterChip(
-                              label: Text(
-                                f,
-                                style: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
-                              ),
-                              selected: selected,
-                              onSelected: (sel) {
-                                setState(() {
-                                  if (sel) {
-                                    features.add(f);
-                                  } else {
-                                    features.remove(f);
-                                  }
-                                });
-                              },
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          decoration: InputDecoration(
-                            labelText: widget.isArabic ? 'ميزة جديدة' : 'New Feature',
-                            labelStyle: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
-                          ),
-                          onChanged: (v) => newFeature = v,
-                          onFieldSubmitted: (_) {
-                            if (newFeature.trim().isNotEmpty) {
-                              setState(() {
-                                features.add(newFeature.trim());
-                                newFeature = '';
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Text(
-                        widget.isArabic ? 'تاريخ بداية (جدولة):' : 'Start Date (Scheduled):',
-                        style: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        startDate != null
-                            ? DateFormat('yyyy/MM/dd').format(startDate!)
-                            : (widget.isArabic ? 'غير محدد' : 'Not set'),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color:isDark?Color(0xFFD7EFDC): Colors.blue[900],
-                        ),
-                      ),
-                      IconButton(icon: const Icon(Icons.calendar_today), onPressed: _pickStartDate),
-                      if (startDate != null)
-                        IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () => setState(() => startDate = null),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // معاينة تفاعلية مباشرة
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                widget.isArabic ? 'معاينة الباقة' : 'Package Preview',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color:isDark?Color(0xFFD7EFDC): Colors.blue[900],
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            PackageCardPreview(
-              package: previewPackage,
-              isDark: isDark,
-            ),
-
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  final pkg = Package(
-                    name: _name.text.trim(),
-                    id: id,
-                    price: double.parse(_price.text.trim()),
-                    durationDays: int.parse(_duration.text.trim()),
-                    discount: _discount.text.trim().isEmpty
-                        ? null
-                        : double.parse(_discount.text.trim()),
-                    features: features,
-                    subscribers: widget.existing?.subscribers ?? 0,
-                    status: status,
-                    startDate: startDate,
-                    isArchived: widget.existing?.isArchived ?? false,
-                    logs: widget.existing?.logs ?? [],
-                    lastZeroSubscriberDetected:
-                    widget.existing?.lastZeroSubscriberDetected,
-                  );
-                  pkg.addLog(widget.existing == null
-                      ? (widget.isArabic ? 'إنشاء باقة جديدة' : 'Created new package')
-                      : (widget.isArabic ? 'تعديل باقة' : 'Edited package'));
-                  widget.onSave(pkg);
-                  Navigator.pop(context);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ? Colors.green[800] : Colors.blue,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-              ),
-              child: Text(
-                widget.existing == null
-                    ? (widget.isArabic ? 'أنشئ الباقة' : 'Create Package')
-                    : (widget.isArabic ? 'حفظ التعديل' : 'Save Changes'),
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class PackageCardPreview extends StatelessWidget {
-  final Package package;
-  final bool isArabic;
-  final bool isDark;
-
-  const PackageCardPreview({
-    super.key,
-    required this.package,
-    this.isArabic = true,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gradient = LinearGradient(
-      colors:isDark?[
-        Colors.green.shade900,
-        Colors.green.shade600,
-        Colors.lightGreen.shade400,
-      ]: [
-        Colors.indigo.shade900.withOpacity(.3),
-        Colors.blue.shade600.withOpacity(.3),
-        Colors.lightBlue.shade400.withOpacity(.3),
-      ],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    );
-
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      elevation: 8,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              package.name,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color:isDark?Color(0xFFD7EFDC): Colors.blue[900], // أزرق غامق
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              isArabic ? 'الرقم التعريفي: ${package.id}' : 'ID: ${package.id}',
-              style: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              isArabic ? 'السعر: ${package.price} ر.س' : 'Price: ${package.price} SAR',
-              style: TextStyle(color: isDark?Color(0xFFD7EFDC):Colors.blue[900]),
-            ),
-            Text(
-              isArabic
-                  ? 'المدة: ${package.durationDays} يوم'
-                  : 'Duration: ${package.durationDays} days',
-              style: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900]),
-            ),
-            if (package.discount != null)
-              Text(
-                isArabic
-                    ? 'خصم: ${package.discount}'
-                    : 'Discount: ${package.discount}',
-                style: const TextStyle(color: Colors.redAccent),
-              ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              children: package.features
-                  .map(
-                    (f) => Chip(
-                  label: Text(f, style: TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue[900])),
-                  backgroundColor: Colors.white24,
-                ),
-              )
-                  .toList(),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              isArabic
-                  ? 'مشتركين: ${package.subscribers}'
-                  : 'Subscribers: ${package.subscribers}',
-              style: TextStyle(color: isDark?Color(0xFFD7EFDC):Colors.blue[900]),
-            ),
-            if (package.isScheduledFuture)
-              Text(
-                isArabic
-                    ? 'تبدأ: ${DateFormat('yyyy/MM/dd').format(package.startDate!)}'
-                    : 'Starts: ${DateFormat('yyyy/MM/dd').format(package.startDate!)}',
-                style: const TextStyle(color: Colors.orangeAccent),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// مودال الإشعار مع معاينة
-class NotificationModal extends StatefulWidget {
-  final Package package;
-  final void Function(String method, String title, String content, DateTime? scheduled) onSent;
-  final bool isArabic;
-
-  const NotificationModal({
-    super.key,
-    required this.package,
-    required this.onSent,
-    this.isArabic = true,
-  });
-
-  @override
-  State<NotificationModal> createState() => _NotificationModalState();
-}
-
-class _NotificationModalState extends State<NotificationModal> {
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _contentController = TextEditingController();
-  late String sendMethod;
-  DateTime? scheduledDate;
-
-  @override
-  void initState() {
-    super.initState();
-    sendMethod = widget.isArabic ? 'داخل التطبيق' : 'In-App';
-  }
-
-  Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: scheduledDate ?? now,
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365)),
-      locale: widget.isArabic ? const Locale('ar') : const Locale('en'),
-    );
-    if (picked != null) setState(() => scheduledDate = picked);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final previewTitle = _titleController.text.trim().isEmpty
-        ? (widget.isArabic ? 'عنوان تجريبي' : 'Sample Title')
-        : _titleController.text.trim();
-
-    final previewContent = _contentController.text.trim().isEmpty
-        ? (widget.isArabic ? 'محتوى الإشعار سيظهر هنا.' : 'Notification content will appear here.')
-        : _contentController.text.trim();
-
-    final methods = widget.isArabic
-        ? ['داخل التطبيق', 'رسائل الهاتف SMS', 'البريد الإلكتروني']
-        : ['In-App', 'SMS', 'Email'];
-
-    return Padding(
-      padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-          top: 16,
-          left: 16,
-          right: 16),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    widget.isArabic
-                        ? 'إرسال إشعار لـ "${widget.package.name}"'
-                        : 'Send Notification to "${widget.package.name}"',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _titleController,
-              decoration: InputDecoration(labelText: widget.isArabic ? 'عنوان الإشعار *' : 'Notification Title *'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _contentController,
-              decoration: InputDecoration(labelText: widget.isArabic ? 'محتوى الإشعار *' : 'Notification Content *'),
-              maxLines: 4,
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: sendMethod,
-              decoration: InputDecoration(labelText: widget.isArabic ? 'طريقة الإرسال' : 'Send Method'),
-              items: methods.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-              onChanged: (v) {
-                if (v != null) setState(() => sendMethod = v);
-              },
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Text(widget.isArabic ? 'جدولة الإرسال:' : 'Schedule Send:'),
-                const SizedBox(width: 8),
-                Text(scheduledDate != null
-                    ? DateFormat('yyyy/MM/dd').format(scheduledDate!)
-                    : (widget.isArabic ? 'غير مجدول' : 'Not Scheduled')),
-                IconButton(icon: const Icon(Icons.calendar_today), onPressed: _pickDate),
-                if (scheduledDate != null)
-                  IconButton(icon: const Icon(Icons.clear), onPressed: () => setState(() => scheduledDate = null)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // معاينة الترويسة
-            Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.isArabic ? 'معاينة الإشعار' : 'Notification Preview',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[800]),
-                    ),
-                    const SizedBox(height: 8),
-                    Text('${widget.isArabic ? 'العنوان' : 'Title'}: $previewTitle', style: const TextStyle(fontSize: 16)),
-                    const SizedBox(height: 6),
-                    Text('${widget.isArabic ? 'المحتوى' : 'Content'}: $previewContent'),
-                    const SizedBox(height: 6),
-                    Text('${widget.isArabic ? 'الطريقة' : 'Method'}: $sendMethod'),
-                    if (scheduledDate != null)
-                      Text(
-                        '${widget.isArabic ? 'مجدول لـ' : 'Scheduled for'}: ${DateFormat('yyyy/MM/dd').format(scheduledDate!)}',
-                        style:   TextStyle(color:isDark?Color(0xFFD7EFDC): Colors.blue),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                if (_titleController.text.trim().isEmpty || _contentController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text(widget.isArabic
-                        ? 'يرجى ملء عنوان ومحتوى الإشعار'
-                        : 'Please fill in the title and content of the notification',style:TextStyle(color:Colors.white)),
-                  ));
-                  return;
-                }
-                widget.onSent(sendMethod, _titleController.text.trim(), _contentController.text.trim(), scheduledDate);
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor:isDark?Colors.green: Colors.blue,
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 30),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-              ),
-              child: Text(widget.isArabic ? 'إرسال الإشعار' : 'Send Notification',style:TextStyle(color:Colors.white)),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // عارض السجل
 class LogsViewer extends StatelessWidget {
   final Package package;

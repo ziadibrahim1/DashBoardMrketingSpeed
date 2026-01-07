@@ -219,6 +219,7 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
 
   Widget _buildStatsSection() {
     final fcmCount = notifications.where((n) => n.destination.toLowerCase() == 'in_app').length;
+    final pkgCount = notifications.where((n) => n.targetAudience.toLowerCase() == 'package').length;
     final emailCount = notifications.where((n) => n.destination.toLowerCase() == 'email').length;
 
     return Row(
@@ -239,6 +240,16 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
             fcmCount.toString(),
             Icons.phone_android_rounded,
             const Color(0xFF10B981),
+            const Color(0xFFECFDF5),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildStatCard(
+            "إشعارات في الباقات",
+            pkgCount.toString(),
+            Icons.wallet,
+            const Color(0xFF56C0DC),
             const Color(0xFFECFDF5),
           ),
         ),

@@ -1,5 +1,5 @@
 class AppConfig {
-  static const String apiBase = 'https://localhost:7222';
+  static const String apiBase = 'http://marketingspeed.online:5002';
   //http://marketingspeed.online:5002
   //https://localhost:7222
   static const String loginPath = '/api/admin/Auth/login';
