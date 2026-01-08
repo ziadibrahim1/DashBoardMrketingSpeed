@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../Models/SubscriptionModel.dart';
 import '../../core/SubscriptionService.dart';
+import '../../core/user_session.dart';
 import '../../providers/app_providers.dart';
 
 class SubscriptionsPage extends StatefulWidget {
@@ -932,7 +933,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
   void _showEditDialog(SubscriptionModel subscription, bool isArabic) {
     DateTime startDate = DateTime.parse(subscription.startDate!);
     DateTime endDate = DateTime.parse(subscription.endDate!);
-
+    final userId = UserSession.userId;
     int giftDays = 0;
     int giftGroups = 0;
 
@@ -1041,6 +1042,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
                     /// 🟢 1) تحديث التواريخ
                     if (giftDays > 0) {
                       endDate = endDate.add(Duration(days: giftDays));
+                      await SubscriptionService.addGiftDays(
+                        subscriptionId: subscription.id,
+                        DaysCount: giftDays,
+                        userId: userId!,
+                      );
                     }
 
                     await SubscriptionService.updateSubscriptionDates(
@@ -1054,6 +1060,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
                       await SubscriptionService.addGiftGroups(
                         subscriptionId: subscription.id,
                         groupsCount: giftGroups,
+                        userId: userId!,
                       );
                     }
 

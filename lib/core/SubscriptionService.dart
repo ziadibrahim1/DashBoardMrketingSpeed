@@ -14,7 +14,8 @@ class SubscriptionService {
       int id,
       DateTime startDate,
       DateTime endDate,
-      ) async {
+      )
+  async {
     await http.put(
       Uri.parse('${AppConfig.baseUrl}admin/subscriptions/$id/dates'),
       headers: headers,
@@ -30,7 +31,8 @@ class SubscriptionService {
     String search = '',
     int page = 1,
     int pageSize = 20,
-  }) async {
+  })
+  async {
     final uri = Uri.parse(baseUrl).replace(queryParameters: {
       'status': status,
       'type': type,
@@ -81,11 +83,29 @@ class SubscriptionService {
   static Future<void> addGiftGroups({
     required int subscriptionId,
     required int groupsCount,
-  }) async {
+  required int userId,
+  })
+  async {
     final response = await http.post(
-      Uri.parse('$baseUrl/$subscriptionId/gift-groups'),
+      Uri.parse('$baseUrl/$subscriptionId/$userId/gift-groups'),
       headers: headers,
-      body: jsonEncode(groupsCount), // 👈 رقم فقط
+      body: jsonEncode(groupsCount),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to add gift groups');
+    }
+  }
+  static Future<void> addGiftDays({
+    required int subscriptionId,
+    required int DaysCount,
+  required int userId,
+  })
+  async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/$subscriptionId/$userId/add-gift-days'),
+      headers: headers,
+      body: jsonEncode(DaysCount),
     );
 
     if (response.statusCode != 200) {

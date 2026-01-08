@@ -8,6 +8,7 @@ class NotificationsHistoryPage extends StatelessWidget {
   const NotificationsHistoryPage({super.key, required this.history});
 
   @override
+
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).colorScheme.primary;
