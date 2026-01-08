@@ -27,6 +27,8 @@ class Package {
   DateTime? startDate; // للجدولة المستقبلية
   List<LogEntry> logs;
   DateTime? lastZeroSubscriberDetected; // لتتبع الإشعار الذكي
+  int CategoryId = 1;
+
 
   Package({
     required this.name,
@@ -42,6 +44,7 @@ class Package {
     this.startDate,
     List<LogEntry>? logs,
     this.lastZeroSubscriberDetected,
+    this.CategoryId = 1,
   })  : createdAt = createdAt ?? DateTime.now(),
         logs = logs ?? [] {
     if (subscribers == 0) {
@@ -72,6 +75,7 @@ class Package {
       startDate: json['scheduled_at'] != null
           ? DateTime.parse(json['scheduled_at'])
           : null,
+        CategoryId : json['categoryId'],
 
       // مهم 👇 عشان البانر الذكي
       lastZeroSubscriberDetected:
@@ -88,6 +92,7 @@ class Package {
       "status": status == PackageStatus.active ? "active" : "inactive",
       "scheduledAt": startDate?.toIso8601String(),
       "features": features.map((f) => f.toJson()).toList(),
+      "categoryId": CategoryId,
     };
   }
 

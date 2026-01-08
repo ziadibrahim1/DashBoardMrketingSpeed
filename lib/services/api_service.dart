@@ -17,6 +17,7 @@ class ApiService {
       "scheduledAt": p.startDate?.toIso8601String(),
       "status": p.status == PackageStatus.active ? "active" : "inactive",
       "features": p.features.map((f) => f.toJson()).toList(),
+      "categoryId": p.CategoryId,
     };
 
     final uri = Uri.parse('${AppConfig.baseUrl}admin/packages');
@@ -65,6 +66,7 @@ class ApiService {
       "scheduledAt": p.startDate?.toIso8601String(),
       "status": p.status == PackageStatus.active ? "active" : "inactive",
       "features": p.features.map((f) => f.toJson()).toList(),
+      "categoryId": p.CategoryId,
     };
 
     final headers = {

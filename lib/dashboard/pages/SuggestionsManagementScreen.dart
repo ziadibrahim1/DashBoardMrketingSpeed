@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../Models/Suggestion.dart';
+import '../../Models/suggestions_service.dart';
 import '../../providers/app_providers.dart';
 
 enum SuggestionFilter {
@@ -19,63 +21,177 @@ class SuggestionsManagementPage extends StatefulWidget {
 
 class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
   static const int pageSize = 20;
-  late List<Suggestion> suggestions;
-
+  List<Suggestion> suggestions = [];
+  bool isLoading = true;
+  String? loadError;
   int currentPage = 1;
   SuggestionFilter selectedFilter = SuggestionFilter.all;
-
+  String usernameSearch = '';
   @override
   void initState() {
     super.initState();
-    suggestions = List.generate(
-      75,
-          (index) => Suggestion(
-        id: index + 1,
-        username: "مستخدم ${index + 1}",
-        content: "هذا هو الاقتراح رقم ${index + 1}.",
-        isNew: index % 5 == 0,
-        dateAdded: DateTime.now().subtract(Duration(days: index)),
-        adminReply:
-        index % 7 == 0 ? "رد إداري على الاقتراح رقم ${index + 1}" : null,
-        isStarred: index % 10 == 0,
-      ),
-    );
+    _loadSuggestions();
   }
 
-  void _replyToSuggestion(Suggestion suggestion, bool isArabic,bool isDark) {
+  Future<void> _loadSuggestions() async {
+    try {
+      final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+      final data = await SuggestionsService.fetchSuggestions(
+          localeProvider.locale.languageCode == 'ar');
+
+      setState(() {
+        suggestions = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        loadError = e.toString();
+        isLoading = false;
+      });
+      debugPrint('Failed to load suggestions: $e');
+    }
+  }
+
+  void _replyToSuggestion(Suggestion suggestion, bool isArabic, bool isDark) {
     showDialog(
       context: context,
       builder: (context) {
         String replyText = suggestion.adminReply ?? '';
-        return AlertDialog(
-          title: Text(isArabic ? 'رد إداري' : 'Admin Reply',style:TextStyle(color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900])),
-          content: TextField(
-            maxLines: 4,
-            controller: TextEditingController(text: replyText),
-            onChanged: (value) => replyText = value,
-            decoration: InputDecoration(
-              hintText: isArabic ? 'اكتب الرد هنا...' : 'Write reply here...',
-              border: const OutlineInputBorder(),
-            ),
-            textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+        final textController = TextEditingController(text: replyText);
+
+        return Theme(
+          data: Theme.of(context).copyWith(
+            dialogBackgroundColor: isDark ? const Color(0xFF1A2332) : Colors.white,
           ),
-          actions: [
-            TextButton(
-              child: Text(isArabic ? 'إلغاء' : 'Cancel',style:TextStyle(color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900])),
-              onPressed: () => Navigator.pop(context),
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            ElevatedButton(
-              child: Text(isArabic ? 'إرسال' : 'Send',style:TextStyle(color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900])),
-              onPressed: () {
-                setState(() {
-                  suggestion.adminReply =
-                  replyText.trim().isEmpty ? null : replyText.trim();
-                  suggestion.isNew = false;
-                });
-                Navigator.pop(context);
-              },
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.blue.shade700.withOpacity(0.3)
+                        : Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.reply_rounded,
+                    color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  isArabic ? 'رد إداري' : 'Admin Reply',
+                  style: TextStyle(
+                    color: isDark ? Colors.blue.shade200 : Colors.blue.shade900,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-          ],
+            content: Container(
+              constraints: const BoxConstraints(minHeight: 150),
+              child: TextField(
+                maxLines: 5,
+                controller: textController,
+                onChanged: (value) => replyText = value,
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black87,
+                  fontSize: 15,
+                ),
+                decoration: InputDecoration(
+                  hintText: isArabic ? 'اكتب الرد هنا...' : 'Write reply here...',
+                  hintStyle: TextStyle(
+                    color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+                  ),
+                  filled: true,
+                  fillColor: isDark
+                      ? Colors.blue.shade900.withOpacity(0.1)
+                      : Colors.blue.shade50.withOpacity(0.3),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: isDark ? Colors.blue.shade700 : Colors.blue.shade200,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: isDark ? Colors.blue.shade700 : Colors.blue.shade200,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: isDark ? Colors.blue.shade400 : Colors.blue.shade600,
+                      width: 2,
+                    ),
+                  ),
+                ),
+                textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+              ),
+            ),
+            actions: [
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+                child: Text(
+                  isArabic ? 'إلغاء' : 'Cancel',
+                  style: const TextStyle(fontSize: 15),
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDark ? Colors.blue.shade700 : Colors.blue.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  isArabic ? 'إرسال' : 'Send',
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+                  onPressed: () async {
+                    final trimmedReply = replyText.trim();
+                    if (trimmedReply.isEmpty) return;
+
+                    try {
+                      await SuggestionsService.replyToSuggestion(
+                        suggestion.id,
+                        trimmedReply,
+                      );
+
+                      setState(() {
+                        suggestion.adminReply = trimmedReply;
+                        suggestion.isNew = false; // 🔥 خلاص بقى قديم
+                      });
+
+                      Navigator.pop(context);
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isArabic ? 'فشل إرسال الرد' : 'Failed to send reply',
+                          ),
+                        ),
+                      );
+                    }
+                  },
+
+              ),
+            ],
+          ),
         );
       },
     );
@@ -84,11 +200,18 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
   List<Suggestion> getFilteredSuggestions() {
     List<Suggestion> filtered = [...suggestions];
 
+    // 🔍 فلترة حسب اسم المستخدم
+    if (usernameSearch.isNotEmpty) {
+      filtered = filtered.where((s) =>
+          s.username.toLowerCase().contains(usernameSearch.toLowerCase())
+      ).toList();
+    }
+
     switch (selectedFilter) {
       case SuggestionFilter.all:
         break;
       case SuggestionFilter.newest:
-        filtered.sort((a, b) => b.dateAdded.compareTo(a.dateAdded));
+        filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
       case SuggestionFilter.replied:
         filtered = filtered.where((s) => s.adminReply != null).toList();
@@ -119,8 +242,791 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    // نصوص حسب اللغة
-    final titles = {
+    if (isLoading) {
+      return Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(
+            isDark ? Colors.blue.shade400 : Colors.blue.shade600,
+          ),
+        ),
+      );
+    }
+
+    if (loadError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
+            const SizedBox(height: 16),
+            Text(
+              loadError!,
+              style: TextStyle(color: Colors.red.shade600, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final filteredSuggestions = getFilteredSuggestions();
+    final titles = _getLocalizedTitles(isArabic);
+    final pagedSuggestions = getPagedSuggestions(filteredSuggestions);
+    final totalPages = (filteredSuggestions.length / pageSize).ceil();
+    final newCount = suggestions.where((s) => s.isNew).length;
+    final totalCount = suggestions.length;
+
+    final textDirection = isArabic ? TextDirection.rtl : TextDirection.ltr;
+
+    return Directionality(
+      textDirection: textDirection,
+      child: Scaffold(
+        backgroundColor: isDark ? const Color(0xFF0F1419) : const Color(0xFFF5F7FA),
+        body: CustomScrollView(
+          slivers: [
+            // Header
+            SliverToBoxAdapter(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDark
+                        ? [
+                      const Color(0xFF1E3A5F),
+                      const Color(0xFF2D5F8D),
+                    ]
+                        : [
+                      Colors.blue.shade700,
+                      Colors.blue.shade500,
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.shade900.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(
+                            Icons.dashboard_customize_rounded,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            titles['pageTitle']!,
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    // Statistics Cards
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Icons.inventory_2_rounded,
+                            label: titles['totalSuggestions']!,
+                            count: totalCount,
+                            color: Colors.white,
+                            isDark: isDark,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Icons.fiber_new_rounded,
+                            label: titles['newSuggestions']!,
+                            count: newCount,
+                            color: Colors.white,
+                            isDark: isDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Filter Section
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(32, 24, 32, 16),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1A2332) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark
+                            ? Colors.black.withOpacity(0.3)
+                            : Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.filter_list_rounded,
+                        color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        isArabic ? 'تصفية حسب:' : 'Filter by:',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.blue.shade200 : Colors.blue.shade900,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.blue.shade900.withOpacity(0.2)
+                                : Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.blue.shade700
+                                  : Colors.blue.shade200,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<SuggestionFilter>(
+                              value: selectedFilter,
+                              isExpanded: true,
+                              icon: Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                              ),
+                              dropdownColor: isDark ? const Color(0xFF1A2332) : Colors.white,
+                              items: [
+                                _buildFilterItem(SuggestionFilter.all, titles['allSuggestions']!, Icons.all_inclusive_rounded, isDark),
+                                _buildFilterItem(SuggestionFilter.newest, titles['newestFirst']!, Icons.new_releases_rounded, isDark),
+                                _buildFilterItem(SuggestionFilter.replied, titles['replied']!, Icons.check_circle_rounded, isDark),
+                                _buildFilterItem(SuggestionFilter.notReplied, titles['notReplied']!, Icons.schedule_rounded, isDark),
+                                _buildFilterItem(SuggestionFilter.starred, titles['starred']!, Icons.star_rounded, isDark),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() {
+                                    selectedFilter = val;
+                                    currentPage = 1;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          onChanged: (value) {
+                            setState(() {
+                              usernameSearch = value;
+                              currentPage = 1; // ⬅️ يرجع لأول صفحة
+                            });
+                          },
+                          style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: isArabic
+                                ? 'بحث باسم المستخدم...'
+                                : 'Search by username...',
+                            prefixIcon: Icon(
+                              Icons.search_rounded,
+                              color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                            ),
+                            filled: true,
+                            fillColor: isDark
+                                ? Colors.blue.shade900.withOpacity(0.2)
+                                : Colors.blue.shade50,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.blue.shade700 : Colors.blue.shade200,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.blue.shade700 : Colors.blue.shade200,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: isDark ? Colors.blue.shade400 : Colors.blue.shade600,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Suggestions List
+            pagedSuggestions.isEmpty
+                ? SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.inbox_rounded,
+                      size: 80,
+                      color: isDark ? Colors.blue.shade800 : Colors.blue.shade200,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      titles['noSuggestions']!,
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: isDark ? Colors.grey.shade500 : Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+                : SliverPadding(
+              padding: const EdgeInsets.fromLTRB(32, 8, 32, 24),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                    final suggestion = pagedSuggestions[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildSuggestionCard(
+                        suggestion,
+                        isArabic,
+                        isDark,
+                        textDirection,
+                        titles,
+                      ),
+                    );
+                  },
+                  childCount: pagedSuggestions.length,
+                ),
+              ),
+            ),
+
+            // Pagination
+            if (totalPages > 1)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
+                  child: _buildPagination(totalPages, isDark),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  DropdownMenuItem<SuggestionFilter> _buildFilterItem(
+      SuggestionFilter value, String label, IconData icon, bool isDark) {
+    return DropdownMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+          ),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: TextStyle(
+              color: isDark ? Colors.blue.shade100 : Colors.blue.shade900,
+              fontSize: 15,
+            ),
+          ),
+        ],
+      ),
+    );
+
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String label,
+    required int count,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Colors.white, size: 28),
+          const SizedBox(height: 12),
+          Text(
+            count.toString(),
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.white.withOpacity(0.9),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionCard(
+      Suggestion suggestion,
+      bool isArabic,
+      bool isDark,
+      TextDirection textDirection,
+      Map<String, String> titles,
+      ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A2332) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? Colors.blue.shade800.withOpacity(0.3) : Colors.blue.shade100,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.blue.shade100.withOpacity(0.5),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                  Colors.blue.shade900.withOpacity(0.3),
+                  Colors.blue.shade800.withOpacity(0.2),
+                ]
+                    : [
+                  Colors.blue.shade50,
+                  Colors.blue.shade100.withOpacity(0.5),
+                ],
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Row(
+              textDirection: textDirection,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.blue.shade700 : Colors.blue.shade600,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.person_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: isArabic ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        suggestion.username,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                          color: isDark ? Colors.blue.shade100 : Colors.blue.shade900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatDate(suggestion.createdAt, isArabic),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (suggestion.isNew)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.orange.shade400, Colors.deepOrange.shade500],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.orange.withOpacity(0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.fiber_new_rounded, color: Colors.white, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          titles['newTag']!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.blue.shade800.withOpacity(0.3)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: IconButton(
+                    tooltip: suggestion.isStarred ? titles['unmark']! : titles['mark']!,
+                    icon: Icon(
+                      suggestion.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+                      color: suggestion.isStarred
+                          ? Colors.amber.shade600
+                          : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+                      size: 26,
+                    ),
+                    onPressed: () async {
+                      try {
+                        await SuggestionsService.toggleStar(suggestion.id, !suggestion.isStarred);
+                        setState(() {
+                          suggestion.isStarred = !suggestion.isStarred;
+                        });
+                      } catch (e) {
+                        debugPrint('Failed to toggle star: $e');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Failed to mark/unmark suggestion')),
+                        );
+                      }
+                    },
+                  ),
+
+                ),
+              ],
+            ),
+          ),
+
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: isArabic ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.blue.shade900.withOpacity(0.1)
+                        : Colors.blue.shade50.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? Colors.blue.shade800.withOpacity(0.3) : Colors.blue.shade100,
+                    ),
+                  ),
+                  child: Text(
+                    isArabic ? suggestion.contentAr : suggestion.contentEn,
+                    style: TextStyle(
+                      fontSize: 15,
+                      height: 1.6,
+                      color: isDark ? Colors.blue.shade50 : Colors.blue.shade900,
+                    ),
+                    textDirection: textDirection,
+                  ),
+                ),
+
+                if (suggestion.adminReply != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: isDark
+                            ? [
+                          Colors.blue.shade800.withOpacity(0.3),
+                          Colors.blue.shade700.withOpacity(0.2),
+                        ]
+                            : [
+                          Colors.blue.shade100,
+                          Colors.blue.shade50,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? Colors.blue.shade600 : Colors.blue.shade300,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      textDirection: textDirection,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.blue.shade700 : Colors.blue.shade600,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.admin_panel_settings_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: isArabic ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                isArabic ? 'رد الإدارة:' : 'Admin Reply:',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                suggestion.adminReply!,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  height: 1.5,
+                                  color: isDark ? Colors.blue.shade100 : Colors.blue.shade900,
+                                ),
+                                textDirection: textDirection,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 16),
+                Align(
+                  alignment: isArabic ? Alignment.centerLeft : Alignment.centerRight,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _replyToSuggestion(suggestion, isArabic, isDark),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDark ? Colors.blue.shade700 : Colors.blue.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.reply_rounded, size: 20),
+                    label: Text(
+                      titles['adminReply']!,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPagination(int totalPages, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A2332) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        runSpacing: 8,
+        children: List.generate(totalPages, (index) {
+          final pageNum = index + 1;
+          final isSelected = pageNum == currentPage;
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  currentPage = pageNum;
+                });
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: isSelected
+                      ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDark
+                        ? [Colors.blue.shade700, Colors.blue.shade800]
+                        : [Colors.blue.shade600, Colors.blue.shade700],
+                  )
+                      : null,
+                  color: isSelected
+                      ? null
+                      : isDark
+                      ? Colors.blue.shade900.withOpacity(0.2)
+                      : Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected
+                        ? (isDark ? Colors.blue.shade500 : Colors.blue.shade800)
+                        : (isDark ? Colors.blue.shade800 : Colors.blue.shade200),
+                    width: isSelected ? 2 : 1,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                    BoxShadow(
+                      color: Colors.blue.shade600.withOpacity(0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                      : null,
+                ),
+                child: Center(
+                  child: Text(
+                    pageNum.toString(),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                      color: isSelected
+                          ? Colors.white
+                          : (isDark ? Colors.blue.shade300 : Colors.blue.shade700),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date, bool isArabic) {
+    final months = isArabic
+        ? ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+        : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    final day = date.day;
+    final month = months[date.month - 1];
+    final year = date.year;
+
+    if (isArabic) {
+      return '$day $month $year';
+    } else {
+      return '$month $day, $year';
+    }
+  }
+
+  Map<String, String> _getLocalizedTitles(bool isArabic) {
+    return {
       'pageTitle': isArabic ? 'إدارة اقتراحات المستخدمين' : 'User Suggestions Management',
       'totalSuggestions': isArabic ? 'إجمالي الاقتراحات' : 'Total Suggestions',
       'newSuggestions': isArabic ? 'الاقتراحات الجديدة' : 'New Suggestions',
@@ -140,309 +1046,5 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
       'page': isArabic ? 'صفحة' : 'Page',
       'of': isArabic ? 'من' : 'of',
     };
-
-    final filteredSuggestions = getFilteredSuggestions();
-    final pagedSuggestions = getPagedSuggestions(filteredSuggestions);
-    final totalPages = (filteredSuggestions.length / pageSize).ceil();
-    final newCount = suggestions.where((s) => s.isNew).length;
-    final totalCount = suggestions.length;
-
-    final cardColor = theme.cardColor;
-    final primaryColor = theme.colorScheme.primary;
-
-    // لضبط اتجاه النص والتخطيط
-    final textDirection = isArabic ? TextDirection.rtl : TextDirection.ltr;
-    final alignmentStart = isArabic ? CrossAxisAlignment.end : CrossAxisAlignment.start;
-    final alignmentEnd = isArabic ? Alignment.centerRight : Alignment.centerLeft;
-
-    return Directionality(
-      textDirection: textDirection,
-      child: Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                titles['pageTitle']!,
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900],
-                ),
-                textAlign: isArabic ? TextAlign.right : TextAlign.left,
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                textDirection: textDirection,
-                children: [
-                  // العدادات
-                  Row(
-                    textDirection: textDirection,
-                    children: [
-                      _buildCountCard(
-                          label: titles['totalSuggestions']!,
-                          count: totalCount,
-                          color: isDark?Colors.green:Colors.blue),
-                      const SizedBox(width: 24),
-                      _buildCountCard(
-                          label: titles['newSuggestions']!,
-                          count: newCount,
-                          color: isDark?Colors.green:Colors.blue),
-                    ],
-                  ),
-                  // فلتر الاقتراحات
-                  DropdownButton<SuggestionFilter>(
-                    value: selectedFilter,
-                    items: [
-                      DropdownMenuItem(
-                          value: SuggestionFilter.all,
-                          child: Text(titles['allSuggestions']!,style:TextStyle(color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]))),
-                      DropdownMenuItem(
-                          value: SuggestionFilter.newest,
-                          child: Text(titles['newestFirst']!,style:TextStyle(color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]))),
-                      DropdownMenuItem(
-                          value: SuggestionFilter.replied,
-                          child: Text(titles['replied']!,style:TextStyle(color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]))),
-                      DropdownMenuItem(
-                          value: SuggestionFilter.notReplied,
-                          child: Text(titles['notReplied']!,style:TextStyle(color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]))),
-                      DropdownMenuItem(
-                          value: SuggestionFilter.starred,
-                          child: Text(titles['starred']!,style:TextStyle(color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]))),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          selectedFilter = val;
-                          currentPage = 1;
-                        });
-                      }
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: pagedSuggestions.isEmpty
-                    ? Center(
-                  child: Text(
-                    titles['noSuggestions']!,
-                    style: TextStyle(
-                        fontSize: 18, color: Colors.grey.shade600),
-                  ),
-                )
-                    : ListView.separated(
-                  itemCount: pagedSuggestions.length,
-                  separatorBuilder: (_, __) =>
-                  const SizedBox(height: 16),
-                  itemBuilder: (context, index) {
-                    final suggestion = pagedSuggestions[index];
-                    return Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: isDark?Colors.green.withOpacity(.1):Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 8,
-                            offset: Offset(0, 4),
-                          )
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: alignmentStart,
-                        children: [
-                          Row(
-                            textDirection: textDirection,
-                            children: [
-                               Icon(Icons.person,color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  suggestion.username,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                       color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]
-                                  ),
-                                ),
-                              ),
-                              IconButton(
-                                tooltip: suggestion.isStarred
-                                    ? titles['unmark']!
-                                    : titles['mark']!,
-                                icon: Icon(
-                                  suggestion.isStarred
-                                      ? Icons.star
-                                      : Icons.star_border,
-                                  color: suggestion.isStarred
-                                      ? Colors.amber
-                                      : Colors.grey,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    suggestion.isStarred =
-                                    !suggestion.isStarred;
-                                  });
-                                },
-                              ),
-                              if (suggestion.isNew)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange,
-                                    borderRadius:
-                                    BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    titles['newTag']!,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                      Row(
-                        textDirection:isArabic? TextDirection.rtl:TextDirection.ltr,
-                        children: [Text(
-                            suggestion.content,
-                            style: TextStyle(
-                                fontSize: 15,color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),
-                            textDirection: textDirection,
-                          ),]),
-                          const SizedBox(height: 12),
-                          if (suggestion.adminReply != null)
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              margin: const EdgeInsets.only(bottom: 8),
-                              decoration: BoxDecoration(color: isDark ?   Colors.green.withOpacity(.3) : Colors.blue[100],
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                textDirection: textDirection,
-                                children: [
-                                  Icon(Icons.reply,
-                                      color: isDark
-                                          ? Colors.greenAccent
-                                          : Colors.green),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      suggestion.adminReply!,
-                                      style: TextStyle(
-                                        fontStyle: FontStyle.italic,color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900],
-                                      ),
-                                      textDirection: textDirection,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          Align(
-                            alignment: alignmentEnd,
-                            child: ElevatedButton.icon(
-                              onPressed: () =>
-                                  _replyToSuggestion(suggestion, isArabic,isDark),
-                              icon:  Icon(Icons.reply,color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),
-                              label: Text(titles['adminReply']!,style:TextStyle(color: isDark ? const Color(0xFFD7EFDC) : Colors.blue[900]),
-                            ),
-                            ),
-                          )
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 20),
-              if (totalPages > 1)
-                Center(
-                  child: Wrap(
-                    spacing: 8,
-                    children: List.generate(totalPages, (index) {
-                      final pageNum = index + 1;
-                      final isSelected = pageNum == currentPage;
-                      return ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                          isSelected ? isDark ? Colors.green[900] : Colors.blue[900] : Colors.grey.shade300,
-                          foregroundColor:
-                          isSelected ? Colors.white :  isDark ?  Colors.green[900] : Colors.blue[300],
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                          minimumSize: const Size(40, 40),
-                          padding: EdgeInsets.zero,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            currentPage = pageNum;
-                          });
-                        },
-                        child: Text(pageNum.toString()),
-                      );
-                    }),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
-
-  Widget _buildCountCard(
-      {required String label, required int count, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color, width: 1.5),
-      ),
-      child: Column(
-        children: [
-          Text(
-            count.toString(),
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: TextStyle(fontSize: 14, color: color.withOpacity(0.8)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class Suggestion {
-  final int id;
-  final String username;
-  final String content;
-  bool isNew;
-  String? adminReply;
-  bool isStarred;
-  final DateTime dateAdded;
-
-  Suggestion({
-    required this.id,
-    required this.username,
-    required this.content,
-    this.isNew = true,
-    this.adminReply,
-    this.isStarred = false,
-    required this.dateAdded,
-  });
 }
