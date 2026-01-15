@@ -154,47 +154,23 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
 
                   // قسم الاشتراك والمالية
                   _buildEnhancedSectionCard(
-                    title: isRTL ? "حالة الاشتراك والمالية" : "Subscription & Billing",
+                    title: isRTL ? "الاشتراكات" : "Subscriptions",
                     icon: Icons.credit_card_outlined,
                     isDark: isDark,
-                    children: [
-                      _buildEnhancedInfoRow(
-                        isRTL ? "الخطة الحالية" : "Current Plan",
-                        widget.user.planName ?? (isRTL ? "غير متاح" : "N/A"),
-                        Icons.workspace_premium_outlined,
-                        isDark,
-                        valueColor: AppColors.accent,
-                        isBold: true,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildDivider(isDark),
-                      const SizedBox(height: 16),
-                      _buildEnhancedInfoRow(
-                        isRTL ? "قيمة الاشتراك" : "Subscription Price",
-                        "${widget.user.price ?? '--'} \$",
-                        Icons.payments_outlined,
-                        isDark,
-                        valueColor: AppColors.success,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildEnhancedInfoRow(
-                        isRTL ? "تاريخ التفعيل" : "Activation Date",
-                        widget.user.startDate ?? "--",
-                        Icons.event_available_outlined,
-                        isDark,
-                      ),
-
-                      const SizedBox(height: 16),
-                      _buildEnhancedInfoRow(
-                        isRTL ? "تاريخ الانتهاء" : "Expiry Date",
-                        widget.user.endDate ?? "--",
-                        Icons.event_busy_outlined,
-                        isDark,
-                        valueColor: AppColors.danger,
-                      ),
-
-                    ],
+                    children: widget.user.subscriptions.isEmpty
+                        ? [
+                      Text(
+                        isRTL ? "لا يوجد اشتراكات" : "No active subscriptions",
+                        style: TextStyle(
+                          color: isDark ? Colors.white60 : AppColors.textSecondary,
+                        ),
+                      )
+                    ]
+                        : widget.user.subscriptions
+                        .map((sub) => _buildSubscriptionCard(sub, isDark, isRTL))
+                        .toList(),
                   ),
+
 
                   const SizedBox(height: 20),
 
@@ -353,6 +329,113 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
             ),
           )
       ],
+    );
+  }
+  Widget _buildSubscriptionCard(
+      UserSubscription sub,
+      bool isDark,
+      bool isRTL,
+      )
+  {
+    final isExpired = sub.daysLeft < 0;
+    final isUrgent = sub.daysLeft >= 0 && sub.daysLeft <= 5;
+
+    Color statusColor = isExpired
+        ? AppColors.danger
+        : isUrgent
+        ? AppColors.warning
+        : AppColors.success;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.03) : AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: statusColor.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          /// اسم الباقة + الحالة
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  sub.planName,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              _buildSubscriptionStatusChip(sub.daysLeft, isRTL),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+          _buildEnhancedInfoRow(
+            isRTL ? "السعر" : "Price",
+            "${sub.price} \$",
+            Icons.payments_outlined,
+            isDark,
+            valueColor: AppColors.success,
+          ),
+          const SizedBox(height: 10),
+          _buildEnhancedInfoRow(
+            isRTL ? "من" : "From",
+            sub.startDate,
+            Icons.event_available_outlined,
+            isDark,
+          ),
+          const SizedBox(height: 10),
+          _buildEnhancedInfoRow(
+            isRTL ? "إلى" : "To",
+            sub.endDate,
+            Icons.event_busy_outlined,
+            isDark,
+            valueColor: statusColor,
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildSubscriptionStatusChip(int daysLeft, bool isRTL) {
+    if (daysLeft < 0) {
+      return _statusChip(
+        isRTL ? "منتهي" : "Expired",
+        AppColors.danger,
+      );
+    } else if (daysLeft <= 5) {
+      return _statusChip(
+        isRTL ? "قارب على الانتهاء" : "Ending Soon",
+        AppColors.warning,
+      );
+    } else {
+      return _statusChip(
+        isRTL ? "نشط" : "Active",
+        AppColors.success,
+      );
+    }
+  }
+
+  Widget _statusChip(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.4)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
     );
   }
 

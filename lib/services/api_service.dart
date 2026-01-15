@@ -9,8 +9,8 @@ class ApiService {
 
   static Future<void> savePackage(Package p, bool isArabic) async {
     final body = {
-      "nameAr": p.name,
-      "nameEn": p.name,
+      "nameAr": p.nameAr,
+      "nameEn": p.nameEn,
       "price": p.price,
       "durationDays": p.durationDays,
       "discount": p.discount,
@@ -58,8 +58,8 @@ class ApiService {
   }
   static Future<void> createPackage(Package p, bool isArabic) async {
     final body = {
-      "nameAr": isArabic ? p.name : p.name,
-      "nameEn": isArabic ? p.name : p.name,
+      "nameAr":  p.nameAr,
+      "nameEn": p.nameEn,
       "price": p.price,
       "durationDays": p.durationDays,
       "discount": p.discount,

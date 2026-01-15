@@ -852,7 +852,7 @@ class _PackageCardAdvancedState extends State<PackageCardAdvanced> with SingleTi
                           children: [
                             if (widget.package.shouldShowInactiveBanner)
                               _buildInactiveBanner(),
-                            _buildHeader(isDark),
+                            _buildHeader(isDark, widget.isArabic),
                             const SizedBox(height: 16),
                             _buildInfoTags(isDark),
                             const SizedBox(height: 5),
@@ -916,7 +916,7 @@ class _PackageCardAdvancedState extends State<PackageCardAdvanced> with SingleTi
     );
   }
 
-  Widget _buildHeader(bool isDark) {
+  Widget _buildHeader(bool isDark,bool isArabic) {
     return Row(
       children: [
         Expanded(
@@ -924,7 +924,7 @@ class _PackageCardAdvancedState extends State<PackageCardAdvanced> with SingleTi
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.package.name,
+               isArabic? widget.package.nameAr: widget.package.nameEn,
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -1350,7 +1350,7 @@ class LogsViewer extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        package.name,
+                        isArabic? package.nameAr: package.nameEn,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.white.withOpacity(0.8),

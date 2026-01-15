@@ -209,7 +209,7 @@ class _NotificationModalState extends State<NotificationModal> with TickerProvid
                   _buildScheduleCard(isDark),
                   const SizedBox(height: 24),
 
-                  _buildLivePreview(isDark, previewTitle, previewContent),
+                  _buildLivePreview(isDark, previewTitle, previewContent,widget.isArabic),
                   const SizedBox(height: 24),
 
                   _buildSendButton(isDark),
@@ -341,7 +341,7 @@ class _NotificationModalState extends State<NotificationModal> with TickerProvid
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  widget.package.name,
+                  widget.isArabic ? widget.package.nameAr : widget.package.nameEn,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -704,7 +704,7 @@ class _NotificationModalState extends State<NotificationModal> with TickerProvid
     );
   }
 
-  Widget _buildLivePreview(bool isDark, String previewTitle, String previewContent) {
+  Widget _buildLivePreview(bool isDark, String previewTitle, String previewContent, bool isArabic) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
@@ -849,7 +849,7 @@ class _NotificationModalState extends State<NotificationModal> with TickerProvid
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                widget.package.name,
+                               isArabic ? widget.package.nameAr : widget.package.nameEn,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: isDark ? Colors.white60 : Colors.black54,

@@ -24,15 +24,18 @@ class PackageEditor extends StatefulWidget {
 
 class _PackageEditorState extends State<PackageEditor> with TickerProviderStateMixin {
   // Controllers
-  late TextEditingController _name;
+  late TextEditingController _nameAr;
+  late TextEditingController _nameEn;
   late TextEditingController _price;
   late TextEditingController _duration;
   late TextEditingController _discount;
-  late TextEditingController _featureNameController;
+  late TextEditingController _featureNameArController;
+  late TextEditingController _featureNameEnController;
   late TextEditingController _featureLimitController;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   int categoryId = 1;
+  bool _isEnglish = true;
 
   // State Variables
   List<PackageFeature> features = [];
@@ -45,11 +48,13 @@ class _PackageEditorState extends State<PackageEditor> with TickerProviderStateM
   void initState() {
     super.initState();
     final e = widget.existing;
-    _name = TextEditingController(text: e?.name ?? '');
+    _nameAr = TextEditingController(text: e?.nameAr ?? '');
+    _nameEn = TextEditingController(text:e?.nameEn ?? '');
     _price = TextEditingController(text: e?.price.toString() ?? '');
     _duration = TextEditingController(text: e?.durationDays.toString() ?? '');
     _discount = TextEditingController(text: e?.discount?.toString() ?? '');
-    _featureNameController = TextEditingController();
+    _featureNameArController = TextEditingController();
+    _featureNameEnController = TextEditingController();
     _featureLimitController = TextEditingController();
     categoryId = widget.existing?.CategoryId ?? 1;
     features = List.from(e?.features ?? []);
@@ -70,28 +75,33 @@ class _PackageEditorState extends State<PackageEditor> with TickerProviderStateM
 
   @override
   void dispose() {
-    _name.dispose();
+    _nameAr.dispose();
+    _nameEn.dispose();
     _price.dispose();
     _duration.dispose();
     _discount.dispose();
-    _featureNameController.dispose();
+    _featureNameArController.dispose();
+    _featureNameEnController.dispose();
     _featureLimitController.dispose();
     _animationController.dispose();
     super.dispose();
   }
 
   void _addFeature() {
-    final name = _featureNameController.text.trim();
+    final nameAr = _featureNameArController.text.trim();
+    final nameEn = _featureNameEnController.text.trim();
     final limit = int.tryParse(_featureLimitController.text.trim()) ?? 0;
 
-    if (name.isNotEmpty) {
+    if (nameAr.isNotEmpty || nameEn.isNotEmpty) {
       setState(() {
         features.add(PackageFeature(
-          feature: name,
-          featureAr: name,
+          feature: nameAr,
+          featureAr: nameAr,
+          featureEn: nameEn,
           limitCount: limit,
         ));
-        _featureNameController.clear();
+        _featureNameArController.clear();
+        _featureNameEnController.clear();
         _featureLimitController.clear();
       });
     }
@@ -248,7 +258,8 @@ class _PackageEditorState extends State<PackageEditor> with TickerProviderStateM
     if (!_formKey.currentState!.validate()) return;
 
     final pkg = Package(
-      name: _name.text.trim(),
+      nameAr: _nameAr.text.trim(),
+      nameEn: _nameEn.text.trim(),
       id: id,
       price: double.parse(_price.text.trim()),
       durationDays: int.parse(_duration.text.trim()),
@@ -473,13 +484,29 @@ class _PackageEditorState extends State<PackageEditor> with TickerProviderStateM
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextFormField(
-            controller: _name,
+            controller: _nameAr,
             style: TextStyle(
               fontSize: 16,
               color: isDark ? Colors.white : Colors.black87,
             ),
             decoration: _modernInputStyle(
-              widget.isArabic ? 'اسم الباقة *' : 'Package Name *',
+              widget.isArabic ? 'اسم الباقة بالعربية' : 'Package Arabic Name *',
+              Icons.inventory_2_rounded,
+              isDark,
+            ),
+            validator: (v) => v == null || v.trim().isEmpty
+                ? (widget.isArabic ? 'الرجاء إدخال اسم' : 'Please enter a name')
+                : null,
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _nameEn,
+            style: TextStyle(
+              fontSize: 16,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+            decoration: _modernInputStyle(
+              widget.isArabic ? 'اسم الباقة بالإنجليزبة' : 'Package English Name *',
               Icons.inventory_2_rounded,
               isDark,
             ),
@@ -693,18 +720,19 @@ class _PackageEditorState extends State<PackageEditor> with TickerProviderStateM
               Expanded(
                 flex: 2,
                 child: TextFormField(
-                  controller: _featureNameController,
+                  controller: _featureNameArController,
                   style: TextStyle(
                     fontSize: 16,
                     color: isDark ? Colors.white : Colors.black87,
                   ),
                   decoration: _modernInputStyle(
-                    widget.isArabic ? 'اسم الميزة' : 'Feature Name',
+                    widget.isArabic ? ' اسم الميزة بالعربيه' : 'Feature Arabic Name',
                     Icons.text_fields_rounded,
                     isDark,
                   ),
                 ),
               ),
+
               const SizedBox(width: 12),
               Expanded(
                 child: TextFormField(
@@ -742,6 +770,26 @@ class _PackageEditorState extends State<PackageEditor> with TickerProviderStateM
                 child: IconButton(
                   icon: const Icon(Icons.add_rounded, size: 28, color: Colors.white),
                   onPressed: _addFeature,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  controller: _featureNameEnController,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                  decoration: _modernInputStyle(
+                    widget.isArabic ? 'اسم الميزة بالانجليزية' : 'Feature English Name',
+                    Icons.text_fields_rounded,
+                    isDark,
+                  ),
                 ),
               ),
             ],
@@ -997,7 +1045,8 @@ class _PackageEditorState extends State<PackageEditor> with TickerProviderStateM
       isDark: isDark,
       isArabic: widget.isArabic,
       package: Package(
-        name: _name.text.isEmpty ? (widget.isArabic ? 'اسم الباقة' : 'Package Name') : _name.text,
+        nameAr: _nameAr.text.isEmpty ? (widget.isArabic ? ' اسم الباقة بالعربي' : 'Package Arabic Name') : _nameAr.text,
+        nameEn: _nameEn.text.isEmpty ? (widget.isArabic ? 'اسم الباقة بالانجليزية' : 'Package English Name') : _nameEn.text,
         id: id,
         price: double.tryParse(_price.text) ?? 0,
         durationDays: int.tryParse(_duration.text) ?? 0,
@@ -1164,7 +1213,16 @@ class PackageCardPreview extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          package.name,
+                          package.nameAr,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: themeColor,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          package.nameEn,
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,

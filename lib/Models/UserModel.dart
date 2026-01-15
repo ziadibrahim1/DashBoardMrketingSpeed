@@ -16,19 +16,14 @@ class UserModel {
   final int subscriptionsCount;
   final int suggestionsCount;
   final int suggestionRepliesCount;
-
-
-  // حقول الاشتراك الجديدة
-  final String? planName;
-  final double? price;
-  final String? startDate;
-  final String? endDate;
+  final List<UserSubscription> subscriptions;
 
   UserModel({
     required this.id,
     required this.name,
     required this.email,
     required this.status,
+    required this.phone,
     required this.totalMessages,
     required this.subscriptionDaysLeft,
     required this.groups,
@@ -38,22 +33,19 @@ class UserModel {
     required this.subscriptionsCount,
     required this.suggestionsCount,
     required this.suggestionRepliesCount,
-    this.phone = 'N/A',
-    this.planName,
-    this.price,
-    this.startDate,
-    this.endDate,
+    required this.subscriptions,
   });
 
+
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    final sub = json['latestSubscription'];
+    final List subsJson = json['subscriptions'] ?? [];
 
     return UserModel(
       id: json['id'] ?? 0,
       name: json['fullName'] ?? 'Unknown',
-      email: json['email'] ?? 'noemail@example.com',
+      email: json['email'] ?? '',
+      phone: json['phone'] ?? 'لا يوجد',
       status: json['status'] ?? 'inactive',
-      phone: json['phone'] ?? 'لايوجد',
 
       totalMessages: json['totalMessages'] ?? 0,
       subscriptionDaysLeft: json['subscriptionDaysLeft'] ?? 0,
@@ -61,19 +53,40 @@ class UserModel {
 
       blockedGroups: json['blockedGroups'] ?? 0,
       leftGroups: json['leftGroups'] ?? 0,
-      blockedChats: json['blockedChats'] ?? 0,
-      subscriptionsCount: json['subscriptionsCount'] ?? 0,
+      blockedChats: json['blockedUsersCount'] ?? 0,
+      subscriptionsCount: json['subscriptionCount'] ?? 0,
       suggestionsCount: json['suggestionsCount'] ?? 0,
       suggestionRepliesCount: json['suggestionRepliesCount'] ?? 0,
 
-      planName: sub?['planName'],
-      price: sub?['price'] != null
-          ? (sub['price'] as num).toDouble()
-          : null,
-      startDate: sub?['startDate'],
-      endDate: sub?['endDate'],
+      subscriptions: subsJson
+          .map((e) => UserSubscription.fromJson(e))
+          .toList(),
     );
   }
 
+}
+class UserSubscription {
+  final String planName;
+  final double price;
+  final String startDate;
+  final String endDate;
+  final int daysLeft;
 
+  UserSubscription({
+    required this.planName,
+    required this.price,
+    required this.startDate,
+    required this.endDate,
+    required this.daysLeft,
+  });
+
+  factory UserSubscription.fromJson(Map<String, dynamic> json) {
+    return UserSubscription(
+      planName: json['planName'] ?? '',
+      price: (json['price'] as num).toDouble(),
+      startDate: json['startDate'],
+      endDate: json['endDate'],
+      daysLeft: json['daysLeft'] ?? 0,
+    );
+  }
 }

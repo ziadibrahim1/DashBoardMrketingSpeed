@@ -14,7 +14,8 @@ class LogEntry {
 }
 
 class Package {
-  String name;
+  String nameAr;
+  String nameEn;
   int id;
   double price;
   int durationDays;
@@ -31,7 +32,8 @@ class Package {
 
 
   Package({
-    required this.name,
+    required this.nameAr,
+    required this.nameEn,
     required this.id,
     required this.price,
     required this.durationDays,
@@ -55,7 +57,8 @@ class Package {
     final subscribers = json['subscriber_count'] ?? 0;
     return Package(
       id: json['id'],
-      name: isArabic ? json['name'] : json['nameEn'],
+      nameAr: isArabic ? json['name'] : json['nameEn'],
+      nameEn: isArabic ? json['nameEn'] : json['name'],
       price: (json['price'] as num).toDouble(),
       durationDays: json['durationDays'],
       discount: json['discount'] != null
@@ -84,8 +87,8 @@ class Package {
   }
   Map<String, dynamic> toJson(bool isArabic) {
     return {
-      "nameAr": isArabic ? name : null,
-      "nameEn": isArabic ? null : name,
+      "nameAr": nameAr ,
+      "nameEn": nameEn,
       "price": price,
       "durationDays": durationDays,
       "discount": discount,

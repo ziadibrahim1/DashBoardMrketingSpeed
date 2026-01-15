@@ -34,6 +34,7 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
   bool _sendInApp = true;
   bool _sendSms = false;
   bool _sendEmail = false;
+  bool _sendEnglish = false;
 
 
   Future<void> _sendNotification() async {
@@ -45,8 +46,10 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
     }
 
     final destinations = <String>[];
+
     if (_sendInApp) destinations.add("in_app");
     if (_sendEmail) destinations.add("email");
+
 
     if (destinations.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -61,7 +64,8 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
       "targetAudience": _receiverType,
       "destination": destinations,
       "scheduleAt": _schedule ? _scheduledTime?.toIso8601String() : null,
-      "emailSubject": _emailSubjectController.text
+      "emailSubject": _emailSubjectController.text,
+      "ar": _sendEnglish == true ? false : true,
     };
 
     try {
@@ -225,6 +229,7 @@ class _SendNotificationPageState extends State<SendNotificationPage> {
       children: [
         _buildChannelTile(Icons.notifications_none, "داخل درج الاشعارات", _sendInApp, (v) => setState(() => _sendInApp = v)),
         _buildChannelTile(Icons.email_outlined, "عبر البريد الالكتروني", _sendEmail, (v) => setState(() => _sendEmail = v)),
+        _buildChannelTile(Icons.language, "لغة إنجليزية", _sendEnglish, (v) => setState(() => _sendEnglish = v)),
       ],
     );
   }
