@@ -6,6 +6,7 @@ import 'generated/l10n.dart';
 import 'providers/app_providers.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized(); // مهم
   runApp(
     MultiProvider(
       providers: [
@@ -13,6 +14,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         // يمكن إضافة NotificationProvider هنا لو تحتاجه
       ],
+
       child: const MyApp(),
     ),
   );

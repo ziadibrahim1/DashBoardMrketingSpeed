@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import '../Models/DashboardMainStats.dart';
+import '../Models/DashboardStats.dart';
 import '../core/app_config.dart';
 import '../dashboard/pages/Package.dart';
 
@@ -93,7 +95,8 @@ class ApiService {
     required String title,
     required String content,
     DateTime? scheduledAt,
-  }) async {
+  })
+  async {
     final url = Uri.parse('$baseUrl/$packageId/notify');
     final body = {
       'method': method,
@@ -109,5 +112,13 @@ class ApiService {
     if (res.statusCode != 200) {
       throw Exception('Failed to send notification: ${res.body}');
     }
+  }
+  Future<DashboardMainStats> fetchDashboardStats() async {
+    final response = await http.get(
+      Uri.parse('${AppConfig.baseUrl}dashboard/main/stats'),
+      headers: {'Authorization': 'Bearer TOKEN'},
+    );
+
+    return DashboardMainStats.fromJson(jsonDecode(response.body));
   }
 }

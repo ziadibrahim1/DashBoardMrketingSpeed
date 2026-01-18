@@ -163,7 +163,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final List<Widget> basePages = [
       DashboardStatsSection(), // إحصائيات
       const UsersPage(), // المستخدمين
-      const MessagesPage(), // الرسائل
+      const AdminUsersScreen(), // الرسائل
       const SubscriptionsPage(), // الاشتراكات
       const SizedBox.shrink(), // منصات (غير مستخدمة مباشرة)
       const SizedBox.shrink(), // محادثات (منسدلة)
@@ -178,7 +178,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const WithdrawalsScreen(), // ادارة المسوقين
       //const ApiDashboardScreen(), // ادارة API's
       const PaymentManagementSection(), // ادارة الدفع
-      AdminAboutAppScreen(), // إدارة فيديوهات الاستخدام
+      VideoManagerScreen(), // إدارة فيديوهات الاستخدام
     ];
 
     return Directionality(

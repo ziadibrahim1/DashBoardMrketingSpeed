@@ -2,12 +2,18 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../Models/DashboardMainStats.dart';
 import '../../providers/app_providers.dart';
+import '../../services/api_service.dart';
 
-class DashboardStatsSection extends StatelessWidget {
+class DashboardStatsSection extends StatefulWidget {
   const DashboardStatsSection({super.key});
 
-  // خريطة النصوص باللغتين
+  @override
+  State<DashboardStatsSection> createState() => _DashboardStatsSectionState();
+}
+
+class _DashboardStatsSectionState extends State<DashboardStatsSection> {
   static final Map<String, Map<String, String>> localizedStrings = {
     'en': {
       'number_of_users': 'Number of users',
@@ -21,7 +27,10 @@ class DashboardStatsSection extends StatelessWidget {
       'platform_stats': 'Platform Statistics',
       'user_subscriptions': 'User Subscriptions',
       'platforms': 'WhatsApp,Telegram,Haraj,Facebook,TikTok,Instagram,X,SMS,Email',
-      'months': 'January,February,March,April,May,June,July,August,September,October,November,December',
+      'months': 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec',
+      'loading': 'Loading...',
+      'error': 'Error loading data',
+      'retry': 'Retry',
     },
     'ar': {
       'number_of_users': 'عدد المستخدمين',
@@ -35,644 +44,351 @@ class DashboardStatsSection extends StatelessWidget {
       'platform_stats': 'إحصائيات المنصات',
       'user_subscriptions': 'اشتراكات المستخدمين',
       'platforms': 'واتساب,تليجرام,حراج,فيسبوك,تيك توك,إنستقرام,إكس,SMS,البريد',
-      'months': 'يناير,فبراير,مارس,أبريل,مايو,يونيو,يوليو,أغسطس,سبتمبر,أكتوبر,نوفمبر,ديسمبر',
+      'months': 'ينا,فبر,مار,أبر,ماي,يون,يول,أغس,سبت,أكت,نوف,ديس',
+      'loading': 'جاري التحميل...',
+      'error': 'خطأ في تحميل البيانات',
+      'retry': 'إعادة المحاولة',
     },
   };
+
+  late Future<DashboardMainStats> _statsFuture;
+  final ApiService _apiService = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  void _loadData() {
+    setState(() {
+      _statsFuture = _apiService.fetchDashboardStats();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final localeProvider = Provider.of<LocaleProvider>(context);
     final isArabic = localeProvider.locale.languageCode == 'ar';
-
     final langCode = isArabic ? 'ar' : 'en';
     final strings = localizedStrings[langCode]!;
 
-    // تدرج لوني للخلفية (فاتح أو داكن حسب الوضع)
-    final cardGradient = isDark
-        ? LinearGradient(
-      colors: [
-        Colors.green.shade700.withOpacity(.3),
-        Colors.green.shade500.withOpacity(.3),
-        Color(0xFFB3A664).withOpacity(.3),
-        Colors.green.shade600.withOpacity(.3),
-        ?Colors.green[900]?.withOpacity(.3),
-      ],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    )
-        : LinearGradient(
-      colors: [Colors.white, Colors.white],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    );
+    return Directionality(
+      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: FutureBuilder<DashboardMainStats>(
+        future: _statsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator(color: Colors.blue.shade600));
+          }
+          if (snapshot.hasError) {
+            return _buildErrorState(isDark, strings, snapshot.error.toString());
+          }
+          if (!snapshot.hasData) return const SizedBox.shrink();
 
-    // تظليل متدرج ومتعدد الطبقات للتميز
-    final shadowList = [
-      BoxShadow(
-        color: isDark ? Colors.black54 : Colors.grey.withOpacity(0.25),
-        blurRadius: 12,
-        offset: const Offset(4, 6),
+          final stats = snapshot.data!;
+          return _buildContent(context, stats, isDark, isArabic, strings);
+        },
       ),
-      BoxShadow(
-        color: isDark ? Colors.black38 : Colors.grey.withOpacity(0.15),
-        blurRadius: 6,
-        offset: const Offset(-2, -2),
-      ),
-    ];
-
-    final titleStyle = Theme.of(context).textTheme.titleMedium!.copyWith(
-      fontWeight: FontWeight.bold,
-      color: isDark ? Colors.white70 : Colors.black87,
     );
+  }
 
-    const totalUsers = '2500';
-    const totalAdmins = '15';
-    const totalAnnualSubscribers = '120';
-    const whatsappMessages = '8500';
-    const telegramMessages = '3900';
-    const totalGroups = '120';
-    const totalChannels = '75';
-
-    // استخراج قائمة المنصات والشهور من النصوص
+  Widget _buildContent(BuildContext context, DashboardMainStats stats, bool isDark, bool isArabic, Map<String, String> strings) {
     final platformsList = strings['platforms']!.split(',');
     final monthsList = strings['months']!.split(',');
 
-    return Directionality(
-      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+    return Container(
+      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // الصف الأول: المستخدمين، المشتركين، المسؤولين
+            // الصف الأول: كروت رئيسية بتدرجات حيوية
+            Row(
+              children: [
+                _buildStatCard(
+                  isDark, strings['number_of_users']!, stats.totalUsers.toString(),
+                  Icons.people_rounded, [Colors.blue.shade700, Colors.blue.shade900],
+                ),
+                const SizedBox(width: 16),
+                _buildStatCard(
+                  isDark, strings['annual_subscribers']!, stats.annualSubscribers.toString(),
+                  Icons.auto_graph_rounded, [Colors.blue.shade300, Colors.blue.shade700],
+                ),
+                const SizedBox(width: 16),
+                _buildStatCard(
+                  isDark, strings['total_admins']!, stats.totalAdmins.toString(),
+                  Icons.shield_rounded, [const Color(0xFFF59E0B), const Color(0xFFEF4444)],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // الصف الثاني: عدد الرسائل (تصميم نيون خفيف)
             Row(
               children: [
                 Expanded(
-                  child: _buildStatCard(
-                    isDark,
-                    context,
-                    strings['number_of_users']!,
-                    "200",
-                    Icons.people,
-                    isDark ? const Color(0xFFD7EFDC) : const Color(0xFF65C4F8),
-                    gradient: cardGradient,
-                    shadows: shadowList,
+                  child: _buildModernDetailCard(
+                    isDark, strings['whatsapp_messages']!, stats.whatsappMessages.toString(),
+                    Icons.chat_bubble_rounded, const Color(0xFF22C55E),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _buildStatCard(
-                    isDark,
-                    context,
-                    strings['annual_subscribers']!,
-                    totalAnnualSubscribers,
-                    Icons.subscriptions,
-                    isDark ? const Color(0xFFD7EFDC) : Colors.deepOrange.shade700,
-                    gradient: cardGradient,
-                    shadows: shadowList,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildStatCard(
-                    isDark,
-                    context,
-                    strings['total_admins']!,
-                    totalAdmins,
-                    Icons.admin_panel_settings,
-                    isDark ? const Color(0xFFD7EFDC) : const Color(0xFF65C4F8),
-                    gradient: cardGradient,
-                    shadows: shadowList,
+                  child: _buildModernDetailCard(
+                    isDark, strings['telegram_messages']!, stats.telegramMessages.toString(),
+                    Icons.send_rounded, const Color(0xFF0EA5E9),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
-            // الصف الثاني: عدد الرسائل (واتساب وتليجرام)
+            // الصف الثالث: الجروبات والقنوات
             Row(
               children: [
                 Expanded(
-                  child: _buildStatCard(
-                    isDark,
-                    context,
-                    strings['whatsapp_messages']!,
-                    whatsappMessages,
-                    Icons.message,
-                    isDark ? const Color(0xFFD7EFDC) : Colors.green.shade700,
-                    gradient: cardGradient,
-                    shadows: shadowList,
+                  child: _buildSimpleActionCard(
+                    isDark, strings['whatsapp_groups']!, stats.whatsappGroups.toString(),
+                    Icons.groups_2_rounded, const Color(0xFF10B981),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _buildStatCard(
-                    isDark,
-                    context,
-                    strings['telegram_messages']!,
-                    telegramMessages,
-                    Icons.message,
-                    isDark ? const Color(0xFFD7EFDC) : const Color(0xFF65C4F8),
-                    gradient: cardGradient,
-                    shadows: shadowList,
+                  child: _buildSimpleActionCard(
+                    isDark, strings['telegram_channels']!, stats.telegramChannels.toString(),
+                    Icons.campaign_rounded, const Color(0xFF0284C7),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
-            // الصف الثالث: جروبات الواتساب وقنوات التليجرام جنب بعض
-            Row(
-              children: [
-                Expanded(
-                  child: _build3DCard(
-                    context,
-                    title: strings['whatsapp_groups']!,
-                    width: double.infinity,
-                    height: 120,
-                    cardColor: null,
-                    gradient: cardGradient,
-                    shadows: shadowList,
-                    titleStyle: titleStyle,
-                    child: Center(
-                      child: Text(
-                        totalGroups,
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? const Color(0xFFD7EFDC) : Colors.green.shade700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _build3DCard(
-                    context,
-                    title: strings['telegram_channels']!,
-                    width: double.infinity,
-                    height: 120,
-                    cardColor: null,
-                    gradient: cardGradient,
-                    shadows: shadowList,
-                    titleStyle: titleStyle,
-                    child: Center(
-                      child: Text(
-                        totalChannels,
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? const Color(0xFFD7EFDC) : const Color(0xFF65C4F8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // باقي الكروت الكبيرة (Pie, Bar, Line Charts)
+            // الرسوم البيانية
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: _build3DCard(
-                    context,
-                    title: strings['usage_percentages']!,
-                    width: double.infinity,
-                    height: 350,
-                    child: _buildPieChart(context, isDark),
-                    cardColor: null,
-                    gradient: cardGradient,
-                    shadows: shadowList,
-                    titleStyle: titleStyle,
-                  ),
+                  child: _buildChartCard(isDark, strings['usage_percentages']!, 400, _buildPieChart(context, isDark, stats, isArabic)),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _build3DCard(
-                    context,
-                    title: strings['platform_stats']!,
-                    width: double.infinity,
-                    height: 320,
-                    child: _buildBarChart(isDark, platformsList),
-                    cardColor: null,
-                    gradient: cardGradient,
-                    shadows: shadowList,
-                    titleStyle: titleStyle,
-                  ),
+                  child: _buildChartCard(isDark, strings['platform_stats']!, 400, _buildBarChart(isDark, platformsList, stats)),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            _build3DCard(
-              context,
-              title: strings['user_subscriptions']!,
-              width: double.infinity,
-              height: 300,
-              child: _buildLineChart(isDark, monthsList),
-              cardColor: null,
-              gradient: cardGradient,
-              shadows: shadowList,
-              titleStyle: titleStyle,
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+
+            _buildChartCard(isDark, strings['user_subscriptions']!, 350, _buildLineChart(isDark, monthsList, stats)),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _build3DCard(
-      BuildContext context, {
-        required String title,
-        required Widget child,
-        required double width,
-        required double height,
-        Color? cardColor,
-        Gradient? gradient,
-        List<BoxShadow>? shadows,
-        required TextStyle titleStyle,
-      }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  // الكرت الرئيسي الملون (Gradient)
+  Widget _buildStatCard(bool isDark, String title, String value, IconData icon, List<Color> colors) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(color: colors[0].withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 6)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: Colors.white, size: 28),
+            const SizedBox(height: 16),
+            Text(title, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // كروت الرسائل الحديثة
+  Widget _buildModernDetailCard(bool isDark, String title, String value, IconData icon, Color color) {
     return Container(
-      width: width,
-      height: height,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFFD7EFDC) : cardColor,
-        gradient: gradient,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: shadows ??
-            [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 12,
-                offset: const Offset(6, 6),
-              ),
-            ],
-        border: Border.all(
-          color: Colors.grey.withOpacity(0.2),
-          width: 1.5,
-        ),
+        border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          Text(title, style: titleStyle),
-          const SizedBox(height: 10),
+          Icon(icon, color: color, size: 30),
+          const SizedBox(height: 12),
+          Text(title, style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 13, fontWeight: FontWeight.w500)),
+          Text(value, style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 26, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  // كروت الجروبات والقنوات
+  Widget _buildSimpleActionCard(bool isDark, String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(15)),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(fontSize: 13, color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // كرت الرسوم البيانية
+  Widget _buildChartCard(bool isDark, String title, double height, Widget child) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      height: height,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+          const SizedBox(height: 24),
           Expanded(child: child),
         ],
       ),
     );
   }
 
-  Widget _buildStatCard(
-      bool isDark,
-      BuildContext context,
-      String title,
-      String value,
-      IconData icon,
-      Color color, {
-        Gradient? gradient,
-        List<BoxShadow>? shadows,
-      }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: shadows ??
-            [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 8,
-                offset: const Offset(3, 4),
+  Widget _buildBarChart(bool isDark, List<String> platformsList, DashboardMainStats stats) {
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: 100, // يمكن تعديله ديناميكياً
+        barGroups: List.generate(platformsList.length, (i) {
+          return BarChartGroupData(
+            x: i,
+            barRods: [
+              BarChartRodData(
+                toY: (stats.platformMessages[(i + 1).toString()] ?? 0).toDouble(),
+                gradient: const LinearGradient(colors: [Color(0xFF0C4AC6), Color(0xFF60A5FA)], begin: Alignment.bottomCenter, end: Alignment.topCenter),
+                width: 14,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
               ),
             ],
-        border: Border.all(
-          color: Colors.grey.withOpacity(0.15),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: color.withOpacity(0.15),
-            child: Icon(
-              icon,
-              color: color,
-              size: 28,
+          );
+        }),
+        titlesData: FlTitlesData(
+          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (val, _) => Text(platformsList[val.toInt()].substring(0, 3), style: TextStyle(fontSize: 10, color: isDark ? Colors.grey[400] : Colors.grey[600])),
             ),
           ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontFamily: 'Droid',
-                  fontSize: 14,
-                  color: isDark ? const Color(0xFFD7EFDC) : Colors.grey.shade700,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                value,
-                style: TextStyle(
-                  fontFamily: 'Droid',
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-            ],
+        ),
+        gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: false),
+      ),
+    );
+  }
+
+  Widget _buildPieChart(BuildContext context, bool isDark, DashboardMainStats stats, bool isArabic) {
+    final totalMessages = stats.platformMessages.values.fold(0, (sum, count) => sum + count);
+    if (totalMessages == 0) return const Center(child: Text("No Data"));
+
+    final platformColors = {
+      '1': const Color(0xFF25D366), '2': const Color(0xFF26A5E4), '3': const Color(0xFF3B82F6),
+      '4': const Color(0xFF1877F2), '5': const Color(0xFF000000), '6': const Color(0xFFE4405F),
+      '7': const Color(0xFF1DA1F2), '8': const Color(0xFF64748B), '9': const Color(0xFFEA4335),
+    };
+
+    return PieChart(
+      PieChartData(
+        sectionsSpace: 4,
+        centerSpaceRadius: 50,
+        sections: stats.platformMessages.entries.map((entry) {
+          return PieChartSectionData(
+            color: platformColors[entry.key] ?? Colors.grey,
+            value: (entry.value / totalMessages) * 100,
+            radius: 60,
+            title: '',
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildLineChart(bool isDark, List<String> monthsList, DashboardMainStats stats) {
+    return LineChart(
+      LineChartData(
+        gridData: const FlGridData(show: false),
+        titlesData: FlTitlesData(
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (val, _) => Text(monthsList[val.toInt()], style: const TextStyle(fontSize: 10)),
+            ),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        lineBarsData: [
+          LineChartBarData(
+            spots: List.generate(12, (i) => FlSpot(i.toDouble(), (stats.monthlySubscriptions[i + 1] ?? 0).toDouble())),
+            isCurved: true,
+            color: const Color(0xFF0C4AC6),
+            barWidth: 4,
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(colors: [const Color(0xFF0C4AC6).withOpacity(0.2), Colors.transparent], begin: Alignment.topCenter, end: Alignment.bottomCenter),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBarChart(bool isDark, List<String> platformsList) {
-    return BarChart(
-      BarChartData(
-        alignment: BarChartAlignment.spaceAround,
-        maxY: 20,
-        titlesData: FlTitlesData(
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: 5,
-              reservedSize: 32,
-              getTitlesWidget: (value, meta) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: Text(
-                    value.toInt().toString(),
-                    style: const TextStyle(fontSize: 10, color: Colors.grey),
-                    textAlign: TextAlign.right,
-                  ),
-                );
-              },
-            ),
-          ),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (value, _) {
-                return Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    platformsList[value.toInt() % platformsList.length],
-                    style: const TextStyle(fontSize: 9),
-                    textAlign: TextAlign.center,
-                  ),
-                );
-              },
-            ),
-          ),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        ),
-        borderData: FlBorderData(show: false),
-        gridData: FlGridData(show: false),
-        barGroups: List.generate(9, (i) {
-          return BarChartGroupData(
-            x: i,
-            barRods: [
-              BarChartRodData(
-                toY: (5 + i).toDouble(),
-                color: isDark ? const Color(0xFFD7EFDC) : const Color(0xFF65C4F8),
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildPieChart(BuildContext context, bool isDark) {
-    final localeProvider = Provider.of<LocaleProvider>(context);
-    final isArabic = localeProvider.locale.languageCode == 'ar';
-    final sections = [
-      {
-        'title': isArabic ? 'واتساب' : 'WhatsApp',
-        'value': 25.0,
-        'color': Colors.green,
-      },
-      {
-        'title': isArabic ? 'تليجرام' : 'Telegram',
-        'value': 20.0,
-        'color': Colors.blue,
-      },
-      {
-        'title': isArabic ? 'حراج' : 'Haraj',
-        'value': 10.0,
-        'color': Colors.orange,
-      },
-      {
-        'title': isArabic ? 'فيسبوك' : 'Facebook',
-        'value': 15.0,
-        'color': Colors.indigo,
-      },
-      {
-        'title': isArabic ? 'تيك توك' : 'TikTok',
-        'value': 10.0,
-        'color': Colors.deepPurple,
-      },
-      {
-        'title': isArabic ? 'إنستقرام' : 'Instagram',
-        'value': 10.0,
-        'color': Colors.pink,
-      },
-      {
-        'title': isArabic ? 'إكس' : 'X',
-        'value': 5.0,
-        'color': Colors.black,
-      },
-      {
-        'title': isArabic ? 'SMS' : 'SMS',
-        'value': 3.0,
-        'color': Colors.teal,
-      },
-      {
-        'title': isArabic ? 'البريد' : 'Email',
-        'value': 2.0,
-        'color': Colors.brown,
-      },
-    ];
-
-    final gradient =  LinearGradient(
-      colors:isDark?[
-        Colors.green.shade700.withOpacity(.3),
-        Colors.green.shade500.withOpacity(.3),
-        Color(0xFFB3A664).withOpacity(.3),
-        Colors.green.shade600.withOpacity(.3),
-        ?Colors.green[900]?.withOpacity(.3),
-      ]: [Colors.white,Colors.white
-      ],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    );
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(16),
-
-        ),
-        child: PieChart(
-          PieChartData(
-            sections: sections.map((e) {
-              final percentage = e['value'] as double;
-              final isSmall = percentage < 5;
-
-              return PieChartSectionData(
-                color: e['color'] as Color,
-                value: percentage,
-                title: isSmall ? '' : '${percentage.toInt()}%',
-                radius: 70,
-                titleStyle: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
-                ),
-                badgeWidget: isSmall
-                    ? null
-                    : Padding(
-                  padding: const EdgeInsets.all(2.0),
-                  child: Text(
-                    e['title'].toString(),
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? const Color(0xFFD7EFDC) : Colors.black54,
-                    ),
-                  ),
-                ),
-                badgePositionPercentageOffset: 1.2,
-              );
-            }).toList(),
-            sectionsSpace: 3,
-            centerSpaceRadius: 40,
-            startDegreeOffset: -90,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLineChart(bool isDark, List<String> monthsList) {
-    return LineChart(
-      LineChartData(
-        minX: 0,
-        maxX: 11,
-        minY: 0,
-        maxY: 20,
-        titlesData: FlTitlesData(
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: 5,
-              reservedSize: 32,
-              getTitlesWidget: (value, _) => Text(
-                value.toInt().toString(),
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-          ),
-          rightTitles: AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          topTitles: AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: 1, // عرض شهر لكل نقطة
-              reservedSize: 28,
-              getTitlesWidget: (value, _) {
-                if (value % 1 == 0 && value >= 0 && value < monthsList.length) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      monthsList[value.toInt()],
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  );
-                } else {
-                  return const SizedBox.shrink();
-                }
-              },
-            ),
-          ),
-        ),
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: true,
-          horizontalInterval: 5,
-          verticalInterval: 1,
-          getDrawingHorizontalLine: (value) => FlLine(
-            color: Colors.grey.withOpacity(0.2),
-            strokeWidth: 1,
-          ),
-          getDrawingVerticalLine: (value) => FlLine(
-            color: Colors.grey.withOpacity(0.2),
-            strokeWidth: 1,
-          ),
-        ),
-        borderData: FlBorderData(
-          show: true,
-          border: const Border(
-            left: BorderSide(color: Colors.black54, width: 2),
-            bottom: BorderSide(color: Colors.black54, width: 2),
-            right: BorderSide(color: Colors.transparent),
-            top: BorderSide(color: Colors.transparent),
-          ),
-        ),
-        lineBarsData: [
-          LineChartBarData(
-            spots: const [
-              FlSpot(0, 3),
-              FlSpot(1, 4),
-              FlSpot(2, 5),
-              FlSpot(3, 4),
-              FlSpot(4, 7),
-              FlSpot(5, 9),
-              FlSpot(6, 13),
-              FlSpot(7, 10),
-              FlSpot(8, 14),
-              FlSpot(9, 15),
-              FlSpot(10, 17),
-              FlSpot(11, 19),
-            ],
-            isCurved: true,
-            color: isDark ? const Color(0xFFD7EFDC) : Colors.blue,
-            barWidth: 3,
-            belowBarData: BarAreaData(
-              show: true,
-              color: (isDark ? const Color(0xFFD7EFDC) : Colors.blue).withOpacity(0.3),
-            ),
-            dotData: FlDotData(show: false),
-          ),
+  Widget _buildErrorState(bool isDark, Map<String, String> strings, String error) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline_rounded, color: Colors.red, size: 50),
+          const SizedBox(height: 16),
+          Text(strings['error']!),
+          TextButton(onPressed: _loadData, child: Text(strings['retry']!)),
         ],
       ),
     );
