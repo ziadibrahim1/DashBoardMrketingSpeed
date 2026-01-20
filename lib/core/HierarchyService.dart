@@ -3,7 +3,6 @@ import 'package:admin_dashboard/core/user_session.dart';
 import 'package:http/http.dart' as http;
 
 import '../Models/Marketer.dart';
-import '../dashboard/pages/SupervisorsManagementScreen.dart';
 
 class HierarchyService {
   final String baseUrl;

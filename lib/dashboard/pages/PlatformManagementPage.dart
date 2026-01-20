@@ -157,7 +157,6 @@ class _PlatformManagementPageState extends State<PlatformManagementPage> {
     TimeOfDay? start = platform.startTime;
     TimeOfDay? end = platform.endTime;
 
-    bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,

@@ -75,7 +75,6 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
 
       if (mounted) {
         final newConvCount = updates['newConversations'] as int;
-        final newMessages = updates['newMessages'] as List<ConversationModel>;
 
         // ✅ تحديث الـ UI
         setState(() {});
@@ -346,23 +345,6 @@ class ChatStateManager {
 
   Future<void> fetchConversations() async {
     await fetchConversationsWithUpdates();
-  }
-  Widget _buildDotBadge() {
-    return Container(
-      width: 10,
-      height: 10,
-      decoration: BoxDecoration(
-        color: ChatColors.primaryBlue,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: ChatColors.primaryBlue.withOpacity(0.6),
-            blurRadius: 6,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> closeConversation(int conversationId) async {
@@ -883,30 +865,6 @@ String formatChatDate(DateTime? date, bool isArabic) {
     return DateFormat('dd/MM/yyyy').format(date);
   }
 }
-class _ConversationInfo extends StatelessWidget {
-  final String userName;
-  final bool isActive;
-
-  const _ConversationInfo({
-    required this.userName,
-    required this.isActive,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      userName,
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-        color: isActive ? ChatColors.primaryBlue : Colors.black87,
-        letterSpacing: -0.2,
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-}
 
 class _CloseButton extends StatelessWidget {
   final VoidCallback onPressed;
@@ -928,33 +886,6 @@ class _CloseButton extends StatelessWidget {
   }
 }
 
-class _ActiveIndicator extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.elasticOut,
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Transform.scale(
-          scale: value,
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: ChatColors.primaryBlue.withOpacity(0.12),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.keyboard_arrow_left_rounded,
-              color: ChatColors.primaryBlue,
-              size: 20,
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
 
 // ==================== Top Tabs ====================
 class _ChatTopTabs extends StatelessWidget {

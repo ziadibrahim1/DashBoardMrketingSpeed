@@ -289,10 +289,15 @@ class _DashboardStatsSectionState extends State<DashboardStatsSection> {
   }
 
   Widget _buildBarChart(bool isDark, List<String> platformsList, DashboardMainStats stats) {
+    final values = stats.platformMessages.values.map((e) => e.toDouble()).toList();
+    final maxValue = values.isEmpty ? 0 : values.reduce((a, b) => a > b ? a : b);
+
+
+    final double maxY = maxValue == 0 ? 10 : maxValue * 1.2;
     return BarChart(
       BarChartData(
         alignment: BarChartAlignment.spaceAround,
-        maxY: 100, // يمكن تعديله ديناميكياً
+        maxY: maxY,// يمكن تعديله ديناميكياً
         barGroups: List.generate(platformsList.length, (i) {
           return BarChartGroupData(
             x: i,
@@ -324,6 +329,10 @@ class _DashboardStatsSectionState extends State<DashboardStatsSection> {
   }
 
   Widget _buildPieChart(BuildContext context, bool isDark, DashboardMainStats stats, bool isArabic) {
+    final values = stats.platformMessages.values.map((e) => e.toDouble()).toList();
+    final maxValue = values.isEmpty ? 0 : values.reduce((a, b) => a > b ? a : b);
+    final maxY = maxValue == 0 ? 10 : maxValue * 1.2;
+
     final totalMessages = stats.platformMessages.values.fold(0, (sum, count) => sum + count);
     if (totalMessages == 0) return const Center(child: Text("No Data"));
 

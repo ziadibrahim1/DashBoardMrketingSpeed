@@ -117,7 +117,7 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [ThemeLib.primary, ThemeLib.primary.withOpacity(0.7)]),
+            gradient: LinearGradient(colors: [Color(0xFF4FB5F5),Color(0xFF1B367A)]),
             borderRadius: BorderRadius.circular(24),
             boxShadow: [BoxShadow(color: ThemeLib.primary.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
           ),

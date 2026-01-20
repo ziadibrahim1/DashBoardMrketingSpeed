@@ -5,6 +5,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_providers.dart';
+import '../core/user_session.dart'; // 👈 استيراد UserSession
 import 'pages/AdminManagementScreen.dart';
 import 'pages/AdminVideoManager.dart';
 import 'pages/FlexManagement.dart';
@@ -13,16 +14,12 @@ import 'pages/StatsPageTelgram.dart';
 import 'pages/AdminLiveChatDashboard.dart';
 import 'pages/AdminChatHistoryScreen.dart';
 import 'pages/SendNotificationScreen.dart';
-import 'pages/PlatformManagementPage.dart';
 import 'pages/ReferralRewardsPage.dart';
 import 'pages/SuggestionsManagementScreen.dart';
 import 'pages/SupervisorsManagementScreen.dart';
 import 'pages/PaymentManagement.dart';
-import 'pages/api_dashboard.dart';
 import 'pages/login_screen.dart';
 import 'pages/messages_page.dart';
-import 'pages/select_user_screen.dart';
-import 'pages/social_accounts_page.dart';
 import 'pages/stats_page.dart';
 import 'pages/subscriptions_page.dart';
 import 'pages/users_page.dart';
@@ -35,12 +32,12 @@ class DashboardScreen extends StatefulWidget {
   final bool isArabic;
 
   const DashboardScreen({
-  super.key,
-  required this.currentUserName,
-  required this.onLogout,
-  required this.onThemeToggle,
-  required this.onLanguageToggle,
-  required this.isArabic,
+    super.key,
+    required this.currentUserName,
+    required this.onLogout,
+    required this.onThemeToggle,
+    required this.onLanguageToggle,
+    required this.isArabic,
   });
 
   @override
@@ -53,34 +50,278 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int platformPageIndex = 0;
   bool showChatPage = false;
   int chatPageIndex = 0;
-  bool  showNoti  = false;
+  bool showNoti = false;
   int NotiPageIndex = 0;
   final ScrollController _scrollController = ScrollController();
   double _dragStartX = 0;
   double _scrollStartX = 0;
 
+  // 👇 Helper للتحقق من الصلاحيات
+  bool _hasPermission(String permissionKey) {
+    final user = UserSession.getUser();
+    if (user == null) return false;
+
+    // Admin له كل الصلاحيات
+    if (user['role'] == 'admin') return true;
+
+    // التحقق من الصلاحية المحددة
+    final permission = user[permissionKey];
+    return permission == 1 || permission == '1' || permission == true;
+  }
 
   final List<Widget> platformPages = [
-    const StatsPage(), // واتساب
-    const StatsPageTelegram(), // تيليجرام
-    const Center(child: Text('صفحة فيسبوك')), // فيسبوك
+    const StatsPage(),
+    const StatsPageTelegram(),
+    const Center(child: Text('صفحة فيسبوك')),
   ];
 
   final List<Widget> chatPages = [
-    const AdminLiveChatDashboard(), // المحادثات الحية
-    const AdminChatHistoryScreen(), // سجل المحادثات
+    const AdminLiveChatDashboard(),
+    const AdminChatHistoryScreen(),
   ];
+
   final List<Widget> notification = [
-    const  SendNotificationPage(), // ارسال الاشعارات
-    const NotificationHistoryPage(), // سجل الاشعارات
+    const SendNotificationPage(),
+    const NotificationHistoryPage(),
   ];
-
-
 
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // 👇 بناء قائمة الـ Navigation Items بناءً على الصلاحيات
+  List<NavigationItem> _buildNavigationItems(bool isArabic) {
+    List<NavigationItem> items = [];
+
+    // إحصائيات Dashboard
+    if (_hasPermission('DashboardStatsSection')) {
+      items.add(NavigationItem(
+        icon: Icons.insights,
+        labelAr: 'إحصائيات',
+        labelEn: 'Statistics',
+        pageIndex: items.length,
+      ));
+    }
+
+    // المستخدمين
+    if (_hasPermission('UsersPage')) {
+      items.add(NavigationItem(
+        icon: Icons.people,
+        labelAr: 'المستخدمين',
+        labelEn: 'Users',
+        pageIndex: items.length,
+      ));
+    }
+
+    // شاشة المستخدمين الإداريين
+    if (_hasPermission('AdminUsersScreen')) {
+      items.add(NavigationItem(
+        icon: Icons.message,
+        labelAr: 'الرسائل',
+        labelEn: 'Messages',
+        pageIndex: items.length,
+      ));
+    }
+
+    // الاشتراكات
+    if (_hasPermission('SubscriptionsPage')) {
+      items.add(NavigationItem(
+        icon: Icons.subscriptions,
+        labelAr: 'الاشتراكات',
+        labelEn: 'Subscriptions',
+        pageIndex: items.length,
+      ));
+    }
+
+    // المنصات (WhatsApp, Telegram, Facebook)
+    if (_hasPermission('StatsPage') || _hasPermission('StatsPageTelegram')) {
+      items.add(NavigationItem(
+        icon: Icons.language,
+        labelAr: 'المنصات',
+        labelEn: 'Platforms',
+        pageIndex: items.length,
+        isDropdown: true,
+        dropdownType: 'platform',
+      ));
+    }
+
+    // المحادثات
+    if (_hasPermission('AdminLiveChatDashboard') || _hasPermission('AdminChatHistoryScreen')) {
+      items.add(NavigationItem(
+        icon: Icons.chat_bubble_outline,
+        labelAr: 'محادثات',
+        labelEn: 'Chats',
+        pageIndex: items.length,
+        isDropdown: true,
+        dropdownType: 'chat',
+      ));
+    }
+
+    // الإشعارات
+    if (_hasPermission('SendNotificationPage') || _hasPermission('NotificationHistoryPage')) {
+      items.add(NavigationItem(
+        icon: Icons.notifications,
+        labelAr: 'الاشعارات',
+        labelEn: 'Notifications',
+        pageIndex: items.length,
+        isDropdown: true,
+        dropdownType: 'notification',
+      ));
+    }
+
+    // المسؤولين
+    if (_hasPermission('AdminManagementScreen')) {
+      items.add(NavigationItem(
+        icon: FontAwesomeIcons.userTie,
+        labelAr: 'المسؤولين',
+        labelEn: 'Admins',
+        pageIndex: items.length,
+      ));
+    }
+
+    // إدارة فليكس (الباقات)
+    if (_hasPermission('PackagesPage')) {
+      items.add(NavigationItem(
+        icon: Icons.account_balance_wallet,
+        labelAr: 'إدارة فليكس',
+        labelEn: 'Manage Flex',
+        pageIndex: items.length,
+      ));
+    }
+
+    // إدارة المكافآت
+    if (_hasPermission('ReferralRewardsPage')) {
+      items.add(NavigationItem(
+        icon: Icons.card_giftcard,
+        labelAr: 'ادارة المكافئات',
+        labelEn: 'Manage Rewards',
+        pageIndex: items.length,
+      ));
+    }
+
+    // إدارة الاقتراحات
+    if (_hasPermission('SuggestionsManagementPage')) {
+      items.add(NavigationItem(
+        icon: Icons.text_snippet,
+        labelAr: 'ادارة الاقتراحات',
+        labelEn: 'Manage Suggestions',
+        pageIndex: items.length,
+      ));
+    }
+
+    // إدارة المسوقين والمشرفين
+    if (_hasPermission('SupervisorsMarketersPage')) {
+      items.add(NavigationItem(
+        icon: FontAwesomeIcons.bullhorn,
+        labelAr: 'ادارة المسوقين',
+        labelEn: 'Manage Marketers',
+        pageIndex: items.length,
+      ));
+    }
+
+    // السحوبات المالية
+    if (_hasPermission('WithdrawalsScreen')) {
+      items.add(NavigationItem(
+        icon: Icons.balance,
+        labelAr: 'الحسابات',
+        labelEn: 'Financial',
+        pageIndex: items.length,
+      ));
+    }
+
+    // إدارة الدفع
+    if (_hasPermission('PaymentManagementSection')) {
+      items.add(NavigationItem(
+        icon: Icons.payment,
+        labelAr: 'ادارة الدفع',
+        labelEn: 'Manage Payments',
+        pageIndex: items.length,
+      ));
+    }
+
+    // شرح الاستخدام (الفيديوهات)
+    if (_hasPermission('VideoManagerScreen')) {
+      items.add(NavigationItem(
+        icon: Icons.info_outline,
+        labelAr: 'شرح الاستخدام',
+        labelEn: 'User Guide',
+        pageIndex: items.length,
+      ));
+    }
+
+    return items;
+  }
+
+  // 👇 بناء الصفحات بناءً على الصلاحيات
+  List<Widget> _buildPages(bool isArabic) {
+    List<Widget> pages = [];
+
+    if (_hasPermission('DashboardStatsSection')) {
+      pages.add(DashboardStatsSection());
+    }
+
+    if (_hasPermission('UsersPage')) {
+      pages.add(const UsersPage());
+    }
+
+    if (_hasPermission('AdminUsersScreen')) {
+      pages.add(const AdminUsersScreen());
+    }
+
+    if (_hasPermission('SubscriptionsPage')) {
+      pages.add(const SubscriptionsPage());
+    }
+
+    // المنصات (placeholder للـ dropdown)
+    if (_hasPermission('StatsPage') || _hasPermission('StatsPageTelegram')) {
+      pages.add(const SizedBox.shrink());
+    }
+
+    // المحادثات (placeholder للـ dropdown)
+    if (_hasPermission('AdminLiveChatDashboard') || _hasPermission('AdminChatHistoryScreen')) {
+      pages.add(const SizedBox.shrink());
+    }
+
+    // الإشعارات (placeholder للـ dropdown)
+    if (_hasPermission('SendNotificationPage') || _hasPermission('NotificationHistoryPage')) {
+      pages.add(const SizedBox.shrink());
+    }
+
+    if (_hasPermission('AdminManagementScreen')) {
+      pages.add(const AdminManagementScreen());
+    }
+
+    if (_hasPermission('PackagesPage')) {
+      pages.add(PackagesPage(isArabic: isArabic));
+    }
+
+    if (_hasPermission('ReferralRewardsPage')) {
+      pages.add(const ReferralRewardsPage());
+    }
+
+    if (_hasPermission('SuggestionsManagementPage')) {
+      pages.add(const SuggestionsManagementPage());
+    }
+
+    if (_hasPermission('SupervisorsMarketersPage')) {
+      pages.add(const SupervisorsMarketersPage());
+    }
+
+    if (_hasPermission('WithdrawalsScreen')) {
+      pages.add(const WithdrawalsScreen());
+    }
+
+    if (_hasPermission('PaymentManagementSection')) {
+      pages.add(const PaymentManagementSection());
+    }
+
+    if (_hasPermission('VideoManagerScreen')) {
+      pages.add(VideoManagerScreen());
+    }
+
+    return pages;
   }
 
   Widget _buildDropdownButton({
@@ -132,27 +373,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<BottomNavigationBarItem> navItems = [
-      BottomNavigationBarItem(icon: Icon(Icons.insights), label: widget.isArabic ? 'إحصائيات' : 'Statistics'),
-      BottomNavigationBarItem(icon: Icon(Icons.people), label: widget.isArabic ? 'المستخدمين' : 'Users'),
-      BottomNavigationBarItem(icon: Icon(Icons.message), label: widget.isArabic ? 'الرسائل' : 'Messages'),
-      BottomNavigationBarItem(icon: Icon(Icons.subscriptions), label: widget.isArabic ? 'الاشتراكات' : 'Subscriptions'),
-      BottomNavigationBarItem(icon: Icon(Icons.language), label: widget.isArabic ? 'المنصات' : 'Platforms'),
-      BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: widget.isArabic ? 'محادثات' : 'Chats'),
-      BottomNavigationBarItem(icon: Icon(Icons.notifications), label: widget.isArabic ? 'الاشعارات' : ' Notifications'),
-      //BottomNavigationBarItem(icon: Icon(Icons.settings), label: widget.isArabic ? 'إدارة منصات' : 'Manage Platforms'),
-      BottomNavigationBarItem(icon: Icon(FontAwesomeIcons.userTie), label: widget.isArabic ? 'المسؤولين' : 'Admins'),
-      BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: widget.isArabic ? 'إدارة فليكس' : 'Manage Flex'),
-      //BottomNavigationBarItem(icon: Icon(Icons.link), label: widget.isArabic ? 'روابط تواصل' : 'Contact Links'),
-      BottomNavigationBarItem(icon: Icon(Icons.card_giftcard), label: widget.isArabic ? 'ادارة المكافئات' : 'Manage Rewards'),
-      BottomNavigationBarItem(icon: Icon(Icons.text_snippet), label: widget.isArabic ? 'ادارة الاقتراحات' : 'Manage Suggestions'),
-      BottomNavigationBarItem(icon: Icon(FontAwesomeIcons.bullhorn), label: widget.isArabic ? 'ادارة المسوقين' : 'Manage Marketers'),
-      BottomNavigationBarItem(icon: Icon(Icons.balance), label: widget.isArabic ? 'الحسابات' : 'financial'),
-      //BottomNavigationBarItem(icon: Icon(Icons.code), label: widget.isArabic ? 'ادارة ال API ' : 'Manage API'),
-      BottomNavigationBarItem(icon: Icon(Icons.payment), label: widget.isArabic ? 'ادارة الدفع ' : 'Manage Payments'),
-      BottomNavigationBarItem(icon: Icon(Icons.info_outline), label: widget.isArabic ? 'شرح الاستخدام ' : 'User Guide'),
-    ];
-
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final selectedColor = isDark ? Colors.green : Colors.blue;
     final unselectedColor = Colors.white;
@@ -160,26 +380,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isArabic = localeProvider.locale.languageCode == 'ar';
     final locale = Localizations.localeOf(context);
     final isRTL = ['ar', 'he', 'fa', 'ur'].contains(locale.languageCode);
-    final List<Widget> basePages = [
-      DashboardStatsSection(), // إحصائيات
-      const UsersPage(), // المستخدمين
-      const AdminUsersScreen(), // الرسائل
-      const SubscriptionsPage(), // الاشتراكات
-      const SizedBox.shrink(), // منصات (غير مستخدمة مباشرة)
-      const SizedBox.shrink(), // محادثات (منسدلة)
-      const SizedBox.shrink(), // إرسال إشعار (منسدلة)
-      //const PlatformManagementPage(), // إدارة منصات
-      const AdminManagementScreen(), // المسؤولين
-       PackagesPage( isArabic: isArabic), // إدارة فليكس
-      //const SocialAccountsPage(), // روابط تواصل
-      const ReferralRewardsPage(), // ادارة المكافئات
-      const SuggestionsManagementPage(), // ادارة الاقتراحات
-      const SupervisorsMarketersPage(), // ادارة المسوقين
-      const WithdrawalsScreen(), // ادارة المسوقين
-      //const ApiDashboardScreen(), // ادارة API's
-      const PaymentManagementSection(), // ادارة الدفع
-      VideoManagerScreen(), // إدارة فيديوهات الاستخدام
-    ];
+
+    // 👇 بناء العناصر والصفحات بناءً على الصلاحيات
+    final navigationItems = _buildNavigationItems(isArabic);
+    final pages = _buildPages(isArabic);
 
     return Directionality(
       textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
@@ -208,159 +412,242 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
                 child: Row(
-                  children: [
-                    ...List.generate(navItems.length, (index) {
-                      final item = navItems[index];
-                      final isSelected = selectedIndex == index && !showPlatformPage && !showChatPage && !showNoti;
-                      final isDark = Theme.of(context).brightness == Brightness.dark;
+                  children: navigationItems.map((item) {
+                    final isSelected = selectedIndex == item.pageIndex &&
+                        !showPlatformPage &&
+                        !showChatPage &&
+                        !showNoti;
 
-                      Widget buttonContent = Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconTheme(
-                            data: IconThemeData(
-                              color: isSelected ? (isDark ? Colors.green : Colors.blue) : Colors.white,
-                            ),
-                            child: item.icon,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            item.label!,
-                            style: TextStyle(
-                              color: isSelected ? selectedColor : unselectedColor,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                        ],
-                      );
-
-                      if (index == 4) {
-                        return _buildDropdownButton(
-                          isDark: isDark,
-                          isSelected: showPlatformPage,
-                          value: showPlatformPage ? platformPageIndex : null,
-                          buttonContent: buttonContent,
-                          items: [
-                            _buildDropdownItem(FontAwesomeIcons.whatsapp,isArabic? 'واتساب':'WhatsApp', 0, isSelected, isDark),
-                            _buildDropdownItem(Icons.send,isArabic? 'تيليجرام':'Telegram', 1, isSelected, isDark),
-                            _buildDropdownItem(Icons.facebook, isArabic?'فيسبوك':'Facebook', 2, isSelected, isDark),
-                          ],
-                          onChanged: (platformIndex) {
-                            setState(() {
-                              showPlatformPage = true;
-                              platformPageIndex = platformIndex!;
-                              showChatPage = false;
-                              showNoti = false;
-                              selectedIndex = index;
-                            });
-                          },
-                        );
-                      }
-                      if (index == 5) {
-                        return _buildDropdownButton(
-                          isDark: isDark,
-                          isSelected: showChatPage,
-                          value: showChatPage ? chatPageIndex : null,
-                          buttonContent: buttonContent,
-                          items: [
-                            _buildDropdownItem(Icons.chat_bubble_outline,isArabic? 'محادثات':'Conversations', 0, isSelected, isDark),
-                            _buildDropdownItem(Icons.history,isArabic? 'سجل المحادثات':'Chat archive', 1, isSelected, isDark),
-                          ],
-                          onChanged: (chatIndex) {
-                            setState(() {
-                              showChatPage = true;
-                              chatPageIndex = chatIndex!;
-                              showPlatformPage = false;
-                              selectedIndex = index;
-                              showNoti = false;
-                            });
-                          },
-                        );
-                      }
-                      if (index == 6) {
-                        return _buildDropdownButton(
-                          isDark: isDark,
-                          isSelected: showNoti,
-                          value: showNoti ? NotiPageIndex : null,
-                          buttonContent: buttonContent,
-                          items: [
-                            _buildDropdownItem(Icons.notification_add,isArabic? 'إرسال الاشعارات':'Send Notifications', 0, isSelected, isDark),
-                            _buildDropdownItem(Icons.history,isArabic? 'سجل الاشعارات':'Notifications archive', 1, isSelected, isDark),
-                          ],
-                          onChanged: (chatIndex) {
-                            setState(() {
-                              showChatPage = false;
-                              showPlatformPage = false;
-                              selectedIndex = index;
-                              showNoti = true;
-                              NotiPageIndex = chatIndex!;
-                            });
-                          },
-                        );
-                      }
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                        child: Card(
-                          color: isSelected ? Colors.white : isDark ? Colors.green.shade800 : Colors.blue.shade800,
-                          elevation: isSelected ? 6 : 2,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () {
-                              setState(() {
-                                selectedIndex = index;
-                                showPlatformPage = false;
-                                showChatPage = false;
-                                showNoti = false;
-                              });
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              child: buttonContent,
-                            ),
+                    Widget buttonContent = Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          item.icon,
+                          color: isSelected ? selectedColor : unselectedColor,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          isArabic ? item.labelAr : item.labelEn,
+                          style: TextStyle(
+                            color: isSelected ? selectedColor : unselectedColor,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           ),
                         ),
+                      ],
+                    );
+
+                    // Dropdown للمنصات
+                    if (item.isDropdown && item.dropdownType == 'platform') {
+                      List<DropdownMenuItem<int>> dropdownItems = [];
+
+                      if (_hasPermission('StatsPage')) {
+                        dropdownItems.add(_buildDropdownItem(
+                          FontAwesomeIcons.whatsapp,
+                          isArabic ? 'واتساب' : 'WhatsApp',
+                          0,
+                          isSelected,
+                          isDark,
+                        ));
+                      }
+
+                      if (_hasPermission('StatsPageTelegram')) {
+                        dropdownItems.add(_buildDropdownItem(
+                          Icons.send,
+                          isArabic ? 'تيليجرام' : 'Telegram',
+                          1,
+                          isSelected,
+                          isDark,
+                        ));
+                      }
+
+                      return _buildDropdownButton(
+                        isDark: isDark,
+                        isSelected: showPlatformPage,
+                        value: showPlatformPage ? platformPageIndex : null,
+                        buttonContent: buttonContent,
+                        items: dropdownItems,
+                        onChanged: (platformIndex) {
+                          setState(() {
+                            showPlatformPage = true;
+                            platformPageIndex = platformIndex!;
+                            showChatPage = false;
+                            showNoti = false;
+                            selectedIndex = item.pageIndex;
+                          });
+                        },
                       );
-                    }),
-                  ],
+                    }
+
+                    // Dropdown للمحادثات
+                    if (item.isDropdown && item.dropdownType == 'chat') {
+                      List<DropdownMenuItem<int>> dropdownItems = [];
+
+                      if (_hasPermission('AdminLiveChatDashboard')) {
+                        dropdownItems.add(_buildDropdownItem(
+                          Icons.chat_bubble_outline,
+                          isArabic ? 'محادثات' : 'Conversations',
+                          0,
+                          isSelected,
+                          isDark,
+                        ));
+                      }
+
+                      if (_hasPermission('AdminChatHistoryScreen')) {
+                        dropdownItems.add(_buildDropdownItem(
+                          Icons.history,
+                          isArabic ? 'سجل المحادثات' : 'Chat archive',
+                          1,
+                          isSelected,
+                          isDark,
+                        ));
+                      }
+
+                      return _buildDropdownButton(
+                        isDark: isDark,
+                        isSelected: showChatPage,
+                        value: showChatPage ? chatPageIndex : null,
+                        buttonContent: buttonContent,
+                        items: dropdownItems,
+                        onChanged: (chatIndex) {
+                          setState(() {
+                            showChatPage = true;
+                            chatPageIndex = chatIndex!;
+                            showPlatformPage = false;
+                            selectedIndex = item.pageIndex;
+                            showNoti = false;
+                          });
+                        },
+                      );
+                    }
+
+                    // Dropdown للإشعارات
+                    if (item.isDropdown && item.dropdownType == 'notification') {
+                      List<DropdownMenuItem<int>> dropdownItems = [];
+
+                      if (_hasPermission('SendNotificationPage')) {
+                        dropdownItems.add(_buildDropdownItem(
+                          Icons.notification_add,
+                          isArabic ? 'إرسال الاشعارات' : 'Send Notifications',
+                          0,
+                          isSelected,
+                          isDark,
+                        ));
+                      }
+
+                      if (_hasPermission('NotificationHistoryPage')) {
+                        dropdownItems.add(_buildDropdownItem(
+                          Icons.history,
+                          isArabic ? 'سجل الاشعارات' : 'Notifications archive',
+                          1,
+                          isSelected,
+                          isDark,
+                        ));
+                      }
+
+                      return _buildDropdownButton(
+                        isDark: isDark,
+                        isSelected: showNoti,
+                        value: showNoti ? NotiPageIndex : null,
+                        buttonContent: buttonContent,
+                        items: dropdownItems,
+                        onChanged: (notiIndex) {
+                          setState(() {
+                            showChatPage = false;
+                            showPlatformPage = false;
+                            selectedIndex = item.pageIndex;
+                            showNoti = true;
+                            NotiPageIndex = notiIndex!;
+                          });
+                        },
+                      );
+                    }
+
+                    // زر عادي
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                      child: Card(
+                        color: isSelected ? Colors.white : isDark ? Colors.green.shade800 : Colors.blue.shade800,
+                        elevation: isSelected ? 6 : 2,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () {
+                            setState(() {
+                              selectedIndex = item.pageIndex;
+                              showPlatformPage = false;
+                              showChatPage = false;
+                              showNoti = false;
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            child: buttonContent,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
             ),
           ),
         ),
-
-        body:Stack(
-            children: [ AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          switchInCurve: Curves.easeIn,
-          switchOutCurve: Curves.easeOut,
-          child: showPlatformPage
-              ? platformPages[platformPageIndex]
-              :showNoti ? notification[NotiPageIndex] :  showChatPage
-              ? chatPages[chatPageIndex]
-              : basePages[selectedIndex],
+        body: Stack(
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              switchInCurve: Curves.easeIn,
+              switchOutCurve: Curves.easeOut,
+              child: showPlatformPage
+                  ? platformPages[platformPageIndex]
+                  : showNoti
+                  ? notification[NotiPageIndex]
+                  : showChatPage
+                  ? chatPages[chatPageIndex]
+                  : pages[selectedIndex],
+            ),
+            MovableSpeedDial(
+              isDark: isDark,
+              isRTL: isRTL,
+              currentUserName: widget.currentUserName,
+            ),
+          ],
         ),
-         MovableSpeedDial(
-          isDark: isDark,
-          isRTL: isRTL,
-          currentUserName: widget.currentUserName,
-        ),
-     ] ),
       ),
     );
   }
 }
 
+// 👇 Model للـ Navigation Items
+class NavigationItem {
+  final IconData icon;
+  final String labelAr;
+  final String labelEn;
+  final int pageIndex;
+  final bool isDropdown;
+  final String? dropdownType;
+
+  NavigationItem({
+    required this.icon,
+    required this.labelAr,
+    required this.labelEn,
+    required this.pageIndex,
+    this.isDropdown = false,
+    this.dropdownType,
+  });
+}
+
+// MovableSpeedDial يبقى كما هو...
 class MovableSpeedDial extends StatefulWidget {
   final bool isDark;
   final bool isRTL;
   final String currentUserName;
 
   const MovableSpeedDial({
-  super.key,
-  required this.isDark,
-  required this.isRTL,
-  required this.currentUserName,
+    super.key,
+    required this.isDark,
+    required this.isRTL,
+    required this.currentUserName,
   });
 
   @override
@@ -368,18 +655,16 @@ class MovableSpeedDial extends StatefulWidget {
 }
 
 class _MovableSpeedDialState extends State<MovableSpeedDial> {
-
-    Offset position = const Offset(50, 50);
+  Offset position = const Offset(50, 50);
 
   @override
   void initState() {
     super.initState();
-    // القيم الافتراضية: أسفل يمين
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {
         position = Offset(
-          MediaQuery.of(context).size.width - 200, // يمين
-          MediaQuery.of(context).size.height - 140, // أسفل
+          MediaQuery.of(context).size.width - 200,
+          MediaQuery.of(context).size.height - 140,
         );
       });
     });
@@ -409,9 +694,7 @@ class _MovableSpeedDialState extends State<MovableSpeedDial> {
             SpeedDialChild(
               child: const Icon(Icons.person),
               label: widget.isRTL ? 'عرض الملف الشخصي' : 'Open profile',
-              onTap: () {
-                // show profile dialog
-              },
+              onTap: () {},
             ),
             SpeedDialChild(
               child: const Icon(Icons.logout),

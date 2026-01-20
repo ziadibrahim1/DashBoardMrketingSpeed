@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../dashboard/pages/FlexManagement.dart';
 import '../dashboard/pages/Package.dart';
 import '../services/api_service.dart';
 
@@ -35,7 +34,6 @@ class _PackageEditorState extends State<PackageEditor> with TickerProviderStateM
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   int categoryId = 1;
-  bool _isEnglish = true;
 
   // State Variables
   List<PackageFeature> features = [];
@@ -404,7 +402,6 @@ class _PackageEditorState extends State<PackageEditor> with TickerProviderStateM
   }
 
   Widget _buildModernHeader(bool isDark) {
-    final themeColor = isDark ? const Color(0xFFD7EFDC) : Colors.blue[900];
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(

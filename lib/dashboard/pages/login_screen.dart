@@ -82,25 +82,40 @@ class _LoginScreenState extends State<LoginScreen> {
           'middleName': rawUser['middleName'],
           'lastName': rawUser['lastName'],
           'fullName': rawUser['fullName'],
-
           'phone': rawUser['phone'],
           'country': rawUser['country'],
           'city': rawUser['city'],
           'bank': rawUser['bank'],
           'iban': rawUser['iban'],
           'imagePath': rawUser['imagePath'],
-
           'role': rawUser['role'],
           'isActive': rawUser['isActive'],
           'langAr': rawUser['langAr'],
           'theme': rawUser['theme'],
-
-          // 🌟 روابط النظام الجديدة
           'supervisorId': rawUser['supervisorId'],
           'marketerId': rawUser['marketerId'],
           'marketerSupervisorId': rawUser['marketerSupervisorId'],
-
-          'permissions': parsedPermissions,
+          'DashboardStatsSection': rawUser['DashboardStatsSection'],
+          'UsersPage': rawUser['usersPage'],
+          'AdminUsersScreen': rawUser['adminUsersScreen'],
+          'SubscriptionsPage': rawUser['subscriptionsPage'],
+          'PlatformManagementPage': rawUser['platformManagementPage'],
+          'AdminManagementScreen': rawUser['adminManagementScreen'],
+          'PackagesPage': rawUser['packagesPage'],
+          'SocialAccountsPage': rawUser['socialAccountsPage'],
+          'ReferralRewardsPage': rawUser['referralRewardsPage'],
+          'SuggestionsManagementPage': rawUser['suggestionsManagementPage'],
+          'SupervisorsMarketersPage': rawUser['supervisorsMarketersPage'],
+          'WithdrawalsScreen': rawUser['withdrawalsScreen'],
+          'ApiDashboardScreen': rawUser['apiDashboardScreen'],
+          'PaymentManagementSection': rawUser['paymentManagementSection'],
+          'VideoManagerScreen': rawUser['videoManagerScreen'],
+          'StatsPage': rawUser['statsPage'],
+          'StatsPageTelegram': rawUser['statsPageTelegram'],
+          'AdminLiveChatDashboard': rawUser['adminLiveChatDashboard'],
+          'AdminChatHistoryScreen': rawUser['adminChatHistoryScreen'],
+          'SendNotificationPage': rawUser['sendNotificationPage'],
+          'NotificationHistoryPage': rawUser['notificationHistoryPage'],
         };
 
         // ----------------------------
@@ -116,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         Widget targetScreen;
 
-        if (role == 'admin') {
+        if (role == 'admin'|| role == 'user') {
           targetScreen = DashboardScreen(
             currentUserName: (user['fullName'] ?? user['email'] ?? email).toString(),
             onLogout: () {

@@ -139,7 +139,6 @@ class _NotificationModalState extends State<NotificationModal> with TickerProvid
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final themeColor = isDark ? const Color(0xFFD7EFDC) : Colors.blue[800];
 
     final previewTitle = _titleController.text.trim().isEmpty
         ? (widget.isArabic ? 'عنوان تجريبي' : 'Sample Title')

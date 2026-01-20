@@ -1,240 +1,16 @@
-import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:admin_dashboard/core/app_config.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-
+import '../../Models/VideoDto.dart';
 import '../../providers/app_providers.dart';
 
-// ================== LOCALIZATION ==================
-class AppLocalizations {
-  final String languageCode;
-
-  AppLocalizations(this.languageCode);
-
-  static AppLocalizations of(BuildContext context) {
-    return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
-  }
-
-  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
-
-  static final Map<String, Map<String, String>> _localizedValues = {
-    'en': {
-      'video_manager': 'Video Manager',
-      'manage_content': 'Manage and organize your video content',
-      'categories': 'Categories',
-      'add_video': 'Add Video',
-      'published': 'Published',
-      'pending': 'Pending',
-      'drafts': 'Drafts',
-      'total': 'Total',
-      'search_videos': 'Search videos...',
-      'status': 'Status',
-      'language': 'Language',
-      'all': 'All',
-      'active': 'Active',
-      'inactive': 'Inactive',
-      'arabic': 'Arabic',
-      'english': 'English',
-      'videos': 'videos',
-      'no_videos': 'No videos found',
-      'untitled': 'Untitled',
-      'no_description': 'No description',
-      'draft': 'Draft',
-      'add_new_video': 'Add New Video',
-      'youtube': 'YouTube',
-      'add_from_youtube': 'Add from YouTube',
-      'upload_file': 'Upload File',
-      'upload_video_file': 'Upload video file',
-      'cancel': 'Cancel',
-      'add_youtube_video': 'Add YouTube Video',
-      'youtube_url': 'YouTube URL',
-      'youtube_url_hint': 'https://www.youtube.com/watch?v=xxxx',
-      'title': 'Title',
-      'description': 'Description',
-      'category': 'Category',
-      'add': 'Add',
-      'upload_video': 'Upload Video File',
-      'choose_video': 'Choose Video File',
-      'edit_video': 'Edit Video',
-      'save': 'Save',
-      'delete_video': 'Delete Video?',
-      'delete_confirm': 'This action cannot be undone.',
-      'delete': 'Delete',
-      'manage_categories': 'Manage Categories',
-      'add_category': 'Add Category',
-      'edit_category': 'Edit Category',
-      'delete_category': 'Delete Category?',
-      'category_name': 'Category Name',
-      'video_added': 'Video added successfully!',
-      'video_updated': 'Video updated successfully!',
-      'video_deleted': 'Video deleted successfully!',
-      'category_added': 'Category added successfully!',
-      'category_updated': 'Category updated successfully!',
-      'category_deleted': 'Category deleted successfully!',
-      'error': 'Error',
-      'invalid_url': 'Invalid URL or missing title',
-      'upload_failed': 'Upload failed',
-    },
-    'ar': {
-      'video_manager': 'إدارة الفيديوهات',
-      'manage_content': 'إدارة وتنظيم محتوى الفيديو الخاص بك',
-      'categories': 'التصنيفات',
-      'add_video': 'إضافة فيديو',
-      'published': 'منشور',
-      'pending': 'قيد الانتظار',
-      'drafts': 'مسودات',
-      'total': 'الإجمالي',
-      'search_videos': 'بحث عن فيديوهات...',
-      'status': 'الحالة',
-      'language': 'اللغة',
-      'all': 'الكل',
-      'active': 'نشط',
-      'inactive': 'غير نشط',
-      'arabic': 'عربي',
-      'english': 'إنجليزي',
-      'videos': 'فيديو',
-      'no_videos': 'لا توجد فيديوهات',
-      'untitled': 'بدون عنوان',
-      'no_description': 'بدون وصف',
-      'draft': 'مسودة',
-      'add_new_video': 'إضافة فيديو جديد',
-      'youtube': 'يوتيوب',
-      'add_from_youtube': 'إضافة من يوتيوب',
-      'upload_file': 'رفع ملف',
-      'upload_video_file': 'رفع ملف فيديو',
-      'cancel': 'إلغاء',
-      'add_youtube_video': 'إضافة فيديو يوتيوب',
-      'youtube_url': 'رابط يوتيوب',
-      'youtube_url_hint': 'https://www.youtube.com/watch?v=xxxx',
-      'title': 'العنوان',
-      'description': 'الوصف',
-      'category': 'التصنيف',
-      'add': 'إضافة',
-      'upload_video': 'رفع ملف فيديو',
-      'choose_video': 'اختر ملف فيديو',
-      'edit_video': 'تعديل الفيديو',
-      'save': 'حفظ',
-      'delete_video': 'حذف الفيديو؟',
-      'delete_confirm': 'لا يمكن التراجع عن هذا الإجراء.',
-      'delete': 'حذف',
-      'manage_categories': 'إدارة التصنيفات',
-      'add_category': 'إضافة تصنيف',
-      'edit_category': 'تعديل التصنيف',
-      'delete_category': 'حذف التصنيف؟',
-      'category_name': 'اسم التصنيف',
-      'video_added': 'تم إضافة الفيديو بنجاح!',
-      'video_updated': 'تم تحديث الفيديو بنجاح!',
-      'video_deleted': 'تم حذف الفيديو بنجاح!',
-      'category_added': 'تم إضافة التصنيف بنجاح!',
-      'category_updated': 'تم تحديث التصنيف بنجاح!',
-      'category_deleted': 'تم حذف التصنيف بنجاح!',
-      'error': 'خطأ',
-      'invalid_url': 'رابط غير صالح أو عنوان مفقود',
-      'upload_failed': 'فشل الرفع',
-    },
-  };
-
-  String translate(String key) {
-    return _localizedValues[languageCode]?[key] ?? key;
-  }
-
-  String get videoManager => translate('video_manager');
-  String get manageContent => translate('manage_content');
-  String get categories => translate('categories');
-  String get addVideo => translate('add_video');
-  String get published => translate('published');
-  String get pending => translate('pending');
-  String get drafts => translate('drafts');
-  String get total => translate('total');
-  String get searchVideos => translate('search_videos');
-  String get status => translate('status');
-  String get language => translate('language');
-  String get all => translate('all');
-  String get active => translate('active');
-  String get inactive => translate('inactive');
-  String get arabic => translate('arabic');
-  String get english => translate('english');
-  String get videos => translate('videos');
-  String get noVideos => translate('no_videos');
-  String get untitled => translate('untitled');
-  String get noDescription => translate('no_description');
-  String get draft => translate('draft');
-  String get addNewVideo => translate('add_new_video');
-  String get youtube => translate('youtube');
-  String get addFromYoutube => translate('add_from_youtube');
-  String get uploadFile => translate('upload_file');
-  String get uploadVideoFile => translate('upload_video_file');
-  String get cancel => translate('cancel');
-  String get addYoutubeVideo => translate('add_youtube_video');
-  String get youtubeUrl => translate('youtube_url');
-  String get youtubeUrlHint => translate('youtube_url_hint');
-  String get title => translate('title');
-  String get description => translate('description');
-  String get category => translate('category');
-  String get add => translate('add');
-  String get uploadVideo => translate('upload_video');
-  String get chooseVideo => translate('choose_video');
-  String get editVideo => translate('edit_video');
-  String get save => translate('save');
-  String get deleteVideo => translate('delete_video');
-  String get deleteConfirm => translate('delete_confirm');
-  String get delete => translate('delete');
-  String get manageCategories => translate('manage_categories');
-  String get addCategory => translate('add_category');
-  String get editCategory => translate('edit_category');
-  String get deleteCategory => translate('delete_category');
-  String get categoryName => translate('category_name');
-  String get videoAdded => translate('video_added');
-  String get videoUpdated => translate('video_updated');
-  String get videoDeleted => translate('video_deleted');
-  String get categoryAdded => translate('category_added');
-  String get categoryUpdated => translate('category_updated');
-  String get categoryDeleted => translate('category_deleted');
-  String get error => translate('error');
-  String get invalidUrl => translate('invalid_url');
-  String get uploadFailed => translate('upload_failed');
-}
-
-class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
-  const _AppLocalizationsDelegate();
-
-  @override
-  bool isSupported(Locale locale) => ['en', 'ar'].contains(locale.languageCode);
-
-  @override
-  Future<AppLocalizations> load(Locale locale) async {
-    return AppLocalizations(locale.languageCode);
-  }
-
-  @override
-  bool shouldReload(_AppLocalizationsDelegate old) => false;
-}
-
-// ================== LANGUAGE PROVIDER ==================
-class LanguageProvider extends ChangeNotifier {
-  Locale _locale = const Locale('ar');
-
-  Locale get locale => _locale;
-
-  void setLocale(Locale locale) {
-    _locale = locale;
-    notifyListeners();
-  }
-
-
-}
-
-// ================== MAIN SCREEN ==================
 class VideoManagerScreen extends StatefulWidget {
   const VideoManagerScreen({super.key});
 
   @override
   State<VideoManagerScreen> createState() => _VideoManagerScreenState();
 }
-
 class _VideoManagerScreenState extends State<VideoManagerScreen> {
   final VideoApiService _videoService = VideoApiService();
   final CategoryApiService _categoryService = CategoryApiService();
@@ -254,7 +30,6 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
   final Color _primaryDark = const Color(0xFF0D47A1);
   final Color _backgroundColor = const Color(0xFFF8FAFC);
   final Color _cardColor = Colors.white;
-  final Color _textColor = const Color(0xFF1F2937);
   final Color _textSecondary = const Color(0xFF6B7280);
 
   @override
@@ -321,158 +96,237 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
             backgroundColor: _backgroundColor,
             body: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(loc),
-                  const SizedBox(height: 24),
-                  _buildStatsCards(loc),
-                  const SizedBox(height: 24),
-                  _buildFiltersSection(loc),
-                  const SizedBox(height: 24),
-                  _buildVideoGrid(loc),
-                ],
-              ),
+                : CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.all(24),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate(
+                      [
+                        _buildHeader(loc),
+                        const SizedBox(height: 24),
+                        _buildStatsCards(loc),
+                        const SizedBox(height: 24),
+                        _buildFiltersSection(loc),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ),
+
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  sliver: _buildVideoGrid(loc),
+                ),
+                const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
+              ],
             ),
           ),
         );
       },
     );
   }
-  Widget _buildVideoGrid(AppLocalizations loc) {
+
+  RenderObjectWidget _buildVideoGrid(AppLocalizations loc) {
     if (_filteredVideos.isEmpty) {
-      return Container(
-        height: 400,
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.video_library, size: 80, color: _textSecondary.withOpacity(0.5)),
-            const SizedBox(height: 20),
-            Text(loc.noVideos, style: TextStyle(fontSize: 20, color: _textSecondary, fontWeight: FontWeight.w600)),
-          ],
+      return SliverToBoxAdapter(
+        child: SizedBox(
+          height: 250,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.video_library,
+                    size: 120,
+                    color: _textSecondary.withOpacity(0.5)),
+                const SizedBox(height: 20),
+                Text(
+                  loc.noVideos,
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: _textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return SliverGrid(
+      delegate: SliverChildBuilderDelegate(
+            (context, i) {
+          final video = _filteredVideos[i];
+          return VideoCard(
+            video: video,
+            onEdit: () => showDialog(
+              context: context,
+              builder: (_) => EditVideoDialog(
+                video: video,
+                videoService: _videoService,
+                categories: _categories,
+                onVideoUpdated: _loadData,
+                primaryColor: _primaryColor,
+                languageCode: _languageProvider.locale.languageCode,
+              ),
+            ),
+            onDelete: () async {
+              final loc =
+              AppLocalizations(_languageProvider.locale.languageCode);
+
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: Text(loc.deleteVideo),
+                  content: Text(loc.deleteConfirm),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text(loc.cancel),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red),
+                      child: Text(loc.delete),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true) {
+                await _videoService.deleteVideo(video.id);
+                _loadData();
+              }
+            },
+          );
+        },
+        childCount: _filteredVideos.length,
+      ),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
+        crossAxisCount: 6,
         crossAxisSpacing: 20,
         mainAxisSpacing: 20,
-        childAspectRatio: 0.75,
+        childAspectRatio: 0.91,
       ),
-      itemCount: _filteredVideos.length,
-      itemBuilder: (_, i) => VideoCard(
-        video: _filteredVideos[i],
-        onEdit: () => showDialog(
-          context: context,
-          builder: (_) => EditVideoDialog(
-            video: _filteredVideos[i],
-            videoService: _videoService,
-            categories: _categories,
-            onVideoUpdated: _loadData,
-            primaryColor: _primaryColor,
-            languageCode: _languageProvider.locale.languageCode,
-          ),
-        ),
-        onDelete: () async {
-          final loc = AppLocalizations(_languageProvider.locale.languageCode);
-          final confirmed = await showDialog<bool>(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: Text(loc.deleteVideo),
-              content: Text(loc.deleteConfirm),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: Text(loc.cancel),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: Text(loc.delete),
-                ),
-              ],
-            ),
-          );
-          if (confirmed == true) {
-            await _videoService.deleteVideo(_filteredVideos[i].id);
-            _loadData();
-          }
-        },
-      ),
-    );
-  }
-  Widget _buildHeader(AppLocalizations loc) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [_primaryColor, _primaryDark]),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: _primaryColor.withOpacity(0.3), blurRadius: 12)],
-              ),
-              child: const Icon(Icons.video_library, color: Colors.white, size: 32),
-            ),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(loc.videoManager, style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: _primaryDark)),
-                const SizedBox(height: 4),
-                Text(loc.manageContent, style: TextStyle(fontSize: 16, color: _textSecondary)),
-              ],
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            _buildActionButton(
-              onPressed: () => showDialog(
-                context: context,
-                builder: (_) => ManageCategoriesDialog(
-                  categories: _categories,
-                  categoryService: _categoryService,
-                  onCategoriesUpdated: _loadData,
-                  primaryColor: _primaryColor,
-                  languageCode: _languageProvider.locale.languageCode,
-                ),
-              ),
-              icon: Icons.category,
-              label: loc.categories,
-              backgroundColor: Colors.deepPurple,
-            ),
-            const SizedBox(width: 12),
-            _buildActionButton(
-              onPressed: () => showDialog(
-                context: context,
-                builder: (_) => AddVideoDialog(
-                  videoService: _videoService,
-                  categories: _categories,
-                  onVideoAdded: _loadData,
-                  primaryColor: _primaryColor,
-                  languageCode: _languageProvider.locale.languageCode,
-                ),
-              ),
-              icon: Icons.add,
-              label: loc.addVideo,
-              backgroundColor: _primaryColor,
-            ),
-          ],
-        ),
-      ],
     );
   }
 
+  Widget _buildHeader(AppLocalizations loc) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Card(
+        elevation: 6,
+        shadowColor: _primaryColor.withOpacity(0.25),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF4FB5F5),Color(0xFF1B367A)],
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+
+              /// ===== Left Side =====
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.video_library,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        loc.videoManager,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        loc.manageContent,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withOpacity(0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              /// ===== Actions =====
+              Row(
+                children: [
+                  _buildActionButton(
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (_) => ManageCategoriesDialog(
+                        categories: _categories,
+                        categoryService: _categoryService,
+                        onCategoriesUpdated: _loadData,
+                        primaryColor: _primaryColor,
+                        languageCode:
+                        _languageProvider.locale.languageCode,
+                      ),
+                    ),
+                    icon: Icons.category,
+                    label: loc.categories,
+                    backgroundColor: Colors.white.withOpacity(0.18),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildActionButton(
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (_) => AddVideoDialog(
+                        videoService: _videoService,
+                        categories: _categories,
+                        onVideoAdded: _loadData,
+                        primaryColor: _primaryColor,
+                        languageCode:
+                        _languageProvider.locale.languageCode,
+                      ),
+                    ),
+                    icon: Icons.add,
+                    label: loc.addVideo,
+                    backgroundColor: Colors.green,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildActionButton({required VoidCallback onPressed, required IconData icon, required String label, required Color backgroundColor}) {
     return ElevatedButton.icon(
@@ -490,12 +344,6 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
   Widget _buildStatsCards(AppLocalizations loc) {
     return Row(
       children: [
-        Expanded(child: _buildStatCard(loc.published, '${_videos.where((v) => v.publishStatus == PublishStatus.published).length}', Icons.check_circle, Colors.green)),
-        const SizedBox(width: 16),
-        Expanded(child: _buildStatCard(loc.pending, '${_videos.where((v) => v.publishStatus == PublishStatus.pending).length}', Icons.pending, Colors.orange)),
-        const SizedBox(width: 16),
-        Expanded(child: _buildStatCard(loc.drafts, '${_videos.where((v) => v.publishStatus == PublishStatus.draft).length}', Icons.edit_note, Colors.grey)),
-        const SizedBox(width: 16),
         Expanded(child: _buildStatCard(loc.total, '${_videos.length}', Icons.video_library, _primaryColor)),
       ],
     );
@@ -572,20 +420,7 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
                   _applyFilters();
                 },
               ),
-              const SizedBox(width: 16),
-              _buildFilterDropdown(
-                label: loc.language,
-                value: _languageFilter,
-                items: [
-                  DropdownMenuItem(value: 'all', child: Text(loc.all)),
-                  DropdownMenuItem(value: 'ar', child: Text(loc.arabic)),
-                  DropdownMenuItem(value: 'en', child: Text(loc.english)),
-                ],
-                onChanged: (v) {
-                  setState(() => _languageFilter = v!);
-                  _applyFilters();
-                },
-              ),
+
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -615,243 +450,135 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
       ],
     );
   }
-
-  Widget _buildVideoList(AppLocalizations loc) {
-    if (_filteredVideos.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.video_library, size: 80, color: _textSecondary.withOpacity(0.5)),
-            const SizedBox(height: 20),
-            Text(loc.noVideos, style: TextStyle(fontSize: 20, color: _textSecondary, fontWeight: FontWeight.w600)),
-          ],
-        ),
-      );
-    }
-
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 20, mainAxisSpacing: 20, childAspectRatio: 0.75),
-      itemCount: _filteredVideos.length,
-      itemBuilder: (_, i) => VideoCard(
-        video: _filteredVideos[i],
-
-        onEdit: () => showDialog(context: context, builder: (_) => EditVideoDialog(video: _filteredVideos[i], videoService: _videoService, categories: _categories, onVideoUpdated: _loadData, primaryColor: _primaryColor, languageCode: _languageProvider.locale.languageCode)),
-        onDelete: () async {
-          final loc = AppLocalizations(_languageProvider.locale.languageCode);
-          final confirmed = await showDialog<bool>(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: Text(loc.deleteVideo),
-              content: Text(loc.deleteConfirm),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context, false), child: Text(loc.cancel)),
-                ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: Text(loc.delete)),
-              ],
-            ),
-          );
-          if (confirmed == true) {
-            await _videoService.deleteVideo(_filteredVideos[i].id);
-            _loadData();
-          }
-        },
-      ),
-    );
-  }
 }
-
-// ================== MODELS ==================
-enum PublishStatus { draft, published, pending }
-
-class VideoDto {
-  final int id;
-  final String title;
-  final String description;
-  final String videoType;
-  final String? videoUrl;
-  final String? filePath;
-  final int? duration;
-  final String language;
-  final DateTime createdAt;
-  final bool isActive;
-  final int? categoryId;
-  final String? categoryName;
-  final PublishStatus publishStatus;
-
-  VideoDto({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.videoType,
-    this.videoUrl,
-    this.filePath,
-    this.duration,
-    required this.language,
-    required this.createdAt,
-    required this.isActive,
-    this.categoryId,
-    this.categoryName,
-    required this.publishStatus,
-  });
-
-  factory VideoDto.fromJson(Map<String, dynamic> json) {
-    return VideoDto(
-      id: json['id'],
-      title: json['title'] ?? '',
-      description: json['description'] ?? '',
-      videoType: json['videoType'] ?? 'youtube',
-      videoUrl: json['videoUrl'],
-      filePath: json['filePath'],
-      duration: json['duration'],
-      language: json['language'] ?? 'ar',
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-      isActive: json['isActive'] ?? true,
-      categoryId: json['categoryId'],
-      categoryName: json['categoryName'],
-      publishStatus: PublishStatus.values.firstWhere((e) => e.name == json['publishStatus'], orElse: () => PublishStatus.draft),
-    );
-  }
-}
-
-class VideoCategory {
-  final int id;
-  final String name;
-
-  VideoCategory({required this.id, required this.name});
-
-  factory VideoCategory.fromJson(Map<String, dynamic> json) {
-    return VideoCategory(id: json['id'], name: json['name']);
-  }
-}
-
-// ================== API SERVICES ==================
-class VideoApiService {
-  final String baseUrl = '${AppConfig.baseUrl}tutorial-videos';
-
-  Future<List<VideoDto>> getVideos() async {
-    final res = await http.get(Uri.parse(baseUrl));
-    final List data = jsonDecode(res.body);
-    return data.map((e) => VideoDto.fromJson(e)).toList();
-  }
-
-  Future<void> addYouTube({required String title, required String description, required String videoId, int? categoryId}) async {
-    await http.post(
-      Uri.parse('$baseUrl/youtube'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'title': title, 'description': description, 'videoUrl': videoId, 'categoryId': categoryId, 'language': 'ar'}),
-    );
-  }
-
-  Future<void> uploadVideoFile({required Uint8List bytes, required String fileName, required String title, String? description, int? categoryId}) async {
-    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/upload'));
-    request.fields['title'] = title;
-    if (description != null) request.fields['description'] = description;
-    if (categoryId != null) request.fields['categoryId'] = categoryId.toString();
-    request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: fileName));
-    await request.send();
-  }
-
-  Future<void> updateVideo(int id, Map<String, dynamic> data) async {
-    await http.put(Uri.parse('$baseUrl/$id'), headers: {'Content-Type': 'application/json'}, body: jsonEncode(data));
-  }
-
-  Future<void> deleteVideo(int id) async {
-    await http.delete(Uri.parse('$baseUrl/$id'));
-  }
-}
-
-class CategoryApiService {
-  final String baseUrl = '${AppConfig.baseUrl}tutorial-videos';
-
-  Future<List<VideoCategory>> getCategories() async {
-    final res = await http.get(Uri.parse('$baseUrl/cat'));
-    final List data = jsonDecode(res.body);
-    return data.map((e) => VideoCategory.fromJson(e)).toList();
-  }
-
-  Future<void> addCategory(String name) async {
-    await http.post(Uri.parse('$baseUrl/addcat'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'name': name}));
-  }
-
-  Future<void> updateCategory(int id, String name) async {
-    await http.put(Uri.parse('$baseUrl/updatecat/$id'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'name': name}));
-  }
-
-  Future<void> deleteCategory(int id) async {
-    await http.delete(Uri.parse('$baseUrl/delcat/$id'));
-  }
-}
-
-// ================== VIDEO CARD ==================
+enum PublishStatus { draft, published, pending}
 class VideoCard extends StatelessWidget {
   final VideoDto video;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback? onTap; // إضافة إمكانية الضغط على الكارد للمشاهدة
 
-  const VideoCard({super.key, required this.video, required this.onEdit, required this.onDelete});
+  const VideoCard({
+    super.key,
+    required this.video,
+    required this.onEdit,
+    required this.onDelete,
+    this.onTap,
+  });
+
+
+  String? _extractYouTubeId(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return null;
+    if (uri.host.contains('youtu.be')) return uri.pathSegments.isNotEmpty ? uri.pathSegments[0] : null;
+    if (uri.host.contains('youtube.com')) return uri.queryParameters['v'];
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final localeProvider = Provider.of<LocaleProvider>(context);
-    String? _extractYouTubeId(String url) {
-      final uri = Uri.tryParse(url);
-      if (uri == null) return null;
-      if (uri.host.contains('youtu.be')) return uri.pathSegments.isNotEmpty ? uri.pathSegments[0] : null;
-      if (uri.host.contains('youtube.com')) return uri.queryParameters['v'];
-      return null;
-    }
     final loc = AppLocalizations(localeProvider.locale.languageCode);
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 4))],
+        side: BorderSide(color: theme.dividerColor.withOpacity(0.1)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            _buildThumbnail(video),
+
+
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            video.title.isEmpty ? loc.untitled : video.title,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      video.description.isEmpty ? loc.noDescription : video.description,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.hintColor,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Spacer(),
+                    _buildActionButtons(theme),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThumbnail(VideoDto video) {
+    final youtubeId = video.videoUrl != null ? _extractYouTubeId(video.videoUrl!) : null;
+
+    return AspectRatio(
+      aspectRatio: 16 / 9, // النسبة القياسية لليوتيوب
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: video.videoType == 'youtube' && video.videoUrl != null
-                  ? Stack(
-                children: [
-                  Image.network('https://img.youtube.com/vi/${_extractYouTubeId( video.videoUrl!)}/hqdefault.jpg', fit: BoxFit.cover, errorBuilder: (_, __, ___) => _placeholder()),
-                  Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0), Colors.black.withOpacity(0.3)], begin: Alignment.topCenter, end: Alignment.bottomCenter))),
-                  Center(child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), shape: BoxShape.circle), child: const Icon(Icons.play_arrow, color: Colors.red, size: 32))),
-                ],
-              )
-                  : _placeholder(),
+          if (video.videoType == 'youtube' && youtubeId != null)
+            Image.network(
+              'https://img.youtube.com/vi/$youtubeId/mqdefault.jpg', // mqdefault أسرع في التحميل
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _placeholder(),
+            )
+          else
+            _placeholder(),
+
+          // طبقة تظليل خفيفة (Overlay)
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.black.withOpacity(0.6), Colors.transparent],
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+              ),
             ),
           ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(child: Text(video.title.isEmpty ? loc.untitled : video.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis)),
-                      _statusBadge(video, loc),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(video.description.isEmpty ? loc.noDescription : video.description, style: TextStyle(fontSize: 13, color: Colors.grey.shade600), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const Spacer(),
-                  Row(
-                    children: [
-                      Icon(Icons.language, size: 14, color: Colors.grey.shade600),
-                      const SizedBox(width: 4),
-                      Text(video.language.toUpperCase(), style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                      const Spacer(),
-                      IconButton(onPressed: onEdit, icon: const Icon(Icons.edit, size: 20, color: Colors.orange), padding: EdgeInsets.zero),
-                      IconButton(onPressed: onDelete, icon: const Icon(Icons.delete, size: 20, color: Colors.red), padding: EdgeInsets.zero),
-                    ],
-                  ),
-                ],
+
+          // أيقونة التشغيل
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
               ),
+              child: const Icon(Icons.play_arrow_rounded, color: Colors.red, size: 30),
             ),
           ),
         ],
@@ -859,24 +586,47 @@ class VideoCard extends StatelessWidget {
     );
   }
 
-  Widget _placeholder() => Container(color: Colors.grey.shade200, child: const Center(child: Icon(Icons.play_circle_fill, size: 64, color: Colors.white70)));
-
-  Widget _statusBadge(VideoDto v, AppLocalizations loc) {
-    final Map<PublishStatus, Map<String, dynamic>> styles = {
-      PublishStatus.published: {'bg': Colors.green.shade50, 'text': Colors.green.shade700, 'label': loc.published},
-      PublishStatus.draft: {'bg': Colors.orange.shade50, 'text': Colors.orange.shade700, 'label': loc.draft},
-      PublishStatus.pending: {'bg': Colors.blue.shade50, 'text': Colors.blue.shade700, 'label': loc.pending},
-    };
-    final style = styles[v.publishStatus]!;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: style['bg'], borderRadius: BorderRadius.circular(12)),
-      child: Text(style['label'], style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: style['text'])),
+  Widget _buildActionButtons(ThemeData theme) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        _iconButton(
+          icon: Icons.edit_outlined,
+          color: Colors.blueAccent,
+          onPressed: onEdit,
+          tooltip: 'Edit',
+        ),
+        const SizedBox(width: 8),
+        _iconButton(
+          icon: Icons.delete_outline_rounded,
+          color: Colors.redAccent,
+          onPressed: onDelete,
+          tooltip: 'Delete',
+        ),
+      ],
     );
   }
-}
 
-// ================== ADD VIDEO DIALOG ==================
+  Widget _iconButton({required IconData icon, required Color color, required VoidCallback onPressed, String? tooltip}) {
+    return Material(
+      color: color.withOpacity(0.1),
+      shape: const CircleBorder(),
+      child: IconButton(
+        constraints: const BoxConstraints(),
+        padding: const EdgeInsets.all(8),
+        icon: Icon(icon, size: 18, color: color),
+        onPressed: onPressed,
+        tooltip: tooltip,
+      ),
+    );
+  }
+
+  Widget _placeholder() => Container(
+    color: Colors.grey.shade200,
+    child: const Center(child: Icon(Icons.videocam_off_outlined, size: 40, color: Colors.grey)),
+  );
+
+}
 class AddVideoDialog extends StatelessWidget {
   final VideoApiService videoService;
   final List<VideoCategory> categories;
@@ -955,7 +705,7 @@ class AddVideoDialog extends StatelessWidget {
                   value: selectedCat,
                   items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
                   onChanged: (v) => setState(() => selectedCat = v),
-                  decoration: InputDecoration(labelText: loc.category, prefixIcon: const Icon(Icons.category), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                  decoration: InputDecoration(labelText: loc.category, prefixIcon:  Icon(Icons.category, color: Colors.blue.withOpacity(0.8)), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
                 ),
               ],
             ),
@@ -965,8 +715,8 @@ class AddVideoDialog extends StatelessWidget {
             ElevatedButton(
               onPressed: () async {
                 final url = urlC.text.trim();
-                final videoId = _extractYouTubeId(url);
-                if (videoId != null && titleC.text.isNotEmpty) {
+                final videoId = url;
+                if (titleC.text.isNotEmpty) {
                   try {
                     await videoService.addYouTube(title: titleC.text, description: descC.text, videoId: videoId, categoryId: selectedCat?.id);
                     Navigator.pop(ctx);
@@ -1054,17 +804,7 @@ class AddVideoDialog extends StatelessWidget {
       ),
     );
   }
-
-  String? _extractYouTubeId(String url) {
-    final uri = Uri.tryParse(url);
-    if (uri == null) return null;
-    if (uri.host.contains('youtu.be')) return uri.pathSegments.isNotEmpty ? uri.pathSegments[0] : null;
-    if (uri.host.contains('youtube.com')) return uri.queryParameters['v'];
-    return null;
-  }
 }
-
-// ================== EDIT VIDEO DIALOG ==================
 class EditVideoDialog extends StatefulWidget {
   final VideoDto video;
   final VideoApiService videoService;
@@ -1073,19 +813,25 @@ class EditVideoDialog extends StatefulWidget {
   final Color primaryColor;
   final String languageCode;
 
-  const EditVideoDialog({super.key, required this.video, required this.videoService, required this.categories, required this.onVideoUpdated, required this.primaryColor, required this.languageCode});
+  const EditVideoDialog({
+    super.key,
+    required this.video,
+    required this.videoService,
+    required this.categories,
+    required this.onVideoUpdated,
+    required this.primaryColor,
+    required this.languageCode,
+  });
 
   @override
   State<EditVideoDialog> createState() => _EditVideoDialogState();
 }
-
 class _EditVideoDialogState extends State<EditVideoDialog> {
-  late TextEditingController titleC;
-  late TextEditingController descC;
-  late TextEditingController urlC;
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController titleC, descC, urlC;
   VideoCategory? selectedCat;
-  PublishStatus? selectedStatus;
   bool isActive = true;
+  bool isLoading = false; // حالة التحميل
 
   @override
   void initState() {
@@ -1093,106 +839,241 @@ class _EditVideoDialogState extends State<EditVideoDialog> {
     titleC = TextEditingController(text: widget.video.title);
     descC = TextEditingController(text: widget.video.description);
     urlC = TextEditingController(text: widget.video.videoUrl ?? '');
-    selectedCat = widget.categories.firstWhere((c) => c.id == widget.video.categoryId, orElse: () => widget.categories.first);
-    selectedStatus = widget.video.publishStatus;
+    selectedCat = widget.categories.firstWhere(
+          (c) => c.id == widget.video.categoryId,
+      orElse: () => widget.categories.first,
+    );
     isActive = widget.video.isActive;
+  }
+
+  @override
+  void dispose() {
+    titleC.dispose();
+    descC.dispose();
+    urlC.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleUpdate(AppLocalizations loc) async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => isLoading = true);
+    try {
+      final updateData = {
+        'title': titleC.text.trim(),
+        'description': descC.text.trim(),
+        'categoryId': selectedCat?.id,
+        'isActive': isActive,
+      };
+
+      if (widget.video.videoType == 'youtube') {
+        updateData['videoUrl'] = urlC.text.trim();
+      }
+
+      await widget.videoService.updateVideo(widget.video.id, updateData);
+
+      if (!mounted) return;
+      Navigator.pop(context);
+      widget.onVideoUpdated();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.videoUpdated),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${loc.error}: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations(widget.languageCode);
+    final theme = Theme.of(context);
+    final isArabic=widget.languageCode=='ar';
+
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      elevation: 0,
+      backgroundColor: Colors.transparent,
       child: Container(
-        width: 600,
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(loc.editVideo, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: widget.primaryColor)),
-            const SizedBox(height: 24),
-            TextField(controller: titleC, decoration: InputDecoration(labelText: loc.title, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
-            const SizedBox(height: 16),
-            TextField(controller: descC, decoration: InputDecoration(labelText: loc.description, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))), maxLines: 3),
-            const SizedBox(height: 16),
-            if (widget.video.videoType == 'youtube')
-              TextField(
-                controller: urlC,
-                decoration: InputDecoration(
-                  labelText: loc.youtubeUrl,
-                  hintText: loc.youtubeUrlHint,
-                  prefixIcon: const Icon(Icons.link),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        width: 550,
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Icon(Icons.edit_note_rounded, color: widget.primaryColor, size: 30),
+                  const SizedBox(width: 12),
+                  Text(
+                    loc.editVideo,
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: widget.primaryColor),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                    splashRadius: 20,
+                  )
+                ],
+              ),
+              const Divider(height: 32),
+
+              // Scrollable Content
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _buildTextField(
+                        controller: titleC,
+                        label: loc.title,
+                        icon: Icons.title,
+                        validator: (v) => v!.isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: descC,
+                        label: loc.description,
+                        icon: Icons.description_outlined,
+                        maxLines: 3,
+                      ),
+                      if (widget.video.videoType == 'youtube') ...[
+                        const SizedBox(height: 16),
+                        _buildTextField(
+                          controller: urlC,
+                          label: loc.youtubeUrl,
+                          icon: Icons.play_circle_filled,
+                          hint: loc.youtubeUrlHint,
+                          validator: (v) => v!.isEmpty ? 'Required' : null,
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(child: _buildDropdown<VideoCategory>(
+                            label: loc.category,
+                            value: selectedCat,
+                            items: widget.categories.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
+                            onChanged: (v) => setState(() => selectedCat = v),
+                          )),
+
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(loc.active, style: const TextStyle(fontWeight: FontWeight.w500)),
+                        subtitle: Text(isArabic?"جعل هذا الفيديو مرئي للمستخدمين":"Make this video visible to users"),
+                        value: isActive,
+                        activeColor: widget.primaryColor,
+                        onChanged: (v) => setState(() => isActive = v),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            if (widget.video.videoType == 'youtube') const SizedBox(height: 16),
-            DropdownButtonFormField<VideoCategory>(
-              value: selectedCat,
-              items: widget.categories.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
-              onChanged: (v) => setState(() => selectedCat = v),
-              decoration: InputDecoration(labelText: loc.category, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<PublishStatus>(
-              value: selectedStatus,
-              items: PublishStatus.values.map((s) => DropdownMenuItem(value: s, child: Text(s.name.toUpperCase()))).toList(),
-              onChanged: (v) => setState(() => selectedStatus = v),
-              decoration: InputDecoration(labelText: loc.status, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-            ),
-            const SizedBox(height: 16),
-            SwitchListTile(
-              title: Text(loc.active),
-              value: isActive,
-              onChanged: (v) => setState(() => isActive = v),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.cancel)),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: () async {
-                    try {
-                      final updateData = {
-                        'title': titleC.text,
-                        'description': descC.text,
-                        'categoryId': selectedCat?.id,
-                        'publishStatus': selectedStatus?.name,
-                        'isActive': isActive,
-                      };
 
+              const SizedBox(height: 24),
 
-                      if (widget.video.videoType == 'youtube' && urlC.text.isNotEmpty) {
-                        final videoId = urlC.text;
-                        if (videoId != null) {
-                          updateData['videoUrl'] = videoId;
-                        }
-                      }
-
-                      await widget.videoService.updateVideo(widget.video.id, updateData);
-                      Navigator.pop(context);
-                      widget.onVideoUpdated();
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.videoUpdated), backgroundColor: Colors.green));
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${loc.error}: $e'), backgroundColor: Colors.red));
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: widget.primaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                  child: Text(loc.save, style: const TextStyle(color: Colors.white)),
-                ),
-              ],
-            ),
-          ],
+              // Actions
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: isLoading ? null : () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(loc.cancel),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : () => _handleUpdate(loc),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: widget.primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: isLoading
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : Text(loc.save, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
 
-}
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    int maxLines = 1,
+    String? hint,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon, size: 20),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: widget.primaryColor, width: 1.5)),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+    );
+  }
 
-// ================== MANAGE CATEGORIES DIALOG ==================
+  Widget _buildDropdown<T>({
+    required String label,
+    required T? value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return DropdownButtonFormField<T>(
+      value: value,
+      items: items,
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: label,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+    );
+  }
+}
 class ManageCategoriesDialog extends StatefulWidget {
   final List<VideoCategory> categories;
   final CategoryApiService categoryService;
@@ -1205,8 +1086,16 @@ class ManageCategoriesDialog extends StatefulWidget {
   @override
   State<ManageCategoriesDialog> createState() => _ManageCategoriesDialogState();
 }
-
 class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
+  late List<VideoCategory> _reorderedCategories;
+
+  @override
+  void initState() {
+    super.initState();
+    // ترتيب التصنيفات حسب الـ index
+    _reorderedCategories = List.from(widget.categories)..sort((a, b) => a.index.compareTo(b.index));
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations(widget.languageCode);
@@ -1221,20 +1110,62 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(children: [Icon(Icons.category, color: widget.primaryColor, size: 28), const SizedBox(width: 12), Text(loc.manageCategories, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold))]),
+                Row(children: [Icon(Icons.category, color: Colors.blue.shade900, size: 28), const SizedBox(width: 12), Text(loc.manageCategories, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold))]),
                 IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
               ],
             ),
             const Divider(height: 32),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      loc.dragToReorder,
+                      style: TextStyle(color: Colors.blue.shade700, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // ✨ ReorderableListView للسحب وإعادة الترتيب
             SizedBox(
               height: 300,
-              child: ListView.builder(
-                itemCount: widget.categories.length,
+              child: ReorderableListView.builder(
+                itemCount: _reorderedCategories.length,
+                onReorder: (oldIndex, newIndex) {
+                  setState(() {
+                    if (newIndex > oldIndex) newIndex--;
+                    final item = _reorderedCategories.removeAt(oldIndex);
+                    _reorderedCategories.insert(newIndex, item);
+                  });
+                },
                 itemBuilder: (_, i) {
-                  final cat = widget.categories[i];
+                  final cat = _reorderedCategories[i];
                   return Card(
+                    key: ValueKey(cat.id),
+                    elevation: 2,
+                    margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
-                      leading: CircleAvatar(child: Icon(Icons.folder, color: widget.primaryColor)),
+                      leading: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.drag_handle, color: Colors.grey.shade600),
+                          const SizedBox(width: 8),
+                          CircleAvatar(
+                            backgroundColor: widget.primaryColor.withOpacity(0.1),
+                            child: Text('${i + 1}', style: TextStyle(color: widget.primaryColor, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
                       title: Text(cat.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1249,19 +1180,51 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
               ),
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _addCategory,
-                icon: const Icon(Icons.add, color: Colors.white),
-                label: Text(loc.addCategory, style: const TextStyle(color: Colors.white)),
-                style: ElevatedButton.styleFrom(backgroundColor: widget.primaryColor, padding: const EdgeInsets.symmetric(vertical: 16)),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _addCategory,
+                    icon: const Icon(Icons.add, color: Colors.white),
+                    label: Text(loc.addCategory, style: const TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(backgroundColor: widget.primaryColor, padding: const EdgeInsets.symmetric(vertical: 16)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _saveOrder,
+                    icon: const Icon(Icons.save, color: Colors.white),
+                    label: Text(loc.save, style: const TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(vertical: 16)),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  // ✨ حفظ الترتيب الجديد
+  Future<void> _saveOrder() async {
+    final loc = AppLocalizations(widget.languageCode);
+    try {
+      // إرسال الترتيب الجديد للـ API
+      final categoryIds = _reorderedCategories.map((c) => c.id).toList();
+      await widget.categoryService.reorderCategories(categoryIds);
+
+      Navigator.pop(context);
+      widget.onCategoriesUpdated();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(loc.orderUpdated), backgroundColor: Colors.green),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${loc.error}: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   void _addCategory() {
@@ -1278,6 +1241,10 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
             onPressed: () async {
               if (nameC.text.isNotEmpty) {
                 await widget.categoryService.addCategory(nameC.text);
+                print('Category added successfully');
+                print(nameC.text);
+                print('Category added successfully');
+                Navigator.pop(context);
                 Navigator.pop(context);
                 widget.onCategoriesUpdated();
               }
@@ -1304,6 +1271,7 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
               if (nameC.text.isNotEmpty) {
                 await widget.categoryService.updateCategory(cat.id, nameC.text);
                 Navigator.pop(context);
+                Navigator.pop(context);
                 widget.onCategoriesUpdated();
               }
             },
@@ -1329,6 +1297,7 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
     );
     if (confirmed == true) {
       await widget.categoryService.deleteCategory(cat.id);
+      Navigator.pop(context);
       widget.onCategoriesUpdated();
     }
   }

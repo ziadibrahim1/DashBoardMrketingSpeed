@@ -1,9 +1,3 @@
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
-
-import '../../core/app_config.dart';
-
 enum PackageStatus { active, paused }
 
 class LogEntry {
@@ -137,9 +131,9 @@ class PackageFeature {
 
   Map<String, dynamic> toJson() {
     return {
-      "feature": feature ?? '',
-      "featureAr": featureAr ?? feature ?? '',
-      "featureEn": featureEn ?? feature ?? '',
+      "feature": feature ,
+      "featureAr": featureAr ?? feature ,
+      "featureEn": featureEn ?? feature ,
       "limitCount": limitCount,
     };
   }

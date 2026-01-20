@@ -111,7 +111,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1565C0), Color(0xFF1976D2), Color(0xFF1E88E5)],
+          colors: [Color(0xFF4FB5F5),Color(0xFF1B367A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

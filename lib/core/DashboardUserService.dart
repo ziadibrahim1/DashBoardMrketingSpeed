@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../core/app_config.dart';
 
 class DashboardUserService {
   final String baseUrl;

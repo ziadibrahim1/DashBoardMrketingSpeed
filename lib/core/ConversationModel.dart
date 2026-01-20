@@ -102,7 +102,6 @@ class SubscriptionModel {
   });
 
   factory SubscriptionModel.fromJson(Map<String, dynamic> json) {
-    final start = DateTime.tryParse(json['startDate'] ?? '');
     final end = DateTime.tryParse(json['endDate'] ?? '');
     int daysLeft = 0;
 

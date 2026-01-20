@@ -1,69 +1,38 @@
-import 'package:csv/csv.dart';
-import 'package:file_saver/file_saver.dart';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../Models/Payment.dart';
 import '../../providers/app_providers.dart';
 import 'PaymentStatsDashboard.dart';
-Future<void> exportToCSVFile(List<Payment> payments) async {
-  try {
-    final rows = <List<String>>[
-      ['الاسم', 'الباقة', 'المبلغ', 'الحالة', 'الوسيلة', 'التاريخ'],
-      ...payments.map((p) => [
-        p.username,
-        p.plan,
-        p.amount.toString(),
-        p.status,
-        p.method,
-        p.date.toIso8601String(),
-      ]),
-    ];
 
-    final csvContent = const ListToCsvConverter().convert(rows);
-    final bytes = csvContent.codeUnits;
 
-    final fileName = 'سجل_المدفوعات.csv';
-
-    final res = await FileSaver.instance.saveFile(
-      name: fileName,
-      bytes: Uint8List.fromList(bytes),
-      ext: 'csv',
-      mimeType: MimeType.csv,
-    );
-
-    debugPrint("تم حفظ الملف: $res");
-
-  } catch (e) {
-    debugPrint('خطأ أثناء التصدير: $e');
-  }
-}
-enum UserRole { admin, manager, viewer }
-
+// ============= UI Components - REDESIGNED =============
 class PaymentManagementSection extends StatefulWidget {
   const PaymentManagementSection({super.key});
 
   @override
-  State<PaymentManagementSection> createState() =>
-      _PaymentManagementSectionState();
+  State<PaymentManagementSection> createState() => _PaymentManagementSectionState();
 }
+
 class _PaymentManagementSectionState extends State<PaymentManagementSection>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  UserRole currentRole = UserRole.admin;
 
   final List<Tab> tabsAR = const [
-    Tab(text: 'لوحة الإحصائيات'),
-    Tab(text: 'سجل المدفوعات'),
-    Tab(text: 'مدفوعات العملاء'),
-    Tab(text: 'بوابات الدفع'),
+    Tab(icon: Icon(Icons.dashboard_outlined), text: 'لوحة الإحصائيات'),
+    Tab(icon: Icon(Icons.receipt_long_outlined), text: 'سجل المدفوعات'),
+    Tab(icon: Icon(Icons.people_outline), text: 'مدفوعات العملاء'),
   ];
+
   final List<Tab> tabsEN = const [
-    Tab(text: 'Stats Dashboard'),
-    Tab(text: 'Payment History'),
-    Tab(text: 'Customer Payments'),
-    Tab(text: 'Payment Gateways'),
+    Tab(icon: Icon(Icons.dashboard_outlined), text: 'Stats Dashboard'),
+    Tab(icon: Icon(Icons.receipt_long_outlined), text: 'Payment History'),
+    Tab(icon: Icon(Icons.people_outline), text: 'Customer Payments'),
   ];
+
   @override
   void initState() {
     super.initState();
@@ -81,152 +50,160 @@ class _PaymentManagementSectionState extends State<PaymentManagementSection>
     final localeProvider = Provider.of<LocaleProvider>(context);
     final isArabic = localeProvider.locale.languageCode == 'ar';
     final theme = Theme.of(context);
-    var isDark = theme.brightness == Brightness.dark;
-
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor:isDark?Colors.grey[900]: Colors.white,
-      appBar: AppBar(
-        elevation: 4,
-        backgroundColor:isDark?Colors.grey[900]:Colors.blue.shade300,
-        title:   Text(
-          isArabic?'إدارة الدفع':'Payment Management',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color:   Colors.white ,
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50),
-          child: Container(
-            color: isDark?Colors.grey[900]:Colors.blue.shade50,
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabs:isArabic? tabsAR:tabsEN,
-              labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
-              labelColor:isDark?Colors.white: Colors.blue.shade700,
-              unselectedLabelColor: isDark?Colors.grey[300]:Colors.blue.shade900,
-              indicator: UnderlineTabIndicator(
-                borderSide: BorderSide(width: 3, color: Colors.white),
-                insets: const EdgeInsets.symmetric(horizontal: 16),
+      backgroundColor: isDark
+          ? const Color(0xFF0A0E21)
+          : const Color(0xFFF5F7FA),
+      body: Column(
+        children: [
+
+          /// ===== Elegant Header Card =====
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+              child: Card(
+                elevation: 4,
+                shadowColor: Colors.black.withOpacity(0.08),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    gradient: LinearGradient(
+                      colors: isDark
+                          ? const [
+                        Color(0xFF1F2937),
+                        Color(0xFF273449),
+                      ]
+                          : const [
+                        Color(0xFF4FB5F5),
+                        Color(0xFF1B367A),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+
+                      /// ===== Header Row =====
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.18),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.payment_rounded,
+                                size: 22,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                isArabic
+                                    ? 'إدارة الدفع'
+                                    : 'Payment Management',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      /// ===== Glassmorphic Slim Tabs =====
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 2, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                    color: Colors.white.withOpacity(0.2)),
+                              ),
+                              child: TabBar(
+                                controller: _tabController,
+                                tabs: isArabic ? tabsAR : tabsEN,
+
+                                // ===== Slim & Glass =====
+                                labelPadding: const EdgeInsets.symmetric(
+                                    vertical: 4, horizontal: 8),
+                                indicatorPadding: EdgeInsets.zero,
+                                indicatorSize: TabBarIndicatorSize.tab,
+
+                                labelColor: isDark
+                                    ?  Colors.white
+                                    :  Colors.white,
+                                unselectedLabelColor:
+                                Colors.white30.withOpacity(0.8),
+                                labelStyle: const TextStyle(
+                                    fontSize: 11, fontWeight: FontWeight.w600),
+                                unselectedLabelStyle: const TextStyle(
+                                    fontSize: 11, fontWeight: FontWeight.w500),
+
+                                indicator: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.25),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8),
-        child: TabBarView(
-          controller: _tabController,
-          children: [
-          PaymentStatsDashboard(),
-            const PaymentHistoryScreen(),
-            const CustomerPaymentsScreen(),
-            const GatewaysScreen(),
-          ],
-        ),
+
+          /// ===== Content =====
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: const [
+                PaymentStatsDashboard(),
+                PaymentHistoryScreen(),
+                CustomerPaymentsScreen(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class Payment {
-  final String username;
-  final String plan;
-  final double amount;
-  final String status;
-  final String method;
-  final DateTime date;
-
-  Payment({
-    required this.username,
-    required this.plan,
-    required this.amount,
-    required this.status,
-    required this.method,
-    required this.date,
-  });
-}
-
-class PaymentViewModel extends ChangeNotifier {
-  final List<Payment> _payments = [];
-  List<Payment> get payments => _payments;
-
-  String _searchQuery = '';
-  String get searchQuery => _searchQuery;
-
-  PaymentViewModel(isArabic) {
-    _generateInitialPayments(isArabic);
-  }
-
-  void _generateInitialPayments(bool isArabic) {
-
-    _payments.addAll(List.generate(50, (i) {
-      return Payment(
-        username: isArabic ? 'مستخدم $i' : 'User $i',
-        plan: i % 2 == 0
-            ? (isArabic ? 'شهري' : 'Monthly')
-            : (isArabic ? 'سنوي' : 'Yearly'),
-        amount: 100 + i * 10,
-        status: i % 2 == 0
-            ? (isArabic ? 'تم' : 'Completed')
-            : (isArabic ? 'معلق' : 'Pending'),
-        method: isArabic ? 'بطاقة' : 'Card',
-        date: DateTime.now().subtract(Duration(days: i)),
-      );
-
-    }));
-  }
-
-  List<Payment> get filteredPayments {
-    if (_searchQuery.isEmpty) return _payments;
-    return _payments
-        .where((p) => p.username.contains(_searchQuery))
-        .toList();
-  }
-
-  void updateSearchQuery(String query) {
-    _searchQuery = query;
-    notifyListeners();
-  }
-
-  Future<void> exportToCSV() async {
-    final List<List<String>> rows = [
-      ['الاسم', 'الباقة', 'المبلغ', 'الحالة', 'الوسيلة', 'التاريخ'],
-      ...filteredPayments.map((p) => [
-        p.username,
-        p.plan,
-        p.amount.toString(),
-        p.status,
-        p.method,
-        p.date.toIso8601String(),
-      ])
-    ];
-    final csv = const ListToCsvConverter().convert(rows);
-    await Clipboard.setData(ClipboardData(text: csv));
-  }
-}
-
+// ============= Payment History Screen - REDESIGNED =============
 class PaymentHistoryScreen extends StatelessWidget {
   const PaymentHistoryScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final localeProvider = Provider.of<LocaleProvider>(context);
-    final isArabic = localeProvider.locale.languageCode == 'ar';
     return ChangeNotifierProvider(
-      create: (_) => PaymentViewModel(isArabic),
-      child: Scaffold(
-
-        body: const SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.all(24.0),
-            child: PaymentHistoryBody(),
-          ),
-        ),
-      ),
+      create: (_) => PaymentViewModel()..loadPayments(),
+      child: const PaymentHistoryBody(),
     );
   }
 }
@@ -239,498 +216,1010 @@ class PaymentHistoryBody extends StatelessWidget {
     final localeProvider = Provider.of<LocaleProvider>(context);
     final isArabic = localeProvider.locale.languageCode == 'ar';
     final vm = context.watch<PaymentViewModel>();
-    final payments = vm.filteredPayments;
     final theme = Theme.of(context);
-    var isDark = theme.brightness == Brightness.dark;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // شريط البحث والتصدير
-        Row(
+    final isDark = theme.brightness == Brightness.dark;
+
+    if (vm.isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(
-              child: TextField(
-                onChanged: vm.updateSearchQuery,
-                decoration: InputDecoration(
-                  hintText: isArabic ? 'ابحث باسم العميل' : 'Search by client name',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.surfaceVariant,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E2746) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
                   ),
-                ),
+                ],
               ),
+              child: const CircularProgressIndicator(),
             ),
-            const SizedBox(width: 12),
-            FilledButton.icon(
-              onPressed: () async {
-                final vm = context.read<PaymentViewModel>();
-                await exportToCSVFile(vm.filteredPayments);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(isArabic ? 'تم حفظ ملف CSV' : 'CSV file saved')),
-                );
-              },
-              icon: const Icon(Icons.download, color: Colors.white),
-              label: Text(isArabic ? 'تصدير' : 'Export'),
-              style: FilledButton.styleFrom(
-                backgroundColor: isDark ? Colors.green : Colors.blue,
-                foregroundColor: Colors.white, // لون النص والأيقونة
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            const SizedBox(height: 24),
+            Text(
+              isArabic ? 'جاري التحميل...' : 'Loading...',
+              style: TextStyle(
+                fontSize: 16,
+                color: isDark ? Colors.white70 : Colors.black54,
               ),
             ),
           ],
         ),
+      );
+    }
 
-        const SizedBox(height: 24),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final theme = Theme.of(context);
-            final isDark = theme.brightness == Brightness.dark;
-
-            return SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Container(
-                color: isDark ? Colors.grey[900] : Colors.grey[50], // خلفية ناعمة للطرفين
-                width: constraints.maxWidth,
-                child: PaginatedDataTable(
-                  columns: [
-                    DataColumn(label: Text(isArabic ? 'المستخدم' : 'User')),
-                    DataColumn(label: Text(isArabic ? 'الباقة' : 'Plan')),
-                    DataColumn(label: Text(isArabic ? 'المبلغ' : 'Amount')),
-                    DataColumn(label: Text(isArabic ? 'الحالة' : 'Status')),
-                    DataColumn(label: Text(isArabic ? 'الوسيلة' : 'Method')),
-                    DataColumn(label: Text(isArabic ? 'التاريخ' : 'Date')),
-                  ],
-                  source: PaymentDataSource(payments),
-                  header: Text(isArabic ? 'عمليات الدفع' : 'Payment Transactions'),
-                  rowsPerPage: 10,
-                  columnSpacing: 24,
-                  horizontalMargin: 12,
-                  showCheckboxColumn: false,
-                  headingRowColor: MaterialStateProperty.resolveWith<Color?>(
-                        (states) => isDark ? Colors.grey[850] : Colors.grey[200],
+    if (vm.error != null) {
+      return Center(
+        child: Container(
+          margin: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E2746) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                isArabic ? 'حدث خطأ في تحميل البيانات' : 'Error loading data',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(vm.error!, textAlign: TextAlign.center),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => vm.loadPayments(refresh: true),
+                icon: const Icon(Icons.refresh),
+                label: Text(isArabic ? 'إعادة المحاولة' : 'Retry'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),
-            );
-          },
+            ],
+          ),
         ),
-      ],
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Search & Export Bar
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E2746) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0A0E21) : const Color(0xFFF5F7FA),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: TextField(
+                      onChanged: vm.updateSearchQuery,
+                      decoration: InputDecoration(
+                        hintText: isArabic ? 'ابحث باسم العميل...' : 'Search by client name...',
+                        prefixIcon: const Icon(Icons.search, color: Color(0xFF143E71)),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    await vm.exportToCSV();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(Icons.check_circle, color: Colors.white),
+                              const SizedBox(width: 12),
+                              Text(isArabic ? 'تم حفظ ملف CSV بنجاح' : 'CSV file saved successfully'),
+                            ],
+                          ),
+                          backgroundColor: Colors.green,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.download_rounded),
+                  label: Text(isArabic ? 'تصدير CSV' : 'Export CSV'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Modern Table
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E2746) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                // Table Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF2D3561).withOpacity(0.5)
+                        : const Color(0xFFF5F7FA),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.receipt_long, color: Color(0xFF143E71)),
+                      const SizedBox(width: 12),
+                      Text(
+                        isArabic ? 'عمليات الدفع' : 'Payment Transactions',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF143E71).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${vm.payments.length} ${isArabic ? 'عملية' : 'transactions'}',
+                          style: const TextStyle(
+                            color: Color(0xFF143E71),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Table Body
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: vm.payments.length,
+                  separatorBuilder: (context, index) => Divider(
+                    height: 1,
+                    color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.1),
+                  ),
+                  itemBuilder: (context, index) {
+                    final payment = vm.payments[index];
+                    return _PaymentRow(payment: payment, isArabic: isArabic, isDark: isDark);
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Pagination
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E2746) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  isArabic
+                      ? 'صفحة ${vm.currentPage} من ${vm.totalPages}'
+                      : 'Page ${vm.currentPage} of ${vm.totalPages}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: vm.currentPage > 1 ? () => vm.previousPage() : null,
+                      icon: const Icon(Icons.arrow_back_ios_rounded),
+                      style: IconButton.styleFrom(
+                        backgroundColor: vm.currentPage > 1
+                            ? const Color(0xFF143E71).withOpacity(0.1)
+                            : Colors.grey.withOpacity(0.1),
+                        foregroundColor: vm.currentPage > 1 ? const Color(0xFF143E71) : Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: vm.currentPage < vm.totalPages ? () => vm.nextPage() : null,
+                      icon: const Icon(Icons.arrow_forward_ios_rounded),
+                      style: IconButton.styleFrom(
+                        backgroundColor: vm.currentPage < vm.totalPages
+                            ? const Color(0xFF143E71).withOpacity(0.1)
+                            : Colors.grey.withOpacity(0.1),
+                        foregroundColor: vm.currentPage < vm.totalPages ? const Color(0xFF143E71) : Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class PaymentDataSource extends DataTableSource {
-  final List<Payment> payments;
+// Widget للصف الواحد في الجدول
+class _PaymentRow extends StatelessWidget {
+  final Payment payment;
+  final bool isArabic;
+  final bool isDark;
 
-  PaymentDataSource(this.payments);
+  const _PaymentRow({
+    required this.payment,
+    required this.isArabic,
+    required this.isDark,
+  });
 
-  @override
-  DataRow getRow(int index) {
-    if (index >= payments.length) return const DataRow(cells: []);
-    final p = payments[index];
-    return DataRow(cells: [
-      DataCell(Text(p.username)),
-      DataCell(Text(p.plan)),
-      DataCell(Text('${p.amount} ر.س')),
-      DataCell(
-        Chip(
-          label: Text(p.status),
+  Color _getStatusColor() {
+    if (payment.status == 'تم' || payment.status == 'completed') {
+      return const Color(0xFF10B981);
+    } else if (payment.status == 'معلق' || payment.status == 'pending') {
+      return const Color(0xFFF59E0B);
+    }
+    return const Color(0xFFEF4444);
+  }
 
-          labelStyle: TextStyle(
-            color: p.status == 'تم' ? Colors.green : Colors.blue,
-          ),
-        ),
-      ),
-      DataCell(Text(p.method)),
-      DataCell(Text(p.date.toString().split(' ').first)),
-    ]);
+  IconData _getMethodIcon() {
+    if (payment.method.contains('بطاقة') || payment.method.toLowerCase().contains('card')) {
+      return Icons.credit_card;
+    } else if (payment.method.contains('تحويل') || payment.method.toLowerCase().contains('transfer')) {
+      return Icons.account_balance;
+    }
+    return Icons.payment;
   }
 
   @override
-  bool get isRowCountApproximate => false;
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          // Avatar
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF6366F1).withOpacity(0.2),
+                  const Color(0xFF8B5CF6).withOpacity(0.2),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                payment.username.isNotEmpty ? payment.username[0].toUpperCase() : '?',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF6366F1),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
 
-  @override
-  int get rowCount => payments.length;
+          // User & Plan Info
+          Expanded(
+            flex: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  payment.username,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.workspace_premium,
+                      size: 14,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      payment.plan,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
 
-  @override
-  int get selectedRowCount => 0;
+          // Amount
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6366F1).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${payment.amount.toStringAsFixed(2)} ${isArabic ? "ر.س" : "SAR"}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF6366F1),
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Status
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: _getStatusColor().withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: _getStatusColor().withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  payment.status,
+                  style: TextStyle(
+                    color: _getStatusColor(),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Method
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(_getMethodIcon(), size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  payment.method,
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Date
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today,
+                    size: 14,
+                    color: isDark ? Colors.white60 : Colors.black54,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    DateFormat('yyyy-MM-dd').format(payment.date),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                DateFormat('HH:mm').format(payment.date),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white60 : Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class CustomerPaymentsScreen extends StatefulWidget {
+// ============= Customer Payments Screen - REDESIGNED =============
+class CustomerPaymentsScreen extends StatelessWidget {
   const CustomerPaymentsScreen({super.key});
 
   @override
-  State<CustomerPaymentsScreen> createState() =>
-      _CustomerPaymentsScreenState();
-}
-
-
-
-class CustomerSubscription {
-  final String name;
-  final String packageName;
-  final DateTime endDate;
-  final bool isActive;
-
-  CustomerSubscription({
-    required this.name,
-    required this.packageName,
-    required this.endDate,
-    required this.isActive,
-  });
-
-  CustomerSubscription copyWith({
-    String? name,
-    String? packageName,
-    DateTime? endDate,
-    bool? isActive,
-  }) {
-    return CustomerSubscription(
-      name: name ?? this.name,
-      packageName: packageName ?? this.packageName,
-      endDate: endDate ?? this.endDate,
-      isActive: isActive ?? this.isActive,
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => CustomerSubscriptionViewModel()..loadSubscriptions(),
+      child: const CustomerPaymentsBody(),
     );
   }
 }
 
-class _CustomerPaymentsScreenState extends State<CustomerPaymentsScreen> {
-  final List<CustomerSubscription> subscriptions = [
-    CustomerSubscription(
-      name: 'محمد أحمد',
-      packageName: 'باقة شهرية',
-      endDate: DateTime(2025, 9, 1),
-      isActive: true,
-    ),
-    CustomerSubscription(
-      name: 'ليلى خالد',
-      packageName: 'باقة سنوية',
-      endDate: DateTime(2025, 12, 31),
-      isActive: true,
-    ),
-    CustomerSubscription(
-      name: 'عبدالله يوسف',
-      packageName: 'باقة تجريبية',
-      endDate: DateTime(2025, 7, 1),
-      isActive: false,
-    ),
-    // أضف المزيد لاختبار الصفحات
-  ];
-
-  String searchQuery = '';
-  int currentPage = 0;
-  final int itemsPerPage = 5;
-  String statusFilter = 'الكل';
-  bool sortAscending = true; // true = تصاعدي، false = تنازلي
-
-  void _renewSubscription(int index) {
-    final realIndex = filteredSubscriptions.indexOf(paginatedSubscriptions[index]);
-    final subscriptionIndex = subscriptions.indexOf(filteredSubscriptions[realIndex]);
-
-    setState(() {
-      subscriptions[subscriptionIndex] = subscriptions[subscriptionIndex].copyWith(
-        endDate: DateTime.now().add(const Duration(days: 30)),
-        isActive: true,
-      );
-    });
-
-    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
-    final isArabic = localeProvider.locale.languageCode == 'ar';
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isArabic
-              ? 'تم تجديد اشتراك ${subscriptions[subscriptionIndex].name} لمدة 30 يوم.'
-              : 'Subscription for ${subscriptions[subscriptionIndex].name} renewed for 30 days.',
-        ),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  List<CustomerSubscription> get filteredSubscriptions {
-    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
-    final isArabic = localeProvider.locale.languageCode == 'ar';
-
-    List<CustomerSubscription> result = subscriptions;
-
-    // بحث بالاسم
-    if (searchQuery.isNotEmpty) {
-      result = result.where((sub) => sub.name.contains(searchQuery)).toList();
-    }
-
-    // فلترة بالحالة
-    if (statusFilter == (isArabic ? 'نشط' : 'Active')) {
-      result = result.where((sub) => sub.isActive && sub.endDate.isAfter(DateTime.now())).toList();
-    } else if (statusFilter == (isArabic ? 'منتهي' : 'Expired')) {
-      result = result.where((sub) => !sub.isActive || sub.endDate.isBefore(DateTime.now())).toList();
-    }
-
-    // ترتيب حسب تاريخ الانتهاء
-    result.sort((a, b) => sortAscending
-        ? a.endDate.compareTo(b.endDate)
-        : b.endDate.compareTo(a.endDate));
-
-    return result;
-  }
-
-  List<CustomerSubscription> get paginatedSubscriptions {
-    final startIndex = currentPage * itemsPerPage;
-    final endIndex = startIndex + itemsPerPage;
-    return filteredSubscriptions.sublist(
-      startIndex,
-      endIndex > filteredSubscriptions.length
-          ? filteredSubscriptions.length
-          : endIndex,
-    );
-  }
-
-  void _goToPreviousPage() {
-    if (currentPage > 0) {
-      setState(() => currentPage--);
-    }
-  }
-
-  void _goToNextPage() {
-    final totalPages = (filteredSubscriptions.length / itemsPerPage).ceil();
-    if (currentPage < totalPages - 1) {
-      setState(() => currentPage++);
-    }
-  }
+class CustomerPaymentsBody extends StatelessWidget {
+  const CustomerPaymentsBody({super.key});
 
   @override
   Widget build(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context);
     final isArabic = localeProvider.locale.languageCode == 'ar';
+    final vm = context.watch<CustomerSubscriptionViewModel>();
     final theme = Theme.of(context);
-    var isDark = theme.brightness == Brightness.dark;
+    final isDark = theme.brightness == Brightness.dark;
 
-    // تحضير خيارات الفلتر حسب اللغة
     final statusOptions = isArabic ? ['الكل', 'نشط', 'منتهي'] : ['All', 'Active', 'Expired'];
 
-    // ضبط statusFilter إذا لم يتطابق مع الخيارات الجديدة (مثلاً بعد تغيير اللغة)
-    if (!statusOptions.contains(statusFilter)) {
-      statusFilter = statusOptions[0];
+    if (vm.isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E2746) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                  ),
+                ],
+              ),
+              child: const CircularProgressIndicator(),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              isArabic ? 'جاري التحميل...' : 'Loading...',
+              style: TextStyle(
+                fontSize: 16,
+                color: isDark ? Colors.white70 : Colors.black54,
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                // بحث (يوسع تلقائيًا)
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      labelText: isArabic ? 'ابحث عن عميل' : 'Search for client',
-                      prefixIcon: const Icon(Icons.search),
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        searchQuery = value;
-                        currentPage = 0;
-                      });
-                    },
+    if (vm.error != null) {
+      return Center(
+        child: Container(
+          margin: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E2746) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                isArabic ? 'حدث خطأ في تحميل البيانات' : 'Error loading data',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(vm.error!, textAlign: TextAlign.center),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => vm.loadSubscriptions(refresh: true),
+                icon: const Icon(Icons.refresh),
+                label: Text(isArabic ? 'إعادة المحاولة' : 'Retry'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
-                const SizedBox(width: 16),
-
-                // فلتر الحالة
-                Text(isArabic ? 'عرض الحالة:' : 'Status:'),
-                const SizedBox(width: 8),
-                DropdownButton<String>(
-                  value: statusFilter,
-                  items: statusOptions.map((status) {
-                    return DropdownMenuItem<String>(
-                      value: status,
-                      child: Text(status),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      statusFilter = value!;
-                      currentPage = 0;
-                    });
-                  },
-                ),
-
-                const SizedBox(width: 24),
-
-                // زر الفرز حسب تاريخ الانتهاء
-                Text(isArabic ? 'ترتيب حسب تاريخ الانتهاء:' : 'Sort by end date:'),
-                IconButton(
-                  icon: Icon(sortAscending ? Icons.arrow_upward : Icons.arrow_downward),
-                  onPressed: () {
-                    setState(() {
-                      sortAscending = !sortAscending;
-                      currentPage = 0;
-                    });
-                  },
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Filters Bar
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E2746) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
+            child: Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                // Search
+                SizedBox(
+                  width: 300,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0A0E21) : const Color(0xFFF5F7FA),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: isArabic ? 'ابحث عن عميل...' : 'Search for client...',
+                        prefixIcon: const Icon(Icons.search, color: Color(
+                            0xFF235C88)),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                      onChanged: vm.updateSearchQuery,
+                    ),
+                  ),
+                ),
 
-            const SizedBox(height: 16),
+                // Status Filter
+                Container(
 
-            // القائمة أو رسالة لا يوجد نتائج
-            Expanded(
-              child: paginatedSubscriptions.isEmpty
-                  ? Center(child: Text(isArabic ? 'لا يوجد نتائج' : 'No results'))
-                  : ListView.builder(
-                itemCount: paginatedSubscriptions.length,
-                itemBuilder: (context, index) {
-                  final sub = paginatedSubscriptions[index];
-                  final isExpired = sub.endDate.isBefore(DateTime.now());
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0.7),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF0A0E21) : const Color(0xFFF5F7FA),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.filter_list, color: Color(0xFF235C88), size: 14),
+                      const SizedBox(width: 8),
+                      Text(
+                        isArabic ? 'الحالة:' : 'Status:',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(width: 8),
+                      DropdownButton<String>(
+                        value: statusOptions.contains(vm.statusFilter)
+                            ? vm.statusFilter
+                            : statusOptions[0],
+                        items: statusOptions.map((status) {
+                          return DropdownMenuItem<String>(
+                            value: status,
+                            child: Text(status),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          if (value != null) vm.updateStatusFilter(value);
+                        },
+                        underline: const SizedBox(),
+                      ),
+                    ],
+                  ),
+                ),
 
-                  return Card(
-                    color: isDark ? Colors.grey.shade800 : Colors.white,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CircleAvatar(
-                            backgroundColor: isDark ? Colors.green.shade200 : Colors.blue.shade100,
-                            child: Text(sub.name.characters.first),
+                // Sort Button
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0.7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF235C88).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: vm.toggleSortOrder,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              vm.sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                              color: const Color(0xFF235C88),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              isArabic ? 'تاريخ الانتهاء' : 'End Date',
+                              style: const TextStyle(
+                                color: Color(0xFF235C88),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Subscriptions List
+          if (vm.subscriptions.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(48),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E2746) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.inbox_outlined,
+                      size: 64,
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      isArabic ? 'لا يوجد نتائج' : 'No results',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ...vm.subscriptions.map((sub) {
+              final isExpired = sub.endDate.isBefore(DateTime.now());
+              final daysLeft = sub.endDate.difference(DateTime.now()).inDays;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E2746) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 15,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: (sub.isActive && !isExpired)
+                        ? const Color(0xFF10B981).withOpacity(0.3)
+                        : Colors.transparent,
+                    width: 2,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      // Avatar
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: (sub.isActive && !isExpired)
+                                ? [const Color(0xFF10B981), const Color(0xFF059669)]
+                                : [const Color(0xFFEF4444), const Color(0xFFDC2626)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (sub.isActive && !isExpired
+                                  ? const Color(0xFF10B981)
+                                  : const Color(0xFFEF4444))
+                                  .withOpacity(0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            sub.name.isNotEmpty ? sub.name[0].toUpperCase() : '?',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+
+                      // Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
                               children: [
-                                Text(
-                                  sub.name,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark ? Colors.green.shade200 : Colors.blue.shade900,
+                                Expanded(
+                                  child: Text(
+                                    sub.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  isArabic
-                                      ? '${sub.packageName} - تنتهي في ${DateFormat('yyyy-MM-dd').format(sub.endDate)}'
-                                      : '${sub.packageName} - Ends on ${DateFormat('yyyy-MM-dd').format(sub.endDate)}',
-                                  style: TextStyle(
-                                    color: isDark ? Colors.green.shade200 : Colors.blue.shade900,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: (sub.isActive && !isExpired
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFFEF4444))
+                                        .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: (sub.isActive && !isExpired
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFFEF4444))
+                                          .withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: BoxDecoration(
+                                          color: sub.isActive && !isExpired
+                                              ? const Color(0xFF10B981)
+                                              : const Color(0xFFEF4444),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        sub.isActive && !isExpired
+                                            ? (isArabic ? 'نشط' : 'Active')
+                                            : (isArabic ? 'منتهي' : 'Expired'),
+                                        style: TextStyle(
+                                          color: sub.isActive && !isExpired
+                                              ? const Color(0xFF10B981)
+                                              : const Color(0xFFEF4444),
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Chip(
-                                label: Text(
-                                  sub.isActive && !isExpired ? (isArabic ? 'نشط' : 'Active') : (isArabic ? 'منتهي' : 'Expired'),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.workspace_premium,
+                                  size: 16,
+                                  color: isDark ? Colors.white60 : Colors.black54,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  sub.packageName,
                                   style: TextStyle(
-                                    color: sub.isActive && !isExpired ? Colors.green : Colors.red,
+                                    fontSize: 14,
+                                    color: isDark ? Colors.white60 : Colors.black54,
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              ElevatedButton(
-                                onPressed: () => _renewSubscription(index),
-                                child: Text(
-                                  isArabic ? 'تجديد يدوي' : 'Manual Renew',
-                                  style: TextStyle(color: isDark ? Colors.green : Colors.blue),
+                                const Spacer(),
+                                Icon(
+                                  Icons.calendar_today,
+                                  size: 16,
+                                  color: isDark ? Colors.white60 : Colors.black54,
                                 ),
-                              ),
-                            ],
-                          )
-                        ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  '${isArabic ? 'ينتهي في' : 'Ends'} ${DateFormat('yyyy-MM-dd').format(sub.endDate)}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isDark ? Colors.white60 : Colors.black54,
+                                  ),
+                                ),
+                                if (!isExpired && daysLeft <= 7) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF59E0B).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      '$daysLeft ${isArabic ? 'أيام متبقية' : 'days left'}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFFF59E0B),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
-            ),
 
-            // شريط التنقل بين الصفحات
-            Row(
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+
+          const SizedBox(height: 24),
+
+          // Pagination
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E2746) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(isArabic
-                    ? 'صفحة ${currentPage + 1} من ${(filteredSubscriptions.length / itemsPerPage).ceil()}'
-                    : 'Page ${currentPage + 1} of ${(filteredSubscriptions.length / itemsPerPage).ceil()}'),
+                Text(
+                  isArabic
+                      ? 'صفحة ${vm.currentPage} من ${vm.totalPages}'
+                      : 'Page ${vm.currentPage} of ${vm.totalPages}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
                 Row(
                   children: [
                     IconButton(
-                      onPressed: _goToPreviousPage,
-                      icon: const Icon(Icons.arrow_back),
+                      onPressed: vm.currentPage > 1 ? () => vm.previousPage() : null,
+                      icon: const Icon(Icons.arrow_back_ios_rounded),
+                      style: IconButton.styleFrom(
+                        backgroundColor: vm.currentPage > 1
+                            ? const Color(0xFF6366F1).withOpacity(0.1)
+                            : Colors.grey.withOpacity(0.1),
+                        foregroundColor: vm.currentPage > 1 ? const Color(0xFF6366F1) : Colors.grey,
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     IconButton(
-                      onPressed: _goToNextPage,
-                      icon: const Icon(Icons.arrow_forward),
+                      onPressed: vm.currentPage < vm.totalPages ? () => vm.nextPage() : null,
+                      icon: const Icon(Icons.arrow_forward_ios_rounded),
+                      style: IconButton.styleFrom(
+                        backgroundColor: vm.currentPage < vm.totalPages
+                            ? const Color(0xFF6366F1).withOpacity(0.1)
+                            : Colors.grey.withOpacity(0.1),
+                        foregroundColor: vm.currentPage < vm.totalPages ? const Color(0xFF6366F1) : Colors.grey,
+                      ),
                     ),
                   ],
                 ),
               ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class GatewaysScreen extends StatelessWidget {
-  const GatewaysScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final localeProvider = Provider.of<LocaleProvider>(context);
-    final isArabic = localeProvider.locale.languageCode == 'ar';
-
-    final theme = Theme.of(context);
-    var isDark = theme.brightness == Brightness.dark;
-
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: ListView(
-        children: [
-          Text(
-            isArabic ? 'بوابة PayTabs' : 'PayTabs Gateway',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            decoration: InputDecoration(
-              labelText: isArabic ? 'معرف التاجر' : 'Merchant ID',
-              border: const OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            decoration: InputDecoration(
-              labelText: isArabic ? 'مفتاح الخادم' : 'Server Key',
-              border: const OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.save, color: Colors.white),
-            label: Text(
-              isArabic ? 'حفظ الإعدادات' : 'Save Settings',
-              style: const TextStyle(color: Colors.white),
-            ),
-            style: FilledButton.styleFrom(
-              backgroundColor: isDark ? Colors.green : Colors.blue,
-              foregroundColor: Colors.white, // لون النص والأيقونة
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              textStyle:
-              const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ],

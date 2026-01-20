@@ -136,7 +136,8 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [primaryBlue, secondaryBlue],
+          colors: [Color(0xFF4FB5F5),
+            Color(0xFF1B367A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

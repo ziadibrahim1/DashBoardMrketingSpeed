@@ -1,576 +1,12 @@
+// ================== API SERVICES ==================
 import 'dart:convert';
-import 'dart:html';
 import 'dart:typed_data';
-import 'package:flutter/material.dart' hide VoidCallback;
-import 'package:admin_dashboard/core/app_config.dart';
+
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-class VideoManagerScreen extends StatefulWidget {
-  const VideoManagerScreen({super.key});
-
-  @override
-  State<VideoManagerScreen> createState() => _VideoManagerScreenState();
-}
-
-class _VideoManagerScreenState extends State<VideoManagerScreen> {
-  final VideoApiService _videoService = VideoApiService();
-  final CategoryApiService _categoryService = CategoryApiService();
-  final TextEditingController _searchController = TextEditingController();
-
-  List<VideoDto> _videos = [];
-  List<VideoCategory> _categories = [];
-  List<VideoDto> _filteredVideos = [];
-  bool _isLoading = true;
-  String _selectedFilter = 'all';
-  String _languageFilter = 'all';
-
-  // Colors
-  final Color _primaryColor = const Color(0xFF1A56DB);
-  final Color _primaryLight = const Color(0xFFE3F2FD);
-  final Color _primaryDark = const Color(0xFF0D47A1);
-  final Color _backgroundColor = const Color(0xFFF8FAFC);
-  final Color _cardColor = Colors.white;
-  final Color _textColor = const Color(0xFF1F2937);
-  final Color _textSecondary = const Color(0xFF6B7280);
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    try {
-      final videos = await _videoService.getVideos();
-      final categories = await _categoryService.getCategories();
-
-      setState(() {
-        _videos = videos;
-        _categories = categories;
-        _filteredVideos = videos;
-        _isLoading = false;
-      });
-    } catch (e) {
-      // Handle error
-      setState(() => _isLoading = false);
-    }
-  }
-
-  void _applyFilters() {
-    setState(() {
-      _filteredVideos = _videos.where((video) {
-        bool statusFilter = _selectedFilter == 'all' ||
-            (_selectedFilter == 'active' && video.isActive) ||
-            (_selectedFilter == 'inactive' && !video.isActive);
-
-        bool languageFilter = _languageFilter == 'all' ||
-            video.language == _languageFilter;
-
-        bool searchFilter = _searchController.text.isEmpty ||
-            video.title.toLowerCase().contains(_searchController.text.toLowerCase()) ||
-            video.description.toLowerCase().contains(_searchController.text.toLowerCase());
-
-        return statusFilter && languageFilter && searchFilter;
-      }).toList();
-    });
-  }
-
-  Future<void> _showAddVideoDialog() async {
-    await showDialog(
-      context: context,
-      builder: (context) => AddVideoDialog(
-        videoService: _videoService,
-        categories: _categories,
-        onVideoAdded: _loadData,
-        primaryColor: _primaryColor,
-      ),
-    );
-  }
-
-
-  Future<void> _confirmDeleteVideo(int id) async {
-    final confirmed = await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Video'),
-        content: const Text('Are you sure you want to delete this video?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await _videoService.deleteVideo(id);
-        _loadData();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Video deleted successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Failed to delete video'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _backgroundColor,
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            _buildHeader(),
-            const SizedBox(height: 24),
-
-            // Filters and Search
-            _buildFiltersSection(),
-            const SizedBox(height: 24),
-
-
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Video Manager',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: _primaryDark,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Manage and organize your video content',
-              style: TextStyle(
-                fontSize: 16,
-                color: _textSecondary,
-              ),
-            ),
-          ],
-        ),
-        ElevatedButton.icon(
-          onPressed: _showAddVideoDialog,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _primaryColor,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          icon: const Icon(Icons.add, color: Colors.white),
-          label: const Text(
-            'Add New Video',
-            style: TextStyle(color: Colors.white, fontSize: 16),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFiltersSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: _cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Search Bar
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search videos...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: () {
-                  _searchController.clear();
-                  _applyFilters();
-                },
-              )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: _primaryColor.withOpacity(0.3)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: _primaryColor, width: 2),
-              ),
-            ),
-            onChanged: (_) => _applyFilters(),
-          ),
-          const SizedBox(height: 16),
-
-          // Filters Row
-          Row(
-            children: [
-              // Status Filter
-              _buildFilterDropdown(
-                label: 'Status',
-                value: _selectedFilter,
-                items: const [
-                  DropdownMenuItem(value: 'all', child: Text('All Status')),
-                  DropdownMenuItem(value: 'active', child: Text('Active')),
-                  DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
-                ],
-                onChanged: (value) {
-                  setState(() => _selectedFilter = value!);
-                  _applyFilters();
-                },
-              ),
-              const SizedBox(width: 16),
-
-              // Language Filter
-              _buildFilterDropdown(
-                label: 'Language',
-                value: _languageFilter,
-                items: [
-                  const DropdownMenuItem(value: 'all', child: Text('All Languages')),
-                  const DropdownMenuItem(value: 'ar', child: Text('Arabic')),
-                  const DropdownMenuItem(value: 'en', child: Text('English')),
-                ],
-                onChanged: (value) {
-                  setState(() => _languageFilter = value!);
-                  _applyFilters();
-                },
-              ),
-
-              const Spacer(),
-
-              // Results Count
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: _primaryLight,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${_filteredVideos.length} videos',
-                  style: TextStyle(
-                    color: _primaryColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterDropdown({
-    required String label,
-    required String value,
-    required List<DropdownMenuItem<String>> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: _textSecondary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            border: Border.all(color: _primaryColor.withOpacity(0.2)),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
-              items: items,
-              onChanged: onChanged,
-              style: TextStyle(color: _textColor, fontSize: 14),
-              borderRadius: BorderRadius.circular(8),
-              icon: Icon(Icons.arrow_drop_down, color: _primaryColor),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-
-  Widget _buildStatusBadge(VideoDto video) {
-    Color badgeColor;
-    Color textColor;
-    String text;
-
-    if (!video.isActive) {
-      badgeColor = Colors.red.shade50;
-      textColor = Colors.red.shade700;
-      text = 'Inactive';
-    } else {
-      switch (video.publishStatus) {
-        case PublishStatus.published:
-          badgeColor = Colors.green.shade50;
-          textColor = Colors.green.shade700;
-          text = 'Published';
-          break;
-        case PublishStatus.draft:
-          badgeColor = Colors.orange.shade50;
-          textColor = Colors.orange.shade700;
-          text = 'Draft';
-          break;
-        case PublishStatus.pending:
-          badgeColor = Colors.blue.shade50;
-          textColor = Colors.blue.shade700;
-          text = 'Pending';
-          break;
-      }
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: badgeColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: textColor,
-        ),
-      ),
-    );
-  }
-}
-
-// Add Video Dialog
-class AddVideoDialog extends StatelessWidget {
-  final VideoApiService videoService;
-  final List<VideoCategory> categories;
-  final VoidCallback onVideoAdded;
-  final Color primaryColor;
-
-  const AddVideoDialog({
-    super.key,
-    required this.videoService,
-    required this.categories,
-    required this.onVideoAdded,
-    required this.primaryColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Container(
-        width: 600,
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Add New Video',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: primaryColor,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text('Choose how you want to add a video'),
-            const SizedBox(height: 32),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // YouTube Option
-                _buildOptionCard(
-                  icon: Icons.youtube_searched_for,
-                  title: 'YouTube Video',
-                  description: 'Add a video from YouTube',
-                  color: Colors.red,
-                  onTap: () => _showYouTubeDialog(context),
-                ),
-                const SizedBox(width: 24),
-
-                // File Upload Option
-                _buildOptionCard(
-                  icon: Icons.upload_file,
-                  title: 'Upload File',
-                  description: 'Upload a video file',
-                  color: primaryColor,
-                  onTap: () => _showUploadDialog(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOptionCard({
-    required IconData icon,
-    required String title,
-    required String description,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 200,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.2)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 48, color: color),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showYouTubeDialog(BuildContext context) {
-    // Implement YouTube dialog
-  }
-
-  void _showUploadDialog(BuildContext context) {
-    // Implement file upload dialog
-  }
-}
-
-// Edit Video Dialog
-
-// Enums and Services (keep your existing code)
-enum PublishStatus { draft, published, pending }
-
-class VideoDto {
-  final int id;
-  late final String title;
-  late final String description;
-  final String videoType;
-  final String? videoUrl;
-  final String? filePath;
-  final int? duration;
-  final String language;
-  final DateTime createdAt;
-  final bool isActive;
-  late final int? categoryId;
-  final String? categoryName;
-  late final PublishStatus publishStatus;
-
-  VideoDto({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.videoType,
-    this.videoUrl,
-    this.filePath,
-    this.duration,
-    required this.language,
-    required this.createdAt,
-    required this.isActive,
-    this.categoryId,
-    this.categoryName,
-    required this.publishStatus,
-  });
-
-  factory VideoDto.fromJson(Map<String, dynamic> json) {
-    return VideoDto(
-      id: json['id'],
-      title: json['title'],
-      description: json['description'] ?? '',
-      videoType: json['videoType'],
-      videoUrl: json['videoUrl'],
-      filePath: json['filePath'],
-      duration: json['duration'],
-      language: json['language'],
-      createdAt: DateTime.parse(json['createdAt']),
-      isActive: json['isActive'],
-      categoryId: json['categoryId'],
-      categoryName: json['categoryName'],
-      publishStatus: PublishStatus.values.firstWhere(
-            (e) => e.name == json['publishStatus'],
-        orElse: () => PublishStatus.draft,
-      ),
-    );
-  }
-}
+import '../core/app_config.dart';
+import '../dashboard/pages/AdminVideoManager.dart';
 
 class VideoApiService {
   final String baseUrl = '${AppConfig.baseUrl}tutorial-videos';
@@ -606,16 +42,6 @@ class VideoApiService {
     await http.delete(Uri.parse('$baseUrl/$id'));
   }
 }
-class VideoCategory {
-  final int id;
-  final String name;
-
-  VideoCategory({required this.id, required this.name});
-
-  factory VideoCategory.fromJson(Map<String, dynamic> json) {
-    return VideoCategory(id: json['id'], name: json['name']);
-  }
-}
 
 class CategoryApiService {
   final String baseUrl = '${AppConfig.baseUrl}tutorial-videos';
@@ -636,5 +62,302 @@ class CategoryApiService {
 
   Future<void> deleteCategory(int id) async {
     await http.delete(Uri.parse('$baseUrl/delcat/$id'));
+  }
+
+  Future<void> reorderCategories(List<int> categoryIds) async {
+    await http.put(
+      Uri.parse('$baseUrl/cat/reorder'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'categoryIds': categoryIds}),
+    );
+  }
+}
+
+class VideoDto {
+  final int id;
+  final String title;
+  final String description;
+  final String videoType;
+  final String? videoUrl;
+  final String? filePath;
+  final int? duration;
+  final String language;
+  final DateTime createdAt;
+  final bool isActive;
+  final int? categoryId;
+  final String? categoryName;
+  final PublishStatus publishStatus;
+
+  VideoDto({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.videoType,
+    this.videoUrl,
+    this.filePath,
+    this.duration,
+    required this.language,
+    required this.createdAt,
+    required this.isActive,
+    this.categoryId,
+    this.categoryName,
+    required this.publishStatus,
+  });
+
+  factory VideoDto.fromJson(Map<String, dynamic> json) {
+    return VideoDto(
+      id: json['id'],
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      videoType: json['videoType'] ?? 'youtube',
+      videoUrl: json['videoUrl'],
+      filePath: json['filePath'],
+      duration: json['duration'],
+      language: json['language'] ?? 'ar',
+      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      isActive: json['isActive'] ?? true,
+      categoryId: json['categoryId'],
+      categoryName: json['categoryName'],
+      publishStatus: PublishStatus.values.firstWhere((e) => e.name == json['publishStatus'], orElse: () => PublishStatus.draft),
+    );
+  }
+}
+
+class VideoCategory {
+  final int id;
+  final String name;
+  final int index;
+
+  VideoCategory({required this.id, required this.name, required this.index});
+
+  factory VideoCategory.fromJson(Map<String, dynamic> json) {
+    return VideoCategory(
+      id: json['id'],
+      name: json['name'],
+      index: json['index'] ?? 0,
+    );
+  }
+}
+
+
+class AppLocalizations {
+  final String languageCode;
+
+  AppLocalizations(this.languageCode);
+
+  static AppLocalizations of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
+  }
+
+  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
+
+  static final Map<String, Map<String, String>> _localizedValues = {
+    'en': {
+      'video_manager': 'Video Manager',
+      'manage_content': 'Manage and organize your video content',
+      'categories': 'Categories',
+      'add_video': 'Add Video',
+      'published': 'Published',
+      'pending': 'Pending',
+      'drafts': 'Drafts',
+      'total': 'Total',
+      'search_videos': 'Search videos...',
+      'status': 'Status',
+      'language': 'Language',
+      'all': 'All',
+      'active': 'Active',
+      'inactive': 'Inactive',
+      'arabic': 'Arabic',
+      'english': 'English',
+      'videos': 'videos',
+      'no_videos': 'No videos found',
+      'untitled': 'Untitled',
+      'no_description': 'No description',
+      'draft': 'Draft',
+      'add_new_video': 'Add New Video',
+      'youtube': 'YouTube',
+      'add_from_youtube': 'Add from YouTube',
+      'upload_file': 'Upload File',
+      'upload_video_file': 'Upload video file',
+      'cancel': 'Cancel',
+      'add_youtube_video': 'Add YouTube Video',
+      'youtube_url': 'YouTube URL',
+      'youtube_url_hint': 'https://www.youtube.com/watch?v=xxxx',
+      'title': 'Title',
+      'description': 'Description',
+      'category': 'Category',
+      'add': 'Add',
+      'upload_video': 'Upload Video File',
+      'choose_video': 'Choose Video File',
+      'edit_video': 'Edit Video',
+      'save': 'Save',
+      'delete_video': 'Delete Video?',
+      'delete_confirm': 'This action cannot be undone.',
+      'delete': 'Delete',
+      'manage_categories': 'Manage Categories',
+      'add_category': 'Add Category',
+      'edit_category': 'Edit Category',
+      'delete_category': 'Delete Category?',
+      'category_name': 'Category Name',
+      'video_added': 'Video added successfully!',
+      'video_updated': 'Video updated successfully!',
+      'video_deleted': 'Video deleted successfully!',
+      'category_added': 'Category added successfully!',
+      'category_updated': 'Category updated successfully!',
+      'category_deleted': 'Category deleted successfully!',
+      'error': 'Error',
+      'invalid_url': 'Invalid URL or missing title',
+      'upload_failed': 'Upload failed',
+      'drag_to_reorder': 'Drag to reorder categories',
+      'order_updated': 'Order updated successfully!',
+    },
+    'ar': {
+      'video_manager': 'إدارة فيديوهات الشرح',
+      'manage_content': 'إدارة وتنظيم محتوى الفيديو الخاص بشرح التطبيق',
+      'categories': 'التصنيفات',
+      'add_video': 'إضافة فيديو',
+      'published': 'منشور',
+      'pending': 'قيد الانتظار',
+      'drafts': 'مسودات',
+      'total': 'الإجمالي',
+      'search_videos': 'بحث عن فيديوهات...',
+      'status': 'الحالة',
+      'language': 'اللغة',
+      'all': 'الكل',
+      'active': 'نشط',
+      'inactive': 'غير نشط',
+      'arabic': 'عربي',
+      'english': 'إنجليزي',
+      'videos': 'فيديو',
+      'no_videos': 'لا توجد فيديوهات',
+      'untitled': 'بدون عنوان',
+      'no_description': 'بدون وصف',
+      'draft': 'مسودة',
+      'add_new_video': 'إضافة فيديو جديد',
+      'youtube': 'يوتيوب',
+      'add_from_youtube': 'إضافة من يوتيوب',
+      'upload_file': 'رفع ملف',
+      'upload_video_file': 'رفع ملف فيديو',
+      'cancel': 'إلغاء',
+      'add_youtube_video': 'إضافة فيديو يوتيوب',
+      'youtube_url': 'رابط يوتيوب',
+      'youtube_url_hint': 'https://www.youtube.com/watch?v=xxxx',
+      'title': 'العنوان',
+      'description': 'الوصف',
+      'category': 'التصنيف',
+      'add': 'إضافة',
+      'upload_video': 'رفع ملف فيديو',
+      'choose_video': 'اختر ملف فيديو',
+      'edit_video': 'تعديل الفيديو',
+      'save': 'حفظ',
+      'delete_video': 'حذف الفيديو؟',
+      'delete_confirm': 'لا يمكن التراجع عن هذا الإجراء.',
+      'delete': 'حذف',
+      'manage_categories': 'إدارة التصنيفات',
+      'add_category': 'إضافة تصنيف',
+      'edit_category': 'تعديل التصنيف',
+      'delete_category': 'حذف التصنيف؟',
+      'category_name': 'اسم التصنيف',
+      'video_added': 'تم إضافة الفيديو بنجاح!',
+      'video_updated': 'تم تحديث الفيديو بنجاح!',
+      'video_deleted': 'تم حذف الفيديو بنجاح!',
+      'category_added': 'تم إضافة التصنيف بنجاح!',
+      'category_updated': 'تم تحديث التصنيف بنجاح!',
+      'category_deleted': 'تم حذف التصنيف بنجاح!',
+      'error': 'خطأ',
+      'invalid_url': 'رابط غير صالح أو عنوان مفقود',
+      'upload_failed': 'فشل الرفع',
+      'drag_to_reorder': 'اسحب لإعادة ترتيب التصنيفات',
+      'order_updated': 'تم تحديث الترتيب بنجاح!',
+    },
+  };
+
+  String translate(String key) {
+    return _localizedValues[languageCode]?[key] ?? key;
+  }
+
+  String get videoManager => translate('video_manager');
+  String get manageContent => translate('manage_content');
+  String get categories => translate('categories');
+  String get addVideo => translate('add_video');
+  String get published => translate('published');
+  String get pending => translate('pending');
+  String get drafts => translate('drafts');
+  String get total => translate('total');
+  String get searchVideos => translate('search_videos');
+  String get status => translate('status');
+  String get language => translate('language');
+  String get all => translate('all');
+  String get active => translate('active');
+  String get inactive => translate('inactive');
+  String get arabic => translate('arabic');
+  String get english => translate('english');
+  String get videos => translate('videos');
+  String get noVideos => translate('no_videos');
+  String get untitled => translate('untitled');
+  String get noDescription => translate('no_description');
+  String get draft => translate('draft');
+  String get addNewVideo => translate('add_new_video');
+  String get youtube => translate('youtube');
+  String get addFromYoutube => translate('add_from_youtube');
+  String get uploadFile => translate('upload_file');
+  String get uploadVideoFile => translate('upload_video_file');
+  String get cancel => translate('cancel');
+  String get addYoutubeVideo => translate('add_youtube_video');
+  String get youtubeUrl => translate('youtube_url');
+  String get youtubeUrlHint => translate('youtube_url_hint');
+  String get title => translate('title');
+  String get description => translate('description');
+  String get category => translate('category');
+  String get add => translate('add');
+  String get uploadVideo => translate('upload_video');
+  String get chooseVideo => translate('choose_video');
+  String get editVideo => translate('edit_video');
+  String get save => translate('save');
+  String get deleteVideo => translate('delete_video');
+  String get deleteConfirm => translate('delete_confirm');
+  String get delete => translate('delete');
+  String get manageCategories => translate('manage_categories');
+  String get addCategory => translate('add_category');
+  String get editCategory => translate('edit_category');
+  String get deleteCategory => translate('delete_category');
+  String get categoryName => translate('category_name');
+  String get videoAdded => translate('video_added');
+  String get videoUpdated => translate('video_updated');
+  String get videoDeleted => translate('video_deleted');
+  String get categoryAdded => translate('category_added');
+  String get categoryUpdated => translate('category_updated');
+  String get categoryDeleted => translate('category_deleted');
+  String get error => translate('error');
+  String get invalidUrl => translate('invalid_url');
+  String get uploadFailed => translate('upload_failed');
+  String get dragToReorder => translate('drag_to_reorder');
+  String get orderUpdated => translate('order_updated');
+}
+
+class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+  const _AppLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) => ['en', 'ar'].contains(locale.languageCode);
+
+  @override
+  Future<AppLocalizations> load(Locale locale) async {
+    return AppLocalizations(locale.languageCode);
+  }
+
+  @override
+  bool shouldReload(_AppLocalizationsDelegate old) => false;
+}
+
+// ================== LANGUAGE PROVIDER ==================
+class LanguageProvider extends ChangeNotifier {
+  Locale _locale = const Locale('ar');
+
+  Locale get locale => _locale;
+
+  void setLocale(Locale locale) {
+    _locale = locale;
+    notifyListeners();
   }
 }

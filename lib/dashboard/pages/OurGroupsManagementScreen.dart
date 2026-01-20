@@ -2167,39 +2167,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     );
   }
 
-  void _showAddDialog(
-      String title,
-      String hint,
-      Function(String) onSave,
-      bool isDark,
-      bool isArabic,
-      )
-  {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(hintText: hint),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(isArabic ? 'إلغاء' : 'Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              onSave(controller.text);
-              Navigator.pop(context);
-            },
-            child: Text(isArabic ? 'حفظ' : 'Save'),
-          ),
-        ],
-      ),
-    );
-  }
+
   void _showAddCountryDialog(
       String title,
       bool isDark,
