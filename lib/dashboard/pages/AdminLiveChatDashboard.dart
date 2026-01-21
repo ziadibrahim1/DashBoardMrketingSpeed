@@ -10,10 +10,18 @@ import 'AdminLiveChatScreen.dart';
 
 // ==================== Constants ====================
 class ChatColors {
+  // Light mode colors
   static const primaryBlue = Color(0xFF007AFF);
-  static const accentGreen = Color(0xFF34C759);
+  static const accentBlue = Color(0xFF2196F3);
   static const softBlue = Color(0xFFE3F2FD);
   static const lightGray = Color(0xFFF8FAFC);
+
+  // Dark mode colors
+  static const primaryGreen = Color(0xFF1B5E20);
+  static const accentGreen = Color(0xFF4CAF50);
+  static const lightGreen = Color(0xFF2E7D32);
+  static const softGreen = Color(0xFF1B5E20);
+
   static const redAccent = Colors.redAccent;
 }
 
@@ -26,6 +34,40 @@ class ChatDimensions {
   static const cardPadding = 14.0;
 }
 
+// ==================== Translations ====================
+class ChatTranslations {
+  static String t(String key, bool isArabic) {
+    final translations = {
+      'liveSupport': isArabic ? 'المحادثات المباشرة' : 'Live Support',
+      'refresh': isArabic ? 'تحديث' : 'Refresh',
+      'searchUsers': isArabic ? 'بحث عن مستخدم...' : 'Search users...',
+      'noChats': isArabic ? 'لا توجد محادثات' : 'No chats',
+      'newConversations': isArabic ? 'لديك {count} محادثة جديدة' : 'You have {count} new conversation(s)',
+      'view': isArabic ? 'عرض' : 'View',
+      'closeConversation': isArabic ? 'إنهاء المحادثة' : 'Close Conversation',
+      'closeConfirm': isArabic ? 'هل أنت متأكد من إنهاء المحادثة مع {name}؟' : 'Are you sure you want to close the conversation with {name}?',
+      'cancel': isArabic ? 'إلغاء' : 'Cancel',
+      'close': isArabic ? 'إنهاء' : 'Close',
+      'closed': isArabic ? 'تم إنهاء المحادثة' : 'Conversation closed',
+      'closeFailed': isArabic ? 'فشل إنهاء المحادثة' : 'Failed to close conversation',
+      'welcome': isArabic ? 'أهلاً بك في مركز المساعدة' : 'Welcome to Support Center',
+      'selectChat': isArabic ? 'اختر محادثة من القائمة لبدء الدعم' : 'Select a conversation to start support',
+      'activeNow': isArabic ? 'نشط الآن' : 'Active Now',
+      'contactInfo': isArabic ? 'معلومات التواصل' : 'Contact Information',
+      'email': isArabic ? 'البريد' : 'Email',
+      'phone': isArabic ? 'الجوال' : 'Phone',
+      'location': isArabic ? 'الموقع' : 'Location',
+      'plan': isArabic ? 'الاشتراك' : 'Plan',
+      'noSubscription': isArabic ? 'بدون اشتراك' : 'No Subscription',
+      'daysLeft': isArabic ? 'متبقي {days} يوم' : '{days} days left',
+      'now': isArabic ? 'الآن' : 'Now',
+      'ago': isArabic ? 'منذ {time} د' : '{time}m ago',
+      'yesterday': isArabic ? 'أمس' : 'Yesterday',
+    };
+    return translations[key] ?? key;
+  }
+}
+
 // ==================== Main Dashboard ====================
 class AdminLiveChatDashboard extends StatefulWidget {
   const AdminLiveChatDashboard({super.key});
@@ -35,13 +77,14 @@ class AdminLiveChatDashboard extends StatefulWidget {
 }
 
 class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
-  // State Management
   final _chatStateManager = ChatStateManager();
   bool _isLoading = true;
   String _searchQuery = '';
-
   Timer? _refreshTimer;
   bool _isRefreshing = false;
+
+  bool get _isArabic => Localizations.localeOf(context).languageCode == 'ar';
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
 
   @override
   void initState() {
@@ -75,11 +118,8 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
 
       if (mounted) {
         final newConvCount = updates['newConversations'] as int;
-
-        // ✅ تحديث الـ UI
         setState(() {});
 
-        // ✅ إشعار بالمحادثات الجديدة
         if (newConvCount > 0) {
           _showNewConversationsNotification(newConvCount);
         }
@@ -91,9 +131,12 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
     }
   }
 
-  // ✅ إظهار إشعار بالمحادثات الجديدة
   void _showNewConversationsNotification(int count) {
     if (!mounted) return;
+
+    final accentColor = _isDark ? ChatColors.accentGreen : ChatColors.accentBlue;
+    final message = ChatTranslations.t('newConversations', _isArabic)
+        .replaceAll('{count}', count.toString());
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -102,24 +145,23 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
             const Icon(Icons.notifications_active, color: Colors.white, size: 20),
             const SizedBox(width: 12),
             Text(
-              'لديك $count محادثة جديدة',
+              message,
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ],
         ),
-        backgroundColor: ChatColors.accentGreen,
+        backgroundColor: accentColor,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(seconds: 3),
         action: SnackBarAction(
-          label: 'عرض',
+          label: ChatTranslations.t('view', _isArabic),
           textColor: Colors.white,
           onPressed: () {},
         ),
       ),
     );
   }
-
 
   @override
   void dispose() {
@@ -130,7 +172,6 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -147,7 +188,8 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
             onChatSelected: (conv) => setState(() => _chatStateManager.openChat(conv)),
             onConversationClosed: _handleConversationClose,
             onRefresh: _refreshConversations,
-            isArabic: isArabic,
+            isArabic: _isArabic,
+            isDark: _isDark,
           ),
           Expanded(
             child: Column(
@@ -156,6 +198,7 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
                   _ChatTopTabs(
                     openedChats: _chatStateManager.openedChats,
                     activeChat: _chatStateManager.activeChat,
+                    isDark: _isDark,
                     onTabSelected: (chat) async {
                       setState(() => _chatStateManager.activeChat = chat);
                       await _chatStateManager.markConversationAsRead(chat.id);
@@ -165,7 +208,8 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
                 Expanded(
                   child: _ChatMainContent(
                     activeChat: _chatStateManager.activeChat,
-                    isArabic: isArabic,
+                    isArabic: _isArabic,
+                    isDark: _isDark,
                   ),
                 ),
               ],
@@ -175,6 +219,7 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
       ),
       floatingActionButton: _MinimizedChatsBar(
         minimizedChats: _chatStateManager.minimizedChats,
+        isDark: _isDark,
         onChatRestore: (chat) => setState(() => _chatStateManager.openChat(chat)),
       ),
     );
@@ -188,43 +233,47 @@ class _AdminLiveChatDashboardState extends State<AdminLiveChatDashboard> {
       await _chatStateManager.closeConversation(conv.id);
       if (mounted) {
         setState(() {});
-        _showSnackBar('تم إنهاء المحادثة', isError: false);
+        _showSnackBar(ChatTranslations.t('closed', _isArabic), isError: false);
       }
     } catch (e) {
       if (mounted) {
-        _showSnackBar('فشل إنهاء المحادثة', isError: true);
+        _showSnackBar(ChatTranslations.t('closeFailed', _isArabic), isError: true);
       }
     }
   }
 
   Future<bool> _showCloseConfirmationDialog(ConversationModel conv) async {
+    final message = ChatTranslations.t('closeConfirm', _isArabic)
+        .replaceAll('{name}', conv.userName);
+
     return await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('إنهاء المحادثة'),
-        content: Text('هل أنت متأكد من إنهاء المحادثة مع ${conv.userName}؟'),
+        title: Text(ChatTranslations.t('closeConversation', _isArabic)),
+        content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
+            child: Text(ChatTranslations.t('cancel', _isArabic)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: ChatColors.redAccent),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('إنهاء'),
+            child: Text(ChatTranslations.t('close', _isArabic)),
           ),
         ],
       ),
-    ) ??
-        false;
+    ) ?? false;
   }
 
   void _showSnackBar(String message, {required bool isError}) {
+    final accentColor = _isDark ? ChatColors.accentGreen : ChatColors.accentBlue;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? ChatColors.redAccent : ChatColors.accentGreen,
+        backgroundColor: isError ? ChatColors.redAccent : accentColor,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -238,29 +287,23 @@ class ChatStateManager {
   final List<ConversationModel> openedChats = [];
   final List<ConversationModel> minimizedChats = [];
   ConversationModel? activeChat;
-
-  // ✅ Map لتتبع عدد الرسائل غير المقروءة
   final Map<int, int> unreadCounts = {};
+
   Future<void> markConversationAsRead(int conversationId) async {
     try {
       await http.put(
-        Uri.parse(
-          '${AppConfig.baseUrl}admin/conversations/$conversationId/read',
-        ),
+        Uri.parse('${AppConfig.baseUrl}admin/conversations/$conversationId/read'),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer YOUR_TOKEN",
         },
       );
 
-      // ✅ تحديث محلي
       unreadCounts.remove(conversationId);
 
-      final index =
-      allConversations.indexWhere((c) => c.id == conversationId);
+      final index = allConversations.indexWhere((c) => c.id == conversationId);
       if (index != -1) {
-        allConversations[index] =
-            allConversations[index].copyWith(hasUnread: false);
+        allConversations[index] = allConversations[index].copyWith(hasUnread: false);
       }
     } catch (e) {
       debugPrint("Error marking as read: $e");
@@ -273,7 +316,6 @@ class ChatStateManager {
     }
     activeChat = conv;
     minimizedChats.removeWhere((c) => c.id == conv.id);
-    // ✅ مسح العداد عند فتح المحادثة
     unreadCounts.remove(conv.id);
   }
 
@@ -296,8 +338,6 @@ class ChatStateManager {
     }
   }
 
-  // ✅ دالة محدثة للتحقق من الرسائل الجديدة
-
   Future<Map<String, dynamic>> fetchConversationsWithUpdates() async {
     try {
       final agentId = UserSession.userId;
@@ -308,18 +348,15 @@ class ChatStateManager {
 
       if (response.statusCode == 200) {
         final List data = json.decode(response.body);
-        final newConversations =
-        data.map((e) => ConversationModel.fromJson(e)).toList();
+        final newConversations = data.map((e) => ConversationModel.fromJson(e)).toList();
 
         int newConvCount = 0;
 
         for (var conv in newConversations) {
-          // محادثة جديدة
           if (!allConversations.any((c) => c.id == conv.id)) {
             newConvCount++;
           }
 
-          // تحديث العداد من السيرفر
           if (conv.unreadCount! > 0) {
             unreadCounts[conv.id] = conv.unreadCount!;
           } else {
@@ -331,9 +368,7 @@ class ChatStateManager {
 
         return {
           'newConversations': newConvCount,
-          'newMessages': newConversations
-              .where((c) => c.unreadCount! > 0)
-              .toList(),
+          'newMessages': newConversations.where((c) => c.unreadCount! > 0).toList(),
         };
       }
     } catch (e) {
@@ -375,6 +410,7 @@ class _ChatSidebar extends StatelessWidget {
   final ValueChanged<ConversationModel> onConversationClosed;
   final VoidCallback onRefresh;
   final bool isArabic;
+  final bool isDark;
 
   const _ChatSidebar({
     required this.conversations,
@@ -388,6 +424,7 @@ class _ChatSidebar extends StatelessWidget {
     required this.onConversationClosed,
     required this.onRefresh,
     required this.isArabic,
+    required this.isDark,
   });
 
   @override
@@ -409,6 +446,7 @@ class _ChatSidebar extends StatelessWidget {
         children: [
           _SidebarHeader(
             isArabic: isArabic,
+            isDark: isDark,
             searchQuery: searchQuery,
             isRefreshing: isRefreshing,
             onSearchChanged: onSearchChanged,
@@ -421,6 +459,8 @@ class _ChatSidebar extends StatelessWidget {
               conversations: filtered,
               activeChat: activeChat,
               chatStateManager: chatStateManager,
+              isArabic: isArabic,
+              isDark: isDark,
               onChatSelected: onChatSelected,
               onConversationClosed: onConversationClosed,
             ),
@@ -434,6 +474,7 @@ class _ChatSidebar extends StatelessWidget {
 // ==================== Sidebar Header ====================
 class _SidebarHeader extends StatelessWidget {
   final bool isArabic;
+  final bool isDark;
   final String searchQuery;
   final bool isRefreshing;
   final ValueChanged<String> onSearchChanged;
@@ -441,6 +482,7 @@ class _SidebarHeader extends StatelessWidget {
 
   const _SidebarHeader({
     required this.isArabic,
+    required this.isDark,
     required this.searchQuery,
     required this.isRefreshing,
     required this.onSearchChanged,
@@ -450,6 +492,7 @@ class _SidebarHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final primaryColor = isDark ? ChatColors.primaryGreen : ChatColors.primaryBlue;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -461,19 +504,19 @@ class _SidebarHeader extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: ChatColors.primaryBlue.withOpacity(0.1),
+                  color: primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.support_agent_rounded,
-                  color: ChatColors.primaryBlue,
+                  color: primaryColor,
                   size: 24,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  isArabic ? "المحادثات المباشرة" : "Live Support",
+                  ChatTranslations.t('liveSupport', isArabic),
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -483,22 +526,17 @@ class _SidebarHeader extends StatelessWidget {
               ),
               IconButton(
                 icon: isRefreshing
-                    ? const SizedBox(
+                    ? SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      ChatColors.primaryBlue,
-                    ),
+                    valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                   ),
                 )
-                    : const Icon(
-                  Icons.refresh_rounded,
-                  color: ChatColors.primaryBlue,
-                ),
+                    : Icon(Icons.refresh_rounded, color: primaryColor),
                 onPressed: isRefreshing ? null : onRefresh,
-                tooltip: isArabic ? 'تحديث' : 'Refresh',
+                tooltip: ChatTranslations.t('refresh', isArabic),
               ),
             ],
           ),
@@ -506,7 +544,7 @@ class _SidebarHeader extends StatelessWidget {
           TextField(
             onChanged: onSearchChanged,
             decoration: InputDecoration(
-              hintText: isArabic ? "بحث عن مستخدم..." : "Search users...",
+              hintText: ChatTranslations.t('searchUsers', isArabic),
               hintStyle: TextStyle(color: theme.hintColor.withOpacity(0.6)),
               prefixIcon: const Icon(Icons.search_rounded, size: 20),
               filled: true,
@@ -529,6 +567,8 @@ class _ConversationsList extends StatelessWidget {
   final List<ConversationModel> conversations;
   final ConversationModel? activeChat;
   final ChatStateManager? chatStateManager;
+  final bool isArabic;
+  final bool isDark;
   final ValueChanged<ConversationModel> onChatSelected;
   final ValueChanged<ConversationModel> onConversationClosed;
 
@@ -536,6 +576,8 @@ class _ConversationsList extends StatelessWidget {
     required this.conversations,
     required this.activeChat,
     this.chatStateManager,
+    required this.isArabic,
+    required this.isDark,
     required this.onChatSelected,
     required this.onConversationClosed,
   });
@@ -554,7 +596,7 @@ class _ConversationsList extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'لا توجد محادثات',
+              ChatTranslations.t('noChats', isArabic),
               style: TextStyle(
                 color: Colors.grey[500],
                 fontSize: 16,
@@ -573,6 +615,8 @@ class _ConversationsList extends StatelessWidget {
         conversation: conversations[i],
         isActive: activeChat?.id == conversations[i].id,
         chatStateManager: chatStateManager,
+        isArabic: isArabic,
+        isDark: isDark,
         onTap: () => onChatSelected(conversations[i]),
         onClose: () => onConversationClosed(conversations[i]),
       ),
@@ -587,6 +631,8 @@ class _ConversationTile extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onClose;
   final ChatStateManager? chatStateManager;
+  final bool isArabic;
+  final bool isDark;
 
   const _ConversationTile({
     required this.conversation,
@@ -594,12 +640,16 @@ class _ConversationTile extends StatelessWidget {
     required this.onTap,
     required this.onClose,
     this.chatStateManager,
+    required this.isArabic,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     final unreadCount = chatStateManager?.unreadCounts[conversation.id] ?? 0;
     final bool hasUnread = unreadCount > 0;
+    final primaryColor = isDark ? ChatColors.primaryGreen : ChatColors.primaryBlue;
+    final accentColor = isDark ? ChatColors.accentGreen : ChatColors.primaryBlue;
 
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 400),
@@ -612,19 +662,21 @@ class _ConversationTile extends StatelessWidget {
         );
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 2), // تقليل المارجن لتوفير مساحة
+        margin: const EdgeInsets.symmetric(vertical: 2),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           boxShadow: isActive ? [
             BoxShadow(
-              color: ChatColors.primaryBlue.withOpacity(0.1),
+              color: primaryColor.withOpacity(0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             )
           ] : [],
         ),
         child: Material(
-          color: isActive ? Colors.white : Colors.white.withOpacity(0.6),
+          color: isActive
+              ? (isDark ? primaryColor.withOpacity(0.2) : Colors.white)
+              : (isDark ? Colors.grey[850] : Colors.white.withOpacity(0.6)),
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
             onTap: () async {
@@ -640,19 +692,19 @@ class _ConversationTile extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isActive ? ChatColors.primaryBlue : Colors.transparent,
+                  color: isActive ? accentColor : Colors.transparent,
                   width: 1.5,
                 ),
               ),
               child: Row(
                 children: [
-                  // القسم 1: الصورة والبادج
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
                       _AnimatedAvatar(
                         userName: conversation.userName,
                         isActive: isActive,
+                        isDark: isDark,
                       ),
                       if (unreadCount > 0)
                         Positioned(
@@ -663,8 +715,6 @@ class _ConversationTile extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(width: 12),
-
-                  // القسم 2: المعلومات النصية
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -673,8 +723,7 @@ class _ConversationTile extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // الاسم
-                            Expanded( // أهم تعديل: Expanded هنا يمنع تجاوز النص
+                            Expanded(
                               child: Text(
                                 conversation.userName,
                                 maxLines: 1,
@@ -682,37 +731,40 @@ class _ConversationTile extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: hasUnread ? FontWeight.w800 : FontWeight.w600,
-                                  color: Colors.black87,
+                                  color: isDark ? Colors.white : Colors.black87,
                                 ),
                               ),
                             ),
                             const SizedBox(width: 4),
-                            // التاريخ
                             if (conversation.lastMessageAt != null)
                               Text(
-                                formatChatDate(conversation.lastMessageAt, true),
+                                formatChatDate(conversation.lastMessageAt, isArabic),
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: hasUnread ? ChatColors.primaryBlue : Colors.grey[500],
+                                  color: hasUnread
+                                      ? accentColor
+                                      : (isDark ? Colors.grey[500] : Colors.grey[500]),
                                 ),
                               ),
                           ],
                         ),
                         const SizedBox(height: 4),
-
                         _ConversationSubtext(
-                          hasUnread: hasUnread, isActive: isActive,
+                          hasUnread: hasUnread,
+                          isActive: isActive,
+                          isDark: isDark,
                           lastMessage: conversation.lastMessage,
                         ),
                       ],
                     ),
                   ),
-
-                  // القسم 3: زر الإغلاق (يظهر فقط عند التفاعل أو النشاط)
                   if (conversation.status == 'active' || isActive)
                     Padding(
                       padding: const EdgeInsets.only(right: 4),
-                      child: _CloseButton(onPressed: onClose),
+                      child: _CloseButton(
+                        isArabic: isArabic,
+                        onPressed: onClose,
+                      ),
                     ),
                 ],
               ),
@@ -722,25 +774,29 @@ class _ConversationTile extends StatelessWidget {
       ),
     );
   }
-
 }
 
 // ==================== Animated Avatar ====================
 class _AnimatedAvatar extends StatelessWidget {
   final String userName;
   final bool isActive;
+  final bool isDark;
 
   const _AnimatedAvatar({
     required this.userName,
     required this.isActive,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = isDark ? ChatColors.primaryGreen : ChatColors.primaryBlue;
+    final accentColor = isDark ? ChatColors.accentGreen : ChatColors.primaryBlue;
+
     return Stack(
       alignment: Alignment.center,
       children: [
-        if (isActive) _PulseEffect(),
+        if (isActive) _PulseEffect(isDark: isDark),
         AnimatedContainer(
           duration: const Duration(milliseconds: 350),
           curve: Curves.easeOutBack,
@@ -750,16 +806,18 @@ class _AnimatedAvatar extends StatelessWidget {
             shape: BoxShape.circle,
             gradient: isActive
                 ? LinearGradient(
-              colors: [ChatColors.primaryBlue, ChatColors.primaryBlue.withOpacity(0.8)],
+              colors: [accentColor, primaryColor.withOpacity(0.8)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             )
                 : LinearGradient(
-              colors: [Colors.grey.shade200, Colors.grey.shade100],
+              colors: isDark
+                  ? [Colors.grey[800]!, Colors.grey[700]!]
+                  : [Colors.grey.shade200, Colors.grey.shade100],
             ),
             boxShadow: [
               BoxShadow(
-                color: isActive ? ChatColors.primaryBlue.withOpacity(0.3) : Colors.black.withOpacity(0.05),
+                color: isActive ? accentColor.withOpacity(0.3) : Colors.black.withOpacity(0.05),
                 blurRadius: isActive ? 12 : 6,
                 offset: const Offset(0, 4),
               ),
@@ -771,7 +829,9 @@ class _AnimatedAvatar extends StatelessWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: isActive ? Colors.white : Colors.grey.shade600,
+                color: isActive
+                    ? Colors.white
+                    : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                 letterSpacing: 0.5,
               ),
             ),
@@ -780,7 +840,7 @@ class _AnimatedAvatar extends StatelessWidget {
         Positioned(
           right: 0,
           bottom: 0,
-          child: _OnlineIndicator(),
+          child: _OnlineIndicator(isDark: isDark),
         ),
       ],
     );
@@ -789,8 +849,14 @@ class _AnimatedAvatar extends StatelessWidget {
 
 // ==================== Helper Widgets ====================
 class _PulseEffect extends StatelessWidget {
+  final bool isDark;
+
+  const _PulseEffect({required this.isDark});
+
   @override
   Widget build(BuildContext context) {
+    final accentColor = isDark ? ChatColors.accentGreen : ChatColors.primaryBlue;
+
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 1500),
       tween: Tween(begin: 0.0, end: 1.0),
@@ -804,8 +870,8 @@ class _PulseEffect extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  ChatColors.primaryBlue.withOpacity(0.3 * (1 - value)),
-                  ChatColors.primaryBlue.withOpacity(0.0),
+                  accentColor.withOpacity(0.3 * (1 - value)),
+                  accentColor.withOpacity(0.0),
                 ],
               ),
             ),
@@ -815,9 +881,16 @@ class _PulseEffect extends StatelessWidget {
     );
   }
 }
+
 class _OnlineIndicator extends StatelessWidget {
+  final bool isDark;
+
+  const _OnlineIndicator({required this.isDark});
+
   @override
   Widget build(BuildContext context) {
+    final indicatorColor = isDark ? ChatColors.accentGreen : ChatColors.accentGreen;
+
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 1200),
       tween: Tween(begin: 0.85, end: 1.15),
@@ -828,12 +901,15 @@ class _OnlineIndicator extends StatelessWidget {
             width: ChatDimensions.minAvatarSize,
             height: ChatDimensions.minAvatarSize,
             decoration: BoxDecoration(
-              color: ChatColors.accentGreen,
+              color: indicatorColor,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2.5),
+              border: Border.all(
+                color: isDark ? Colors.grey[850]! : Colors.white,
+                width: 2.5,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: ChatColors.accentGreen.withOpacity(0.5),
+                  color: indicatorColor.withOpacity(0.5),
                   blurRadius: 6,
                   spreadRadius: 1,
                 ),
@@ -845,6 +921,7 @@ class _OnlineIndicator extends StatelessWidget {
     );
   }
 }
+
 String formatChatDate(DateTime? date, bool isArabic) {
   if (date == null) return '';
 
@@ -852,29 +929,31 @@ String formatChatDate(DateTime? date, bool isArabic) {
   final difference = now.difference(date);
 
   if (difference.inMinutes < 1) {
-    return isArabic ? 'الآن' : 'Now';
+    return ChatTranslations.t('now', isArabic);
   } else if (difference.inHours < 1) {
-    return isArabic
-        ? 'منذ ${difference.inMinutes} د'
-        : '${difference.inMinutes}m ago';
+    return ChatTranslations.t('ago', isArabic).replaceAll('{time}', difference.inMinutes.toString());
   } else if (difference.inDays == 0) {
     return DateFormat('hh:mm a', isArabic ? 'ar' : 'en').format(date);
   } else if (difference.inDays == 1) {
-    return isArabic ? 'أمس' : 'Yesterday';
+    return ChatTranslations.t('yesterday', isArabic);
   } else {
     return DateFormat('dd/MM/yyyy').format(date);
   }
 }
 
 class _CloseButton extends StatelessWidget {
+  final bool isArabic;
   final VoidCallback onPressed;
 
-  const _CloseButton({required this.onPressed});
+  const _CloseButton({
+    required this.isArabic,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      tooltip: 'إنهاء المحادثة',
+      tooltip: ChatTranslations.t('closeConversation', isArabic),
       icon: const Icon(
         Icons.lock_outline_rounded,
         color: ChatColors.redAccent,
@@ -886,17 +965,18 @@ class _CloseButton extends StatelessWidget {
   }
 }
 
-
 // ==================== Top Tabs ====================
 class _ChatTopTabs extends StatelessWidget {
   final List<ConversationModel> openedChats;
   final ConversationModel? activeChat;
+  final bool isDark;
   final ValueChanged<ConversationModel> onTabSelected;
   final ValueChanged<int> onTabClosed;
 
   const _ChatTopTabs({
     required this.openedChats,
     required this.activeChat,
+    required this.isDark,
     required this.onTabSelected,
     required this.onTabClosed,
   });
@@ -928,6 +1008,7 @@ class _ChatTopTabs extends StatelessWidget {
           return _ChatTab(
             chat: chat,
             isActive: isActive,
+            isDark: isDark,
             onTap: () => onTabSelected(chat),
             onClose: () => onTabClosed(chat.id),
           );
@@ -940,12 +1021,14 @@ class _ChatTopTabs extends StatelessWidget {
 class _ChatTab extends StatelessWidget {
   final ConversationModel chat;
   final bool isActive;
+  final bool isDark;
   final VoidCallback onTap;
   final VoidCallback onClose;
 
   const _ChatTab({
     required this.chat,
     required this.isActive,
+    required this.isDark,
     required this.onTap,
     required this.onClose,
   });
@@ -953,6 +1036,8 @@ class _ChatTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final primaryColor = isDark ? ChatColors.primaryGreen : ChatColors.primaryBlue;
+    final accentColor = isDark ? ChatColors.accentGreen : ChatColors.primaryBlue;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
@@ -962,20 +1047,19 @@ class _ChatTab extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: isActive
             ? LinearGradient(
-          colors: [
-            ChatColors.primaryBlue,
-            ChatColors.primaryBlue.withOpacity(0.8)
-          ],
+          colors: [accentColor, primaryColor.withOpacity(0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         )
             : null,
-        color: isActive ? null : theme.cardColor.withOpacity(0.5),
+        color: isActive
+            ? null
+            : (isDark ? theme.cardColor.withOpacity(0.3) : theme.cardColor.withOpacity(0.5)),
         borderRadius: BorderRadius.circular(16),
         boxShadow: isActive
             ? [
           BoxShadow(
-            color: ChatColors.primaryBlue.withOpacity(0.3),
+            color: accentColor.withOpacity(0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           )
@@ -994,17 +1078,20 @@ class _ChatTab extends StatelessWidget {
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: isActive ? Colors.white : Colors.grey.shade400,
+                  color: isActive
+                      ? Colors.white
+                      : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 10),
-
               Expanded(
                 child: Text(
                   chat.userName,
                   style: TextStyle(
-                    color: isActive ? Colors.white : theme.textTheme.bodyMedium?.color,
+                    color: isActive
+                        ? Colors.white
+                        : (isDark ? Colors.grey[300] : theme.textTheme.bodyMedium?.color),
                     fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
                     fontSize: 13,
                     letterSpacing: 0.5,
@@ -1023,7 +1110,9 @@ class _ChatTab extends StatelessWidget {
                   child: Icon(
                     Icons.close_rounded,
                     size: 14,
-                    color: isActive ? Colors.white : theme.hintColor,
+                    color: isActive
+                        ? Colors.white
+                        : (isDark ? theme.hintColor : theme.hintColor),
                   ),
                 ),
               ),
@@ -1039,33 +1128,39 @@ class _ChatTab extends StatelessWidget {
 class _ChatMainContent extends StatelessWidget {
   final ConversationModel? activeChat;
   final bool isArabic;
+  final bool isDark;
 
   const _ChatMainContent({
     required this.activeChat,
     required this.isArabic,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     if (activeChat == null) {
-      return _EmptyState(isArabic: isArabic);
+      return _EmptyState(isArabic: isArabic, isDark: isDark);
     }
 
     return _ActiveChatView(
       conversation: activeChat!,
       isArabic: isArabic,
+      isDark: isDark,
     );
   }
 }
 
 class _EmptyState extends StatelessWidget {
   final bool isArabic;
+  final bool isDark;
 
-  const _EmptyState({required this.isArabic});
+  const _EmptyState({required this.isArabic, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final primaryColor = isDark ? ChatColors.accentGreen : ChatColors.primaryBlue;
+    final softColor = isDark ? ChatColors.softGreen : ChatColors.softBlue;
 
     return Container(
       width: double.infinity,
@@ -1075,7 +1170,7 @@ class _EmptyState extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             theme.scaffoldBackgroundColor,
-            ChatColors.softBlue.withOpacity(0.3),
+            softColor.withOpacity(isDark ? 0.1 : 0.3),
           ],
         ),
       ),
@@ -1086,36 +1181,35 @@ class _EmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? Colors.grey[850] : Colors.white,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: ChatColors.primaryBlue.withOpacity(0.2),
+                    color: primaryColor.withOpacity(0.2),
                     blurRadius: 30,
                     spreadRadius: 5,
                   ),
                 ],
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.forum_rounded,
                 size: 60,
-                color: ChatColors.primaryBlue,
+                color: primaryColor,
               ),
             ),
             const SizedBox(height: 24),
             Text(
-              isArabic ? "أهلاً بك في مركز المساعدة" : "Welcome to Support Center",
-              style: const TextStyle(
+              ChatTranslations.t('welcome', isArabic),
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
+                color: isDark ? Colors.white : Colors.black,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              isArabic
-                  ? "اختر محادثة من القائمة لبدء الدعم"
-                  : "Select a conversation to start support",
+              ChatTranslations.t('selectChat', isArabic),
               style: TextStyle(
                 color: theme.hintColor.withOpacity(0.6),
                 fontSize: 15,
@@ -1131,21 +1225,23 @@ class _EmptyState extends StatelessWidget {
 class _ActiveChatView extends StatelessWidget {
   final ConversationModel conversation;
   final bool isArabic;
+  final bool isDark;
 
   const _ActiveChatView({
     required this.conversation,
     required this.isArabic,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final primaryColor = isDark ? ChatColors.primaryGreen : ChatColors.primaryBlue;
+    final backgroundColor = isDark ? theme.scaffoldBackgroundColor : ChatColors.lightGray;
 
     return Container(
       padding: const EdgeInsets.all(12),
-      color: theme.brightness == Brightness.light
-          ? ChatColors.lightGray
-          : theme.scaffoldBackgroundColor,
+      color: backgroundColor,
       child: Row(
         children: [
           Expanded(
@@ -1178,12 +1274,13 @@ class _ActiveChatView extends StatelessWidget {
                 color: theme.cardColor,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: ChatColors.primaryBlue.withOpacity(0.1),
+                  color: primaryColor.withOpacity(0.1),
                 ),
               ),
               child: _UserProfilePanel(
                 conversation: conversation,
                 isArabic: isArabic,
+                isDark: isDark,
               ),
             ),
           ),
@@ -1197,10 +1294,12 @@ class _ActiveChatView extends StatelessWidget {
 class _UserProfilePanel extends StatelessWidget {
   final ConversationModel conversation;
   final bool isArabic;
+  final bool isDark;
 
   const _UserProfilePanel({
     required this.conversation,
     required this.isArabic,
+    required this.isDark,
   });
 
   @override
@@ -1208,28 +1307,30 @@ class _UserProfilePanel extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      color: theme.brightness == Brightness.light
-          ? Colors.grey[50]
-          : theme.cardColor,
+      color: isDark ? theme.cardColor : Colors.grey[50],
       child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
         children: [
           _ProfileHeader(
             userName: conversation.userName,
             isArabic: isArabic,
+            isDark: isDark,
           ),
           const SizedBox(height: 32),
           _ProfileSection(
-            title: isArabic ? "معلومات التواصل" : "Contact Information",
+            title: ChatTranslations.t('contactInfo', isArabic),
+            isDark: isDark,
             child: _ContactInfoCard(
               conversation: conversation,
               isArabic: isArabic,
+              isDark: isDark,
             ),
           ),
           const SizedBox(height: 24),
           _SubscriptionCard(
             subscription: conversation.subscription,
             isArabic: isArabic,
+            isDark: isDark,
           ),
         ],
       ),
@@ -1240,14 +1341,19 @@ class _UserProfilePanel extends StatelessWidget {
 class _ProfileHeader extends StatelessWidget {
   final String userName;
   final bool isArabic;
+  final bool isDark;
 
   const _ProfileHeader({
     required this.userName,
     required this.isArabic,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = isDark ? ChatColors.accentGreen : ChatColors.primaryBlue;
+    final indicatorColor = isDark ? ChatColors.accentGreen : ChatColors.accentGreen;
+
     return Column(
       children: [
         Container(
@@ -1255,13 +1361,13 @@ class _ProfileHeader extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: ChatColors.primaryBlue.withOpacity(0.2),
+              color: primaryColor.withOpacity(0.2),
               width: 2,
             ),
           ),
           child: CircleAvatar(
             radius: 45,
-            backgroundColor: ChatColors.primaryBlue,
+            backgroundColor: primaryColor,
             child: Text(
               userName[0].toUpperCase(),
               style: const TextStyle(
@@ -1275,10 +1381,11 @@ class _ProfileHeader extends StatelessWidget {
         const SizedBox(height: 16),
         Text(
           userName,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.5,
+            color: isDark ? Colors.white : Colors.black,
           ),
         ),
         const SizedBox(height: 8),
@@ -1288,16 +1395,16 @@ class _ProfileHeader extends StatelessWidget {
             Container(
               width: 8,
               height: 8,
-              decoration: const BoxDecoration(
-                color: ChatColors.accentGreen,
+              decoration: BoxDecoration(
+                color: indicatorColor,
                 shape: BoxShape.circle,
               ),
             ),
             const SizedBox(width: 6),
             Text(
-              isArabic ? "نشط الآن" : "Active Now",
+              ChatTranslations.t('activeNow', isArabic),
               style: TextStyle(
-                color: Colors.grey[600],
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
                 fontSize: 13,
               ),
             ),
@@ -1310,10 +1417,12 @@ class _ProfileHeader extends StatelessWidget {
 
 class _ProfileSection extends StatelessWidget {
   final String title;
+  final bool isDark;
   final Widget child;
 
   const _ProfileSection({
     required this.title,
+    required this.isDark,
     required this.child,
   });
 
@@ -1327,7 +1436,7 @@ class _ProfileSection extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Colors.grey[500],
+            color: isDark ? Colors.grey[400] : Colors.grey[500],
             letterSpacing: 0.5,
           ),
         ),
@@ -1341,20 +1450,23 @@ class _ProfileSection extends StatelessWidget {
 class _ContactInfoCard extends StatelessWidget {
   final ConversationModel conversation;
   final bool isArabic;
+  final bool isDark;
 
   const _ContactInfoCard({
     required this.conversation,
     required this.isArabic,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final primaryColor = isDark ? ChatColors.primaryGreen : ChatColors.primaryBlue;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardColor,
+        color: isDark ? Colors.grey[850] : theme.cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -1368,20 +1480,26 @@ class _ContactInfoCard extends StatelessWidget {
         children: [
           _InfoRow(
             icon: Icons.email_rounded,
-            label: isArabic ? "البريد" : "Email",
+            label: ChatTranslations.t('email', isArabic),
             value: conversation.email,
+            isDark: isDark,
+            primaryColor: primaryColor,
           ),
           const Divider(height: 24, thickness: 0.5),
           _InfoRow(
             icon: Icons.phone_iphone_rounded,
-            label: isArabic ? "الجوال" : "Phone",
+            label: ChatTranslations.t('phone', isArabic),
             value: conversation.phone,
+            isDark: isDark,
+            primaryColor: primaryColor,
           ),
           const Divider(height: 24, thickness: 0.5),
           _InfoRow(
             icon: Icons.location_on_rounded,
-            label: isArabic ? "الموقع" : "Location",
+            label: ChatTranslations.t('location', isArabic),
             value: "${conversation.country}, ${conversation.city}",
+            isDark: isDark,
+            primaryColor: primaryColor,
           ),
         ],
       ),
@@ -1393,11 +1511,15 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final bool isDark;
+  final Color primaryColor;
 
   const _InfoRow({
     required this.icon,
     required this.label,
     required this.value,
+    required this.isDark,
+    required this.primaryColor,
   });
 
   @override
@@ -1407,13 +1529,13 @@ class _InfoRow extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: ChatColors.primaryBlue.withOpacity(0.1),
+            color: primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
             icon,
             size: 18,
-            color: ChatColors.primaryBlue,
+            color: primaryColor,
           ),
         ),
         const SizedBox(width: 16),
@@ -1425,15 +1547,16 @@ class _InfoRow extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[500],
+                  color: isDark ? Colors.grey[500] : Colors.grey[500],
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -1448,30 +1571,32 @@ class _InfoRow extends StatelessWidget {
 class _SubscriptionCard extends StatelessWidget {
   final dynamic subscription;
   final bool isArabic;
+  final bool isDark;
 
   const _SubscriptionCard({
     required this.subscription,
     required this.isArabic,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = isDark ? ChatColors.primaryGreen : ChatColors.primaryBlue;
+    final accentColor = isDark ? ChatColors.accentGreen : ChatColors.primaryBlue;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            ChatColors.primaryBlue,
-            ChatColors.primaryBlue.withOpacity(0.8)
-          ],
+          colors: [accentColor, primaryColor.withOpacity(0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: ChatColors.primaryBlue.withOpacity(0.3),
+            color: accentColor.withOpacity(0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -1490,7 +1615,7 @@ class _SubscriptionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isArabic ? "الاشتراك" : "Plan",
+                  ChatTranslations.t('plan', isArabic),
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.8),
                     fontSize: 12,
@@ -1500,7 +1625,7 @@ class _SubscriptionCard extends StatelessWidget {
                 Text(
                   subscription != null
                       ? subscription.planName
-                      : (isArabic ? "بدون اشتراك" : "No Subscription"),
+                      : ChatTranslations.t('noSubscription', isArabic),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -1510,9 +1635,8 @@ class _SubscriptionCard extends StatelessWidget {
                 if (subscription != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    isArabic
-                        ? "متبقي ${subscription.daysLeft} يوم"
-                        : "${subscription.daysLeft} days left",
+                    ChatTranslations.t('daysLeft', isArabic)
+                        .replaceAll('{days}', subscription.daysLeft.toString()),
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.9),
                       fontSize: 12,
@@ -1531,16 +1655,20 @@ class _SubscriptionCard extends StatelessWidget {
 // ==================== Minimized Chats Bar ====================
 class _MinimizedChatsBar extends StatelessWidget {
   final List<ConversationModel> minimizedChats;
+  final bool isDark;
   final ValueChanged<ConversationModel> onChatRestore;
 
   const _MinimizedChatsBar({
     required this.minimizedChats,
+    required this.isDark,
     required this.onChatRestore,
   });
 
   @override
   Widget build(BuildContext context) {
     if (minimizedChats.isEmpty) return const SizedBox.shrink();
+
+    final accentColor = isDark ? ChatColors.accentGreen : ChatColors.primaryBlue;
 
     return Positioned(
       bottom: 16,
@@ -1552,7 +1680,7 @@ class _MinimizedChatsBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: FloatingActionButton.extended(
               heroTag: chat.id,
-              backgroundColor: ChatColors.primaryBlue,
+              backgroundColor: accentColor,
               onPressed: () => onChatRestore(chat),
               label: Text(
                 chat.userName,
@@ -1572,27 +1700,32 @@ class _MinimizedChatsBar extends StatelessWidget {
     );
   }
 }
+
 class _ConversationSubtext extends StatelessWidget {
   final bool isActive;
   final bool hasUnread;
+  final bool isDark;
   final String? lastMessage;
-
 
   const _ConversationSubtext({
     required this.isActive,
     required this.hasUnread,
+    required this.isDark,
     this.lastMessage,
   });
 
   @override
   Widget build(BuildContext context) {
+    final accentColor = isDark ? ChatColors.accentGreen : ChatColors.primaryBlue;
+
     return Row(
       children: [
-        // اختيارياً: يمكنك إضافة أيقونة الحالة (تم الإرسال/تمت القراءة)
         Icon(
           Icons.done_all,
           size: 14,
-          color: hasUnread ? ChatColors.primaryBlue : Colors.grey[400],
+          color: hasUnread
+              ? accentColor
+              : (isDark ? Colors.grey[600] : Colors.grey[400]),
         ),
         const SizedBox(width: 4),
         Expanded(
@@ -1602,8 +1735,9 @@ class _ConversationSubtext extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 13,
-              // جعل النص أغمق إذا كانت الرسالة غير مقروءة
-              color: hasUnread ? Colors.black87 : Colors.grey[600],
+              color: hasUnread
+                  ? (isDark ? Colors.grey[300] : Colors.black87)
+                  : (isDark ? Colors.grey[500] : Colors.grey[600]),
               fontWeight: hasUnread ? FontWeight.w500 : FontWeight.normal,
             ),
           ),
@@ -1612,6 +1746,7 @@ class _ConversationSubtext extends StatelessWidget {
     );
   }
 }
+
 class _UnreadBadge extends StatelessWidget {
   final int count;
 

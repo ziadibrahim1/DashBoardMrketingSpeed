@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // للنسخ إلى الحافظة
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/app_config.dart';
@@ -10,8 +10,13 @@ import 'login_screen.dart';
 
 class MarketerProfileScreen extends StatefulWidget {
   final int? marketerId;
+  final bool isArabic;
 
-  const MarketerProfileScreen({super.key, this.marketerId});
+  const MarketerProfileScreen({
+    super.key,
+    this.marketerId,
+    this.isArabic = true,
+  });
 
   @override
   State<MarketerProfileScreen> createState() => _MarketerProfileScreenState();
@@ -24,10 +29,21 @@ class _MarketerProfileScreenState extends State<MarketerProfileScreen> {
   Map<String, dynamic>? marketer;
   Map<String, dynamic>? supervisor;
 
-  // لوحة الألوان المحدثة
-  final Color primaryColor = const Color(0xFF2563EB); // Blue
-  final Color successColor = const Color(0xFF10B981); // Green
-  final Color bgColor = const Color(0xFFF8FAFC);
+  // لوحة الألوان - تتغير حسب الوضع
+  Color get primaryColor {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? const Color(0xFF2E7D32) : const Color(0xFF2563EB);
+  }
+
+  Color get successColor {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? const Color(0xFF43A047) : const Color(0xFF10B981);
+  }
+
+  Color get bgColor {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? const Color(0xFF0D2818) : const Color(0xFFF8FAFC);
+  }
 
   Future<void> loadData() async {
     try {
@@ -68,23 +84,31 @@ class _MarketerProfileScreenState extends State<MarketerProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: _buildAppBar(),
-      body: loading
-          ? Center(child: CircularProgressIndicator(color: primaryColor))
-          : error
-          ? _buildErrorUI()
-          : _buildMainContent(),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Directionality(
+      textDirection: widget.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: bgColor,
+        appBar: _buildAppBar(isDark),
+        body: loading
+            ? Center(child: CircularProgressIndicator(color: primaryColor))
+            : error
+            ? _buildErrorUI()
+            : _buildMainContent(isDark),
+      ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(bool isDark) {
     return AppBar(
       elevation: 0,
       backgroundColor: primaryColor,
       centerTitle: true,
-      title: const Text("ملفي الشخصي", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+      title: Text(
+        widget.isArabic ? "ملفي الشخصي" : "My Profile",
+        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+      ),
       actions: [
         IconButton(
           icon: const Icon(Icons.power_settings_new, color: Colors.white),
@@ -94,13 +118,12 @@ class _MarketerProfileScreenState extends State<MarketerProfileScreen> {
     );
   }
 
-  Widget _buildMainContent() {
+  Widget _buildMainContent(bool isDark) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
         children: [
-          // رأس الصفحة الملون
-          _buildTopHeader(),
+          _buildTopHeader(isDark),
 
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -108,39 +131,64 @@ class _MarketerProfileScreenState extends State<MarketerProfileScreen> {
               children: [
                 const SizedBox(height: 20),
 
-                // 1. كروت الإحصائيات المالية
-                _buildFinanceStats(),
+                _buildFinanceStats(isDark),
 
                 const SizedBox(height: 25),
 
-                // 2. كود الخصم (Promo Code)
-                _buildPromoCard(),
+                _buildPromoCard(isDark),
 
                 const SizedBox(height: 25),
 
-                // 3. المعلومات الشخصية (كاملة)
-                _buildSectionTitle("المعلومات الشخصية"),
+                _buildSectionTitle(widget.isArabic ? "المعلومات الشخصية" : "Personal Information"),
                 _buildInfoSection([
-                  _buildDataRow(Icons.location_city_rounded, "المدينة", marketer!['city'] ?? "-", Colors.redAccent),
-                  _buildDataRow(Icons.public_rounded, "الدولة", marketer!['country'] ?? "-", Colors.blueAccent),
-                  _buildDataRow(Icons.phone_android_rounded, "رقم الجوال", marketer!['phone'] ?? "-", Colors.green),
-                ]),
+                  _buildDataRow(
+                    Icons.location_city_rounded,
+                    widget.isArabic ? "المدينة" : "City",
+                    marketer!['city'] ?? "-",
+                    Colors.redAccent,
+                    isDark,
+                  ),
+                  _buildDataRow(
+                    Icons.public_rounded,
+                    widget.isArabic ? "الدولة" : "Country",
+                    marketer!['country'] ?? "-",
+                    Colors.blueAccent,
+                    isDark,
+                  ),
+                  _buildDataRow(
+                    Icons.phone_android_rounded,
+                    widget.isArabic ? "رقم الجوال" : "Phone Number",
+                    marketer!['phone'] ?? "-",
+                    Colors.green,
+                    isDark,
+                  ),
+                ], isDark),
 
                 const SizedBox(height: 25),
 
-                // 4. البيانات البنكية
-                _buildSectionTitle("البيانات البنكية"),
+                _buildSectionTitle(widget.isArabic ? "البيانات البنكية" : "Banking Information"),
                 _buildInfoSection([
-                  _buildDataRow(Icons.account_balance_rounded, "البنك", marketer!['bank'] ?? "-", Colors.indigo),
-                  _buildDataRow(Icons.numbers_rounded, "رقم الحساب", marketer!['accountNumber'] ?? "-", Colors.blueGrey),
-                ]),
+                  _buildDataRow(
+                    Icons.account_balance_rounded,
+                    widget.isArabic ? "البنك" : "Bank",
+                    marketer!['bank'] ?? "-",
+                    Colors.indigo,
+                    isDark,
+                  ),
+                  _buildDataRow(
+                    Icons.numbers_rounded,
+                    widget.isArabic ? "رقم الحساب" : "Account Number",
+                    marketer!['accountNumber'] ?? "-",
+                    Colors.blueGrey,
+                    isDark,
+                  ),
+                ], isDark),
 
                 const SizedBox(height: 25),
 
-                // 5. بيانات المشرف
                 if (supervisor != null) ...[
-                  _buildSectionTitle("المشرف المسؤول"),
-                  _buildSupervisorCard(),
+                  _buildSectionTitle(widget.isArabic ? "المشرف المسؤول" : "Supervisor"),
+                  _buildSupervisorCard(isDark),
                 ],
 
                 const SizedBox(height: 40),
@@ -152,14 +200,17 @@ class _MarketerProfileScreenState extends State<MarketerProfileScreen> {
     );
   }
 
-  Widget _buildTopHeader() {
+  Widget _buildTopHeader(bool isDark) {
     final String fullName = "${marketer!['firstName']} ${marketer!['lastName']}";
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(bottom: 30),
       decoration: BoxDecoration(
         color: primaryColor,
-        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(40),
+          bottomRight: Radius.circular(40),
+        ),
       ),
       child: Column(
         children: [
@@ -169,66 +220,108 @@ class _MarketerProfileScreenState extends State<MarketerProfileScreen> {
             child: CircleAvatar(
               radius: 40,
               backgroundColor: Colors.white,
-              child: Text(fullName[0].toUpperCase(), style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: primaryColor)),
+              child: Text(
+                fullName[0].toUpperCase(),
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: primaryColor,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 15),
-          Text(fullName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-          Text(marketer!['email'] ?? "", style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.8))),
+          Text(
+            fullName,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          Text(
+            marketer!['email'] ?? "",
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.8),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildFinanceStats() {
+  Widget _buildFinanceStats(bool isDark) {
     return Row(
       children: [
         Expanded(
           child: _buildStatItem(
-            "النقاط",
+            widget.isArabic ? "النقاط" : "Points",
             marketer!["pointsAccumulated"].toString(),
             Icons.auto_awesome_rounded,
             primaryColor,
+            isDark,
           ),
         ),
         const SizedBox(width: 15),
         Expanded(
           child: _buildStatItem(
-            "المستحق",
+            widget.isArabic ? "المستحق" : "Due Amount",
             "${marketer!["totalDueAmount"]}\$",
             Icons.account_balance_wallet_rounded,
             successColor,
+            isDark,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+  Widget _buildStatItem(String label, String value, IconData icon, Color color, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            blurRadius: 10,
+          )
+        ],
       ),
       child: Column(
         children: [
           Icon(icon, color: color, size: 30),
           const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? Colors.white70 : Colors.grey,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildPromoCard() {
+  Widget _buildPromoCard(bool isDark) {
     String code = marketer!["promoCode"] ?? "---";
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [Colors.amber.shade700, Colors.orange.shade800]),
+        gradient: LinearGradient(
+          colors: [Colors.amber.shade700, Colors.orange.shade800],
+        ),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -239,15 +332,32 @@ class _MarketerProfileScreenState extends State<MarketerProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("كود الخصم الفعال", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                Text(code, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                Text(
+                  widget.isArabic ? "كود الخصم الفعال" : "Active Promo Code",
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                Text(
+                  code,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                  ),
+                ),
               ],
             ),
           ),
           IconButton(
             onPressed: () {
               Clipboard.setData(ClipboardData(text: code));
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم نسخ الكود")));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    widget.isArabic ? "تم نسخ الكود" : "Code copied",
+                  ),
+                ),
+              );
             },
             icon: const Icon(Icons.copy_all_rounded, color: Colors.white),
           )
@@ -256,35 +366,56 @@ class _MarketerProfileScreenState extends State<MarketerProfileScreen> {
     );
   }
 
-  Widget _buildInfoSection(List<Widget> rows) {
+  Widget _buildInfoSection(List<Widget> rows, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.02),
+            blurRadius: 10,
+          )
+        ],
       ),
       child: Column(children: rows),
     );
   }
 
-  Widget _buildDataRow(IconData icon, String label, String value, Color iconColor) {
+  Widget _buildDataRow(IconData icon, String label, String value, Color iconColor, bool isDark) {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(
+          color: iconColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
         child: Icon(icon, color: iconColor, size: 20),
       ),
-      title: Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-      subtitle: Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          color: isDark ? Colors.white70 : Colors.grey,
+        ),
+      ),
+      subtitle: Text(
+        value,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 15,
+          color: isDark ? Colors.white : Colors.black87,
+        ),
+      ),
     );
   }
 
-  Widget _buildSupervisorCard() {
+  Widget _buildSupervisorCard(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B), // Dark Navy
+        color: isDark ? const Color(0xFF1B5E20) : const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -300,7 +431,10 @@ class _MarketerProfileScreenState extends State<MarketerProfileScreen> {
               children: [
                 Text(
                   "${supervisor!['firstName']} ${supervisor!['lastName']}",
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   supervisor!['phone'] ?? "",
@@ -323,9 +457,9 @@ class _MarketerProfileScreenState extends State<MarketerProfileScreen> {
           ),
         ],
       ),
-
     );
   }
+
   Future<void> _makePhoneCall(String phoneNumber) async {
     if (phoneNumber.isEmpty) return;
 
@@ -343,35 +477,75 @@ class _MarketerProfileScreenState extends State<MarketerProfileScreen> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10, right: 5),
-      child: Align(alignment: Alignment.centerRight, child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+      padding: EdgeInsets.only(
+        bottom: 10,
+        right: widget.isArabic ? 5 : 0,
+        left: widget.isArabic ? 0 : 5,
+      ),
+      child: Align(
+        alignment: widget.isArabic ? Alignment.centerRight : Alignment.centerLeft,
+        child: Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black87,
+          ),
+        ),
+      ),
     );
   }
 
-  // دالة تأكيد الخروج
   void _confirmLogout(BuildContext context) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("خروج"),
-        content: const Text("هل تريد تسجيل الخروج؟"),
+        title: Text(widget.isArabic ? "خروج" : "Logout"),
+        content: Text(
+          widget.isArabic ? "هل تريد تسجيل الخروج؟" : "Do you want to logout?",
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(widget.isArabic ? "إلغاء" : "Cancel"),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
             onPressed: () {
               Navigator.pop(context);
               UserSession.clear();
               WebSession.clear();
-              Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false,
+              );
             },
-            child: const Text("خروج", style: TextStyle(color: Colors.white)),
+            child: Text(
+              widget.isArabic ? "خروج" : "Logout",
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildErrorUI() => const Center(child: Text("حدث خطأ في تحميل البيانات"));
+  Widget _buildErrorUI() => Center(
+    child: Text(
+      widget.isArabic ? "حدث خطأ في تحميل البيانات" : "Error loading data",
+      style: TextStyle(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white70
+            : Colors.black87,
+      ),
+    ),
+  );
 }

@@ -84,6 +84,7 @@ class VideoDto {
   final String language;
   final DateTime createdAt;
   final bool isActive;
+  final bool isVertically;
   final int? categoryId;
   final String? categoryName;
   final PublishStatus publishStatus;
@@ -99,6 +100,7 @@ class VideoDto {
     required this.language,
     required this.createdAt,
     required this.isActive,
+    required this.isVertically,
     this.categoryId,
     this.categoryName,
     required this.publishStatus,
@@ -116,6 +118,7 @@ class VideoDto {
       language: json['language'] ?? 'ar',
       createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
       isActive: json['isActive'] ?? true,
+      isVertically: json['isVertically'] ?? false,
       categoryId: json['categoryId'],
       categoryName: json['categoryName'],
       publishStatus: PublishStatus.values.firstWhere((e) => e.name == json['publishStatus'], orElse: () => PublishStatus.draft),
@@ -166,6 +169,7 @@ class AppLocalizations {
       'language': 'Language',
       'all': 'All',
       'active': 'Active',
+      'isVertically': 'isVertically',
       'inactive': 'Inactive',
       'arabic': 'Arabic',
       'english': 'English',
@@ -225,6 +229,7 @@ class AppLocalizations {
       'language': 'اللغة',
       'all': 'الكل',
       'active': 'نشط',
+      'isVertically': 'عرض',
       'inactive': 'غير نشط',
       'arabic': 'عربي',
       'english': 'إنجليزي',
@@ -289,6 +294,7 @@ class AppLocalizations {
   String get language => translate('language');
   String get all => translate('all');
   String get active => translate('active');
+  String get isVertically => translate('isVertically');
   String get inactive => translate('inactive');
   String get arabic => translate('arabic');
   String get english => translate('english');

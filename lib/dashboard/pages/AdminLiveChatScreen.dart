@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:signalr_core/signalr_core.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
-import 'dart:async'; // ✅ إضافة للـ Timer
+import 'dart:async';
 import '../../core/ConversationModel.dart';
 import '../../core/app_config.dart';
 
@@ -24,8 +24,13 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  final Color primaryBlue = const Color(0xFF007BFF);
+  // ✅ الألوان للوضع الفاتح (نفس الألوان الحالية)
+  final Color primaryBlueLight = const Color(0xFF007BFF);
   final Color backgroundLight = const Color(0xFFF8FAFC);
+
+  // ✅ الألوان للوضع الداكن (أخضر)
+  final Color primaryGreenDark = const Color(0xFF10B981);
+  final Color backgroundDark = const Color(0xFF1F2937);
 
   List<ChatMessage> messages = [];
   bool loading = true;
@@ -36,7 +41,7 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
   WebSocketChannel? _channel;
   bool _isConnected = true;
 
-  Timer? _refreshTimer; //
+  Timer? _refreshTimer;
   bool _isRefreshing = false;
 
   @override
@@ -45,10 +50,9 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
     _loadMessages();
     _connectWebSocket();
     _connectSignalR();
-    _startAutoRefresh(); // ✅ بدء التحديث التلقائي
+    _startAutoRefresh();
   }
 
-  // ✅ دالة لبدء التحديث التلقائي كل ثانيتين
   void _startAutoRefresh() {
     _refreshTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (mounted && !_isRefreshing) {
@@ -57,7 +61,6 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
     });
   }
 
-  // ✅ دالة التحديث الصامت (بدون إظهار loading)
   Future<void> _refreshMessages() async {
     if (_isRefreshing) return;
 
@@ -67,7 +70,6 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
       final data = await ChatApi.getMessages(int.parse(widget.conversationId));
 
       if (mounted) {
-        // التحقق من وجود رسائل جديدة فقط
         if (data.length > messages.length) {
           final shouldScroll = _isScrolledToBottom();
 
@@ -75,12 +77,10 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
             messages = data;
           });
 
-          // التمرير التلقائي فقط إذا كان المستخدم في الأسفل
           if (shouldScroll) {
             _scrollToBottom();
           }
         } else if (data.length != messages.length) {
-          // تحديث في حالة تغيير حالة الرسائل
           setState(() {
             messages = data;
           });
@@ -93,14 +93,13 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
     }
   }
 
-  // ✅ التحقق من أن المستخدم في نهاية القائمة
   bool _isScrolledToBottom() {
     if (!_scrollController.hasClients) return true;
 
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
 
-    return (maxScroll - currentScroll) < 100; // هامش 100 بكسل
+    return (maxScroll - currentScroll) < 100;
   }
 
   void _connectSignalR() async {
@@ -175,9 +174,9 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
 
   @override
   void dispose() {
-    _refreshTimer?.cancel(); // ✅ إيقاف التحديث التلقائي
+    _refreshTimer?.cancel();
     _channel?.sink.close();
-    _hubConnection?.stop(); // ✅ إيقاف SignalR
+    _hubConnection?.stop();
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -248,7 +247,6 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
           _scrollToBottom();
           break;
 
-
         case 'user_online':
           setState(() {
             userOnline = true;
@@ -311,8 +309,14 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
     }
   }
 
+  // ✅ الحصول على اللون الأساسي حسب الثيم
+  Color _getPrimaryColor(bool isDark) {
+    return isDark ? primaryGreenDark : primaryBlueLight;
+  }
+
   Widget _buildMessage(ChatMessage msg, bool isArabic, bool isDark) {
     final isAdmin = msg.sender == "support";
+    final primaryColor = _getPrimaryColor(isDark);
 
     return Align(
       alignment: isAdmin ? Alignment.centerRight : Alignment.centerLeft,
@@ -322,7 +326,7 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
         decoration: BoxDecoration(
           gradient: isAdmin
-              ? LinearGradient(colors: [primaryBlue, primaryBlue.withOpacity(0.8)])
+              ? LinearGradient(colors: [primaryColor, primaryColor.withOpacity(0.8)])
               : null,
           color: isAdmin ? null : (isDark ? Colors.grey[800] : Colors.white),
           borderRadius: BorderRadius.only(
@@ -399,7 +403,6 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
   }
 
   Widget _buildMessageContent(ChatMessage msg, bool isAdmin, bool isDark) {
-
     return Text(
       msg.text ?? "",
       style: TextStyle(
@@ -410,14 +413,14 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final primaryColor = _getPrimaryColor(isDark);
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : backgroundLight,
+      backgroundColor: isDark ? backgroundDark : backgroundLight,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: isDark ? Colors.grey[900] : Colors.white,
@@ -427,8 +430,8 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
             Stack(
               children: [
                 CircleAvatar(
-                  backgroundColor: primaryBlue.withOpacity(0.1),
-                  child: Text(widget.userName[0], style: TextStyle(color: primaryBlue)),
+                  backgroundColor: primaryColor.withOpacity(0.1),
+                  child: Text(widget.userName[0], style: TextStyle(color: primaryColor)),
                 ),
                 if (userOnline)
                   Positioned(
@@ -501,7 +504,9 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    _isConnected ? 'Live' : 'Offline',
+                    _isConnected
+                        ? (isArabic ? 'مباشر' : 'Live')
+                        : (isArabic ? 'غير متصل' : 'Offline'),
                     style: TextStyle(
                       fontSize: 10,
                       color: _isConnected ? Colors.green : Colors.red,
@@ -533,6 +538,8 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
   }
 
   Widget _buildInputArea(bool isArabic, bool isDark) {
+    final primaryColor = _getPrimaryColor(isDark);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -543,7 +550,6 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
       child: SafeArea(
         child: Row(
           children: [
-
             Expanded(
               child: TextField(
                 controller: _controller,
@@ -569,7 +575,7 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: _isConnected ? primaryBlue : Colors.grey,
+                  color: _isConnected ? primaryColor : Colors.grey,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
@@ -594,7 +600,6 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty || !_isConnected) return;
 
-
     final messageText = text.trim();
     _controller.clear();
 
@@ -605,7 +610,6 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
         'text': messageText,
         'sender': 'support',
         'timestamp': DateTime.now().toIso8601String(),
-
       }));
     }
 
@@ -630,6 +634,4 @@ class _AdminLiveChatScreenState extends State<AdminLiveChatScreen> {
       debugPrint('Error sending message to API: $e');
     }
   }
-
-
 }

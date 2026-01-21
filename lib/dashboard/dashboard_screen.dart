@@ -105,7 +105,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ));
     }
 
-    // المستخدمين
     if (_hasPermission('UsersPage')) {
       items.add(NavigationItem(
         icon: Icons.people,
@@ -244,9 +243,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // شرح الاستخدام (الفيديوهات)
     if (_hasPermission('VideoManagerScreen')) {
       items.add(NavigationItem(
-        icon: Icons.info_outline,
+        icon: Icons.report_outlined,
         labelAr: 'شرح الاستخدام',
         labelEn: 'User Guide',
+        pageIndex: items.length,
+      ));
+    }
+    if (_hasPermission('VideoManagerScreen')) {
+      items.add(NavigationItem(
+        icon: Icons.data_exploration_sharp ,
+        labelAr: 'التقارير',
+        labelEn: 'Reports',
         pageIndex: items.length,
       ));
     }
@@ -254,7 +261,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return items;
   }
 
-  // 👇 بناء الصفحات بناءً على الصلاحيات
   List<Widget> _buildPages(bool isArabic) {
     List<Widget> pages = [];
 
@@ -315,6 +321,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (_hasPermission('PaymentManagementSection')) {
       pages.add(const PaymentManagementSection());
+    }
+
+    if (_hasPermission('VideoManagerScreen')) {
+      pages.add(VideoManagerScreen());
     }
 
     if (_hasPermission('VideoManagerScreen')) {

@@ -296,9 +296,9 @@ class _PackagesPageState extends State<PackagesPage> with TickerProviderStateMix
             gradient: LinearGradient(
               colors: isDark
                   ? [
-                const Color(0xFF0F2027),
-                const Color(0xFF203A43),
-                const Color(0xFF2C5364),
+                const Color(0xFF0D2818),
+                const Color(0xFF0D2818),
+
               ]
                   : [
                 Colors.blue.shade50,
@@ -366,7 +366,7 @@ class _PackagesPageState extends State<PackagesPage> with TickerProviderStateMix
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [Colors.blue.shade900, Colors.cyan.shade900]
+              ? [Colors.green.shade900, Colors.green.shade800]
               : [Colors.blue.shade700, Colors.blue.shade900],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -374,7 +374,7 @@ class _PackagesPageState extends State<PackagesPage> with TickerProviderStateMix
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withOpacity(0.4),
+            color: (isDark ? Colors.green : Colors.blue).withOpacity(0.4),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -423,7 +423,9 @@ class _PackagesPageState extends State<PackagesPage> with TickerProviderStateMix
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.green.shade400, Colors.green.shade600],
+                    colors: isDark
+                        ? [Colors.green.shade400, Colors.green.shade600]
+                        : [Colors.green.shade400, Colors.green.shade600],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -498,8 +500,15 @@ class _PackagesPageState extends State<PackagesPage> with TickerProviderStateMix
         value: selectedFilter,
         dropdownColor: isDark ? Colors.grey.shade900 : Colors.white,
         underline: const SizedBox(),
-        icon:  Icon(Icons.arrow_drop_down_rounded, color: Colors.blue.shade900),
-        style:  TextStyle(color: Colors.blue.shade900, fontSize: 14, fontWeight: FontWeight.w600),
+        icon: Icon(
+            Icons.arrow_drop_down_rounded,
+            color: isDark ? Colors.green.shade900 : Colors.blue.shade900
+        ),
+        style: TextStyle(
+            color: isDark ? Colors.green.shade900 : Colors.blue.shade900,
+            fontSize: 14,
+            fontWeight: FontWeight.w600
+        ),
         items: options.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
         onChanged: (v) {
           if (v != null) setState(() => selectedFilter = v);
@@ -529,7 +538,7 @@ class _PackagesPageState extends State<PackagesPage> with TickerProviderStateMix
               Icon(
                 _getSortIcon(e.key),
                 size: 20,
-                color: isDark ? Colors.white70 : Colors.blue.shade700,
+                color: isDark ? Colors.green.shade700 : Colors.blue.shade700,
               ),
               const SizedBox(width: 12),
               Text(
@@ -586,9 +595,9 @@ class _PackagesPageState extends State<PackagesPage> with TickerProviderStateMix
           Switch(
             value: showArchived,
             onChanged: (val) => setState(() => showArchived = val),
-            activeColor: Colors.green,
+            activeColor: isDark ? Colors.green : Colors.green,
             inactiveThumbColor: Colors.white,
-            activeTrackColor: Colors.green.shade300,
+            activeTrackColor: isDark ? Colors.green.shade300 : Colors.green.shade300,
             inactiveTrackColor: Colors.white.withOpacity(0.3),
           ),
         ],
@@ -606,7 +615,7 @@ class _PackagesPageState extends State<PackagesPage> with TickerProviderStateMix
             icon: Icons.inventory_2_rounded,
             gradient: LinearGradient(
               colors: isDark
-                  ? [Colors.blue.shade800, Colors.blue.shade900]
+                  ? [Colors.green.shade800, Colors.green.shade900]
                   : [Colors.blue.shade400, Colors.blue.shade600],
             ),
             isArabic: widget.isArabic,
@@ -620,7 +629,7 @@ class _PackagesPageState extends State<PackagesPage> with TickerProviderStateMix
             icon: Icons.people_rounded,
             gradient: LinearGradient(
               colors: isDark
-                  ? [Colors.blue.shade300, Colors.blue.shade600]
+                  ? [Colors.green.shade300, Colors.green.shade600]
                   : [Colors.blue.shade100, Colors.blue.shade300],
             ),
             isArabic: widget.isArabic,
@@ -634,7 +643,7 @@ class _PackagesPageState extends State<PackagesPage> with TickerProviderStateMix
             icon: Icons.schedule_rounded,
             gradient: LinearGradient(
               colors: isDark
-                  ? [Colors.blue.shade800, Colors.blue.shade900]
+                  ? [Colors.green.shade800, Colors.green.shade900]
                   : [Colors.blue.shade400, Colors.blue.shade800],
             ),
             isArabic: widget.isArabic,
@@ -804,66 +813,65 @@ class _PackageCardAdvancedState extends State<PackageCardAdvanced> with SingleTi
           child: Stack(
             children: [
               Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isDark
-                          ? Colors.blue.withOpacity(0.3)
-                          : Colors.blue.withOpacity(0.2),
-                      blurRadius: _isHovered ? 25 : 15,
-                      offset: Offset(0, _isHovered ? 12 : 8),
-                    ),
-                  ],
-                ),
-                child: Card(
-                  shape: RoundedRectangleBorder(
+                  decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark
+                            ? Colors.green.withOpacity(0.3)
+                            : Colors.blue.withOpacity(0.2),
+                        blurRadius: _isHovered ? 25 : 15,
+                        offset: Offset(0, _isHovered ? 12 : 8),
+                      ),
+                    ],
                   ),
-                  elevation: 0,
-                  clipBehavior: Clip.hardEdge,
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: isDark
-                            ? [
-                          const Color(0xFF1E3A8A),
-                          const Color(0xFF1E40AF),
-                          const Color(0xFF3B82F6),
-                        ]
-                            : [
-                          Colors.white,
-                          Colors.blue.shade50,
-                          Colors.cyan.shade50,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
                     ),
-                    // هنا حولنا Column إلى Scrollable
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.height * 0.8,
-                      ),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (widget.package.shouldShowInactiveBanner)
-                              _buildInactiveBanner(),
-                            _buildHeader(isDark, widget.isArabic),
-                            const SizedBox(height: 16),
-                            _buildInfoTags(isDark),
-                            const SizedBox(height: 5),
-                            _buildFeatures(isDark),
-                            _buildActions(),
+                    elevation: 0,
+                    clipBehavior: Clip.hardEdge,
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [
+                            const Color(0xFF1B5E20),
+                            const Color(0xFF2E7D32),
+                            const Color(0xFF43A047),
+                          ]
+                              : [
+                            Colors.white,
+                            Colors.blue.shade50,
+                            Colors.cyan.shade50,
                           ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height * 0.8,
+                        ),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (widget.package.shouldShowInactiveBanner)
+                                _buildInactiveBanner(),
+                              _buildHeader(isDark, widget.isArabic),
+                              const SizedBox(height: 16),
+                              _buildInfoTags(isDark),
+                              const SizedBox(height: 5),
+                              _buildFeatures(isDark),
+                              _buildActions(),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                )
+                  )
 
               ),
               if (widget.package.isArchived)
@@ -916,7 +924,7 @@ class _PackageCardAdvancedState extends State<PackageCardAdvanced> with SingleTi
     );
   }
 
-  Widget _buildHeader(bool isDark,bool isArabic) {
+  Widget _buildHeader(bool isDark, bool isArabic) {
     return Row(
       children: [
         Expanded(
@@ -924,7 +932,7 @@ class _PackageCardAdvancedState extends State<PackageCardAdvanced> with SingleTi
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-               isArabic? widget.package.nameAr: widget.package.nameEn,
+                isArabic ? widget.package.nameAr : widget.package.nameEn,
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -1006,13 +1014,13 @@ class _PackageCardAdvancedState extends State<PackageCardAdvanced> with SingleTi
         _buildInfoChip(
           Icons.payments_rounded,
           '${widget.package.price.toStringAsFixed(2)} ${widget.isArabic ? 'ر.س' : 'SAR'}',
-          isDark ? Colors.blue.shade700 : Colors.blue.shade600,
+          isDark ? Colors.green.shade700 : Colors.blue.shade600,
           isDark,
         ),
         _buildInfoChip(
           Icons.schedule_rounded,
           '${widget.package.durationDays} ${widget.isArabic ? 'يوم' : 'days'}',
-          isDark ? Colors.cyan.shade700 : Colors.cyan.shade600,
+          isDark ? Colors.green.shade600 : Colors.cyan.shade600,
           isDark,
         ),
         _buildInfoChip(
@@ -1024,9 +1032,9 @@ class _PackageCardAdvancedState extends State<PackageCardAdvanced> with SingleTi
           isDark,
         ),
         _buildInfoChip(
-          widget.package.CategoryId == 1 ? Icons.star_rounded : Icons.workspace_premium_rounded,
-          (widget.isArabic ? ' المشتركين : ${widget.package.subscribers} ' : 'Subscribers ${widget.package.subscribers}') ,
-          widget.package.CategoryId == 1 ? Colors.green.shade600 : Colors.orange.shade600,
+          Icons.people_rounded,
+          (widget.isArabic ? ' المشتركين : ${widget.package.subscribers} ' : 'Subscribers ${widget.package.subscribers}'),
+          isDark ? Colors.green.shade500 : Colors.green.shade600,
           isDark,
         ),
         if (widget.package.discount != null)
@@ -1103,7 +1111,9 @@ class _PackageCardAdvancedState extends State<PackageCardAdvanced> with SingleTi
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.blue.shade400, Colors.blue.shade600],
+                    colors: isDark
+                        ? [Colors.green.shade400, Colors.green.shade600]
+                        : [Colors.blue.shade400, Colors.blue.shade600],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -1159,7 +1169,6 @@ class _PackageCardAdvancedState extends State<PackageCardAdvanced> with SingleTi
       ),
     );
   }
-
 
   Widget _buildActions() {
     return Container(
@@ -1299,8 +1308,8 @@ class LogsViewer extends StatelessWidget {
         gradient: LinearGradient(
           colors: isDark
               ? [
-            const Color(0xFF1E3A8A),
-            const Color(0xFF1E40AF),
+            const Color(0xFF1B5E20),
+            const Color(0xFF2E7D32),
           ]
               : [
             Colors.white,
@@ -1318,7 +1327,7 @@ class LogsViewer extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: isDark
-                    ? [Colors.blue.shade800, Colors.blue.shade900]
+                    ? [Colors.green.shade800, Colors.green.shade900]
                     : [Colors.blue.shade600, Colors.blue.shade800],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -1350,7 +1359,7 @@ class LogsViewer extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        isArabic? package.nameAr: package.nameEn,
+                        isArabic ? package.nameAr : package.nameEn,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.white.withOpacity(0.8),
@@ -1433,7 +1442,9 @@ class LogsViewer extends StatelessWidget {
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Colors.blue.shade400, Colors.blue.shade600],
+                          colors: isDark
+                              ? [Colors.green.shade400, Colors.green.shade600]
+                              : [Colors.blue.shade400, Colors.blue.shade600],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),

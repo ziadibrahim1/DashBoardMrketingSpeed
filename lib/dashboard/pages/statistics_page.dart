@@ -267,7 +267,7 @@ class _DashboardStatsSectionState extends State<DashboardStatsSection> {
     );
   }
 
-  // كرت الرسوم البيانية
+
   Widget _buildChartCard(bool isDark, String title, double height, Widget child) {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -318,7 +318,18 @@ class _DashboardStatsSectionState extends State<DashboardStatsSection> {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              getTitlesWidget: (val, _) => Text(platformsList[val.toInt()].substring(0, 3), style: TextStyle(fontSize: 10, color: isDark ? Colors.grey[400] : Colors.grey[600])),
+              getTitlesWidget: (val, _) {
+                final text = platformsList[val.toInt()];
+                final short = text.characters.take(3).toString();
+
+                return Text(
+                  short,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                );
+              },
             ),
           ),
         ),

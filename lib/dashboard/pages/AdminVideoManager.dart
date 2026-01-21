@@ -11,11 +11,11 @@ class VideoManagerScreen extends StatefulWidget {
   @override
   State<VideoManagerScreen> createState() => _VideoManagerScreenState();
 }
+
 class _VideoManagerScreenState extends State<VideoManagerScreen> {
   final VideoApiService _videoService = VideoApiService();
   final CategoryApiService _categoryService = CategoryApiService();
   final TextEditingController _searchController = TextEditingController();
-  final LanguageProvider _languageProvider = LanguageProvider();
 
   List<VideoDto> _videos = [];
   List<VideoCategory> _categories = [];
@@ -24,13 +24,6 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
   String _selectedFilter = 'all';
   String _languageFilter = 'all';
   PublishStatus? _statusFilter;
-
-  final Color _primaryColor = const Color(0xFF1A56DB);
-  final Color _primaryLight = const Color(0xFFE3F2FD);
-  final Color _primaryDark = const Color(0xFF0D47A1);
-  final Color _backgroundColor = const Color(0xFFF8FAFC);
-  final Color _cardColor = Colors.white;
-  final Color _textSecondary = const Color(0xFF6B7280);
 
   @override
   void initState() {
@@ -53,7 +46,8 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        final loc = AppLocalizations(_languageProvider.locale.languageCode);
+        final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+        final loc = AppLocalizations(localeProvider.locale.languageCode);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${loc.error}: $e'), backgroundColor: Colors.red),
         );
@@ -85,15 +79,25 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: _languageProvider,
-      builder: (context, _) {
-        final localeProvider = Provider.of<LocaleProvider>(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // تحديد الألوان بناءً على الوضع
+    final Color primaryColor = isDark ? Colors.green : const Color(0xFF1A56DB);
+    final Color primaryLight = isDark ? Colors.green.withOpacity(0.1) : const Color(0xFFE3F2FD);
+    final Color backgroundColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8FAFC);
+    final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final Color textSecondary = isDark ? Colors.grey.shade400 : const Color(0xFF6B7280);
+
+    return Consumer<LocaleProvider>(
+      builder: (context, localeProvider, _) {
         final loc = AppLocalizations(localeProvider.locale.languageCode);
+        final isRTL = localeProvider.locale.languageCode == 'ar';
+
         return Directionality(
-          textDirection: localeProvider.locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+          textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
           child: Scaffold(
-            backgroundColor: _backgroundColor,
+            backgroundColor: backgroundColor,
             body: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : CustomScrollView(
@@ -103,20 +107,19 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
                   sliver: SliverList(
                     delegate: SliverChildListDelegate(
                       [
-                        _buildHeader(loc),
+                        _buildHeader(loc, primaryColor, cardColor, isDark),
                         const SizedBox(height: 24),
-                        _buildStatsCards(loc),
+                        _buildStatsCards(loc, primaryColor, primaryLight),
                         const SizedBox(height: 24),
-                        _buildFiltersSection(loc),
+                        _buildFiltersSection(loc, primaryColor, primaryLight, cardColor, textSecondary),
                         const SizedBox(height: 24),
                       ],
                     ),
                   ),
                 ),
-
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  sliver: _buildVideoGrid(loc),
+                  sliver: _buildVideoGrid(loc, primaryColor, primaryLight, textSecondary),
                 ),
                 const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
               ],
@@ -127,7 +130,7 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
     );
   }
 
-  RenderObjectWidget _buildVideoGrid(AppLocalizations loc) {
+  RenderObjectWidget _buildVideoGrid(AppLocalizations loc, Color primaryColor, Color primaryLight, Color textSecondary) {
     if (_filteredVideos.isEmpty) {
       return SliverToBoxAdapter(
         child: SizedBox(
@@ -138,13 +141,13 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
               children: [
                 Icon(Icons.video_library,
                     size: 120,
-                    color: _textSecondary.withOpacity(0.5)),
+                    color: textSecondary.withOpacity(0.5)),
                 const SizedBox(height: 20),
                 Text(
                   loc.noVideos,
                   style: TextStyle(
                     fontSize: 20,
-                    color: _textSecondary,
+                    color: textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -168,13 +171,12 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
                 videoService: _videoService,
                 categories: _categories,
                 onVideoUpdated: _loadData,
-                primaryColor: _primaryColor,
-                languageCode: _languageProvider.locale.languageCode,
+                languageCode: Provider.of<LocaleProvider>(context, listen: false).locale.languageCode,
               ),
             ),
             onDelete: () async {
-              final loc =
-              AppLocalizations(_languageProvider.locale.languageCode);
+              final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+              final loc = AppLocalizations(localeProvider.locale.languageCode);
 
               final confirmed = await showDialog<bool>(
                 context: context,
@@ -214,15 +216,12 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
     );
   }
 
-  Widget _buildHeader(AppLocalizations loc) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
+  Widget _buildHeader(AppLocalizations loc, Color primaryColor, Color cardColor, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Card(
         elevation: 6,
-        shadowColor: _primaryColor.withOpacity(0.25),
+        shadowColor: primaryColor.withOpacity(0.25),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
@@ -232,7 +231,9 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF4FB5F5),Color(0xFF1B367A)],
+              colors: isDark
+                  ? [Colors.green.withOpacity(0.7), Colors.green.withOpacity(0.4)]
+                  : [const Color(0xFF4FB5F5), const Color(0xFF1B367A)],
             ),
           ),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
@@ -240,7 +241,6 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-
               /// ===== Left Side =====
               Row(
                 children: [
@@ -293,9 +293,7 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
                         categories: _categories,
                         categoryService: _categoryService,
                         onCategoriesUpdated: _loadData,
-                        primaryColor: _primaryColor,
-                        languageCode:
-                        _languageProvider.locale.languageCode,
+                        languageCode: Provider.of<LocaleProvider>(context, listen: false).locale.languageCode,
                       ),
                     ),
                     icon: Icons.category,
@@ -310,9 +308,7 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
                         videoService: _videoService,
                         categories: _categories,
                         onVideoAdded: _loadData,
-                        primaryColor: _primaryColor,
-                        languageCode:
-                        _languageProvider.locale.languageCode,
+                        languageCode: Provider.of<LocaleProvider>(context, listen: false).locale.languageCode,
                       ),
                     ),
                     icon: Icons.add,
@@ -341,10 +337,10 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
     );
   }
 
-  Widget _buildStatsCards(AppLocalizations loc) {
+  Widget _buildStatsCards(AppLocalizations loc, Color primaryColor, Color primaryLight) {
     return Row(
       children: [
-        Expanded(child: _buildStatCard(loc.total, '${_videos.length}', Icons.video_library, _primaryColor)),
+        Expanded(child: _buildStatCard(loc.total, '${_videos.length}', Icons.video_library, primaryColor)),
       ],
     );
   }
@@ -378,11 +374,11 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
     );
   }
 
-  Widget _buildFiltersSection(AppLocalizations loc) {
+  Widget _buildFiltersSection(AppLocalizations loc, Color primaryColor, Color primaryLight, Color cardColor, Color textSecondary) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _cardColor,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 4))],
       ),
@@ -392,7 +388,7 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
             controller: _searchController,
             decoration: InputDecoration(
               hintText: loc.searchVideos,
-              prefixIcon: Icon(Icons.search, color: _primaryColor),
+              prefixIcon: Icon(Icons.search, color: primaryColor),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(icon: const Icon(Icons.clear), onPressed: () {
                 _searchController.clear();
@@ -400,7 +396,7 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
               })
                   : null,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _primaryColor, width: 2)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primaryColor, width: 2)),
             ),
             onChanged: (_) => _applyFilters(),
           ),
@@ -419,13 +415,15 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
                   setState(() => _selectedFilter = v!);
                   _applyFilters();
                 },
+                primaryColor: primaryColor,
+                textSecondary: textSecondary,
+                primaryLight: primaryLight,
               ),
-
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(color: _primaryLight, borderRadius: BorderRadius.circular(20)),
-                child: Text('${_filteredVideos.length} ${loc.videos}', style: TextStyle(color: _primaryColor, fontWeight: FontWeight.w600)),
+                decoration: BoxDecoration(color: primaryLight, borderRadius: BorderRadius.circular(20)),
+                child: Text('${_filteredVideos.length} ${loc.videos}', style: TextStyle(color: primaryColor, fontWeight: FontWeight.w600)),
               ),
             ],
           ),
@@ -434,29 +432,44 @@ class _VideoManagerScreenState extends State<VideoManagerScreen> {
     );
   }
 
-  Widget _buildFilterDropdown({required String label, required String value, required List<DropdownMenuItem<String>> items, required ValueChanged<String?> onChanged}) {
+  Widget _buildFilterDropdown({
+    required String label,
+    required String value,
+    required List<DropdownMenuItem<String>> items,
+    required ValueChanged<String?> onChanged,
+    required Color primaryColor,
+    required Color textSecondary,
+    required Color primaryLight,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _textSecondary)),
+        Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textSecondary)),
         const SizedBox(height: 4),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(border: Border.all(color: _primaryColor.withOpacity(0.2)), borderRadius: BorderRadius.circular(8)),
+          decoration: BoxDecoration(border: Border.all(color: primaryColor.withOpacity(0.2)), borderRadius: BorderRadius.circular(8)),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(value: value, items: items, onChanged: onChanged),
+            child: DropdownButton<String>(
+              value: value,
+              items: items,
+              onChanged: onChanged,
+              style: TextStyle(color: textSecondary),
+            ),
           ),
         ),
       ],
     );
   }
 }
-enum PublishStatus { draft, published, pending}
+
+enum PublishStatus { draft, published, pending }
+
 class VideoCard extends StatelessWidget {
   final VideoDto video;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  final VoidCallback? onTap; // إضافة إمكانية الضغط على الكارد للمشاهدة
+  final VoidCallback? onTap;
 
   const VideoCard({
     super.key,
@@ -465,7 +478,6 @@ class VideoCard extends StatelessWidget {
     required this.onDelete,
     this.onTap,
   });
-
 
   String? _extractYouTubeId(String url) {
     final uri = Uri.tryParse(url);
@@ -480,6 +492,7 @@ class VideoCard extends StatelessWidget {
     final theme = Theme.of(context);
     final localeProvider = Provider.of<LocaleProvider>(context);
     final loc = AppLocalizations(localeProvider.locale.languageCode);
+    final isRTL = localeProvider.locale.languageCode == 'ar';
 
     return Card(
       elevation: 0,
@@ -493,10 +506,7 @@ class VideoCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             _buildThumbnail(video),
-
-
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -517,7 +527,6 @@ class VideoCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -530,7 +539,7 @@ class VideoCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const Spacer(),
-                    _buildActionButtons(theme),
+                    _buildActionButtons(theme, isRTL),
                   ],
                 ),
               ),
@@ -545,20 +554,18 @@ class VideoCard extends StatelessWidget {
     final youtubeId = video.videoUrl != null ? _extractYouTubeId(video.videoUrl!) : null;
 
     return AspectRatio(
-      aspectRatio: 16 / 9, // النسبة القياسية لليوتيوب
+      aspectRatio: 16 / 9,
       child: Stack(
         fit: StackFit.expand,
         children: [
           if (video.videoType == 'youtube' && youtubeId != null)
             Image.network(
-              'https://img.youtube.com/vi/$youtubeId/mqdefault.jpg', // mqdefault أسرع في التحميل
+              'https://img.youtube.com/vi/$youtubeId/mqdefault.jpg',
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => _placeholder(),
             )
           else
             _placeholder(),
-
-          // طبقة تظليل خفيفة (Overlay)
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -568,8 +575,6 @@ class VideoCard extends StatelessWidget {
               ),
             ),
           ),
-
-          // أيقونة التشغيل
           Center(
             child: Container(
               padding: const EdgeInsets.all(10),
@@ -586,10 +591,26 @@ class VideoCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(ThemeData theme) {
+  Widget _buildActionButtons(ThemeData theme, bool isRTL) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
+      mainAxisAlignment: isRTL ? MainAxisAlignment.start : MainAxisAlignment.end,
+      children: isRTL
+          ? [
+        _iconButton(
+          icon: Icons.edit_outlined,
+          color: Colors.blueAccent,
+          onPressed: onEdit,
+          tooltip: 'تعديل',
+        ),
+        const SizedBox(width: 8),
+        _iconButton(
+          icon: Icons.delete_outline_rounded,
+          color: Colors.redAccent,
+          onPressed: onDelete,
+          tooltip: 'حذف',
+        ),
+      ]
+          : [
         _iconButton(
           icon: Icons.edit_outlined,
           color: Colors.blueAccent,
@@ -625,36 +646,61 @@ class VideoCard extends StatelessWidget {
     color: Colors.grey.shade200,
     child: const Center(child: Icon(Icons.videocam_off_outlined, size: 40, color: Colors.grey)),
   );
-
 }
+
 class AddVideoDialog extends StatelessWidget {
   final VideoApiService videoService;
   final List<VideoCategory> categories;
   final VoidCallback onVideoAdded;
-  final Color primaryColor;
   final String languageCode;
 
-  const AddVideoDialog({super.key, required this.videoService, required this.categories, required this.onVideoAdded, required this.primaryColor, required this.languageCode});
+  const AddVideoDialog({
+    super.key,
+    required this.videoService,
+    required this.categories,
+    required this.onVideoAdded,
+    required this.languageCode,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? Colors.green : const Color(0xFF1A56DB);
     final loc = AppLocalizations(languageCode);
+    final isRTL = languageCode == 'ar';
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         width: 600,
         padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(loc.addNewVideo, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: primaryColor)),
+            Text(loc.addNewVideo,
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: primaryColor)),
             const SizedBox(height: 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _option(context, Icons.youtube_searched_for, loc.youtube, loc.addFromYoutube, Colors.red, () => _youtubeDialog(context)),
+              children: isRTL
+                  ? [
+                _option(context, Icons.upload_file, loc.uploadFile, loc.uploadVideoFile, primaryColor,
+                        () => _uploadDialog(context)),
                 const SizedBox(width: 24),
-                _option(context, Icons.upload_file, loc.uploadFile, loc.uploadVideoFile, primaryColor, () => _uploadDialog(context)),
+                _option(context, Icons.youtube_searched_for, loc.youtube, loc.addFromYoutube, Colors.red,
+                        () => _youtubeDialog(context)),
+              ]
+                  : [
+                _option(context, Icons.youtube_searched_for, loc.youtube, loc.addFromYoutube, Colors.red,
+                        () => _youtubeDialog(context)),
+                const SizedBox(width: 24),
+                _option(context, Icons.upload_file, loc.uploadFile, loc.uploadVideoFile, primaryColor,
+                        () => _uploadDialog(context)),
               ],
             ),
             const SizedBox(height: 24),
@@ -671,13 +717,30 @@ class AddVideoDialog extends StatelessWidget {
       child: Container(
         width: 200,
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(16), border: Border.all(color: color.withOpacity(0.2))),
-        child: Column(children: [Icon(icon, size: 48, color: color), const SizedBox(height: 16), Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)), const SizedBox(height: 8), Text(desc, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600))]),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 48, color: color),
+            const SizedBox(height: 16),
+            Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+            const SizedBox(height: 8),
+            Text(desc,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Theme.of(ctx).hintColor)),
+          ],
+        ),
       ),
     );
   }
 
   void _youtubeDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? Colors.green : const Color(0xFF1A56DB);
     final loc = AppLocalizations(languageCode);
     final urlC = TextEditingController();
     final titleC = TextEditingController();
@@ -689,23 +752,67 @@ class AddVideoDialog extends StatelessWidget {
       builder: (_) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(children: [const Icon(Icons.youtube_searched_for, color: Colors.red), const SizedBox(width: 12), Text(loc.addYoutubeVideo)]),
+          backgroundColor: theme.cardColor,
+          title: Row(
+            children: [
+              const Icon(Icons.youtube_searched_for, color: Colors.red),
+              const SizedBox(width: 12),
+              Text(loc.addYoutubeVideo),
+            ],
+          ),
           content: SizedBox(
             width: 500,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(controller: urlC, decoration: InputDecoration(labelText: loc.youtubeUrl, hintText: loc.youtubeUrlHint, prefixIcon: const Icon(Icons.link), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+                TextField(
+                  controller: urlC,
+                  decoration: InputDecoration(
+                    labelText: loc.youtubeUrl,
+                    hintText: loc.youtubeUrlHint,
+                    prefixIcon: const Icon(Icons.link),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: theme.cardColor,
+                  ),
+                ),
                 const SizedBox(height: 16),
-                TextField(controller: titleC, decoration: InputDecoration(labelText: loc.title, prefixIcon: const Icon(Icons.title), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+                TextField(
+                  controller: titleC,
+                  decoration: InputDecoration(
+                    labelText: loc.title,
+                    prefixIcon: const Icon(Icons.title),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: theme.cardColor,
+                  ),
+                ),
                 const SizedBox(height: 16),
-                TextField(controller: descC, decoration: InputDecoration(labelText: loc.description, prefixIcon: const Icon(Icons.description), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))), maxLines: 3),
+                TextField(
+                  controller: descC,
+                  decoration: InputDecoration(
+                    labelText: loc.description,
+                    prefixIcon: const Icon(Icons.description),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: theme.cardColor,
+                  ),
+                  maxLines: 3,
+                ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<VideoCategory>(
                   value: selectedCat,
-                  items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
+                  items: categories
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c.name)))
+                      .toList(),
                   onChanged: (v) => setState(() => selectedCat = v),
-                  decoration: InputDecoration(labelText: loc.category, prefixIcon:  Icon(Icons.category, color: Colors.blue.withOpacity(0.8)), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                  decoration: InputDecoration(
+                    labelText: loc.category,
+                    prefixIcon: Icon(Icons.category, color: primaryColor.withOpacity(0.8)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: theme.cardColor,
+                  ),
                 ),
               ],
             ),
@@ -718,19 +825,28 @@ class AddVideoDialog extends StatelessWidget {
                 final videoId = url;
                 if (titleC.text.isNotEmpty) {
                   try {
-                    await videoService.addYouTube(title: titleC.text, description: descC.text, videoId: videoId, categoryId: selectedCat?.id);
+                    await videoService.addYouTube(
+                        title: titleC.text,
+                        description: descC.text,
+                        videoId: videoId,
+                        categoryId: selectedCat?.id);
                     Navigator.pop(ctx);
                     Navigator.pop(context);
                     onVideoAdded();
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.videoAdded), backgroundColor: Colors.green));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(loc.videoAdded), backgroundColor: Colors.green));
                   } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${loc.error}: $e'), backgroundColor: Colors.red));
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('${loc.error}: $e'), backgroundColor: Colors.red));
                   }
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.invalidUrl), backgroundColor: Colors.red));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(loc.invalidUrl), backgroundColor: Colors.red));
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
               child: Text(loc.add, style: const TextStyle(color: Colors.white)),
             ),
           ],
@@ -740,6 +856,9 @@ class AddVideoDialog extends StatelessWidget {
   }
 
   void _uploadDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? Colors.green : const Color(0xFF1A56DB);
     final loc = AppLocalizations(languageCode);
     final titleC = TextEditingController();
     final descC = TextEditingController();
@@ -751,7 +870,14 @@ class AddVideoDialog extends StatelessWidget {
       builder: (_) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(children: [Icon(Icons.upload_file, color: primaryColor), const SizedBox(width: 12), Text(loc.uploadVideo)]),
+          backgroundColor: theme.cardColor,
+          title: Row(
+            children: [
+              Icon(Icons.upload_file, color: primaryColor),
+              const SizedBox(width: 12),
+              Text(loc.uploadVideo),
+            ],
+          ),
           content: SizedBox(
             width: 500,
             child: Column(
@@ -770,47 +896,81 @@ class AddVideoDialog extends StatelessWidget {
                       reader.onLoadEnd.listen((event) async {
                         final bytes = reader.result as Uint8List;
                         try {
-                          await videoService.uploadVideoFile(bytes: bytes, fileName: file.name, title: titleC.text.isNotEmpty ? titleC.text : file.name, description: descC.text, categoryId: selectedCat?.id);
+                          await videoService.uploadVideoFile(
+                              bytes: bytes,
+                              fileName: file.name,
+                              title: titleC.text.isNotEmpty ? titleC.text : file.name,
+                              description: descC.text,
+                              categoryId: selectedCat?.id);
                           Navigator.pop(ctx);
                           Navigator.pop(context);
                           onVideoAdded();
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.videoAdded), backgroundColor: Colors.green));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(loc.videoAdded), backgroundColor: Colors.green));
                         } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${loc.uploadFailed}: $e'), backgroundColor: Colors.red));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text('${loc.uploadFailed}: $e'), backgroundColor: Colors.red));
                         }
                       });
                     });
                   },
                   icon: const Icon(Icons.file_upload),
                   label: Text(fileName ?? loc.chooseVideo),
-                  style: ElevatedButton.styleFrom(backgroundColor: primaryColor, padding: const EdgeInsets.symmetric(vertical: 16)),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor, padding: const EdgeInsets.symmetric(vertical: 16)),
                 ),
                 const SizedBox(height: 16),
-                TextField(controller: titleC, decoration: InputDecoration(labelText: loc.title, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+                TextField(
+                  controller: titleC,
+                  decoration: InputDecoration(
+                    labelText: loc.title,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: theme.cardColor,
+                  ),
+                ),
                 const SizedBox(height: 16),
-                TextField(controller: descC, decoration: InputDecoration(labelText: loc.description, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))), maxLines: 3),
+                TextField(
+                  controller: descC,
+                  decoration: InputDecoration(
+                    labelText: loc.description,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: theme.cardColor,
+                  ),
+                  maxLines: 3,
+                ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<VideoCategory>(
                   value: selectedCat,
-                  items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
+                  items: categories
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c.name)))
+                      .toList(),
                   onChanged: (v) => setState(() => selectedCat = v),
-                  decoration: InputDecoration(labelText: loc.category, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                  decoration: InputDecoration(
+                    labelText: loc.category,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: theme.cardColor,
+                  ),
                 ),
               ],
             ),
           ),
-          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text(loc.cancel))],
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(loc.cancel)),
+          ],
         ),
       ),
     );
   }
 }
+
 class EditVideoDialog extends StatefulWidget {
   final VideoDto video;
   final VideoApiService videoService;
   final List<VideoCategory> categories;
   final VoidCallback onVideoUpdated;
-  final Color primaryColor;
   final String languageCode;
 
   const EditVideoDialog({
@@ -819,19 +979,20 @@ class EditVideoDialog extends StatefulWidget {
     required this.videoService,
     required this.categories,
     required this.onVideoUpdated,
-    required this.primaryColor,
     required this.languageCode,
   });
 
   @override
   State<EditVideoDialog> createState() => _EditVideoDialogState();
 }
+
 class _EditVideoDialogState extends State<EditVideoDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController titleC, descC, urlC;
   VideoCategory? selectedCat;
   bool isActive = true;
-  bool isLoading = false; // حالة التحميل
+  bool isVertically = false;
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -844,6 +1005,7 @@ class _EditVideoDialogState extends State<EditVideoDialog> {
       orElse: () => widget.categories.first,
     );
     isActive = widget.video.isActive;
+    isVertically = widget.video.isVertically;
   }
 
   @override
@@ -864,6 +1026,7 @@ class _EditVideoDialogState extends State<EditVideoDialog> {
         'description': descC.text.trim(),
         'categoryId': selectedCat?.id,
         'isActive': isActive,
+        'isVertically': isVertically,
       };
 
       if (widget.video.videoType == 'youtube') {
@@ -894,9 +1057,11 @@ class _EditVideoDialogState extends State<EditVideoDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations(widget.languageCode);
     final theme = Theme.of(context);
-    final isArabic=widget.languageCode=='ar';
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? Colors.green : const Color(0xFF1A56DB);
+    final loc = AppLocalizations(widget.languageCode);
+    final isArabic = widget.languageCode == 'ar';
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -907,7 +1072,7 @@ class _EditVideoDialogState extends State<EditVideoDialog> {
         constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(24),
         ),
         child: Form(
@@ -918,11 +1083,11 @@ class _EditVideoDialogState extends State<EditVideoDialog> {
               // Header
               Row(
                 children: [
-                  Icon(Icons.edit_note_rounded, color: widget.primaryColor, size: 30),
+                  Icon(Icons.edit_note_rounded, color: primaryColor, size: 30),
                   const SizedBox(width: 12),
                   Text(
                     loc.editVideo,
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: widget.primaryColor),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: primaryColor),
                   ),
                   const Spacer(),
                   IconButton(
@@ -944,6 +1109,7 @@ class _EditVideoDialogState extends State<EditVideoDialog> {
                         label: loc.title,
                         icon: Icons.title,
                         validator: (v) => v!.isEmpty ? 'Required' : null,
+                        primaryColor: primaryColor,
                       ),
                       const SizedBox(height: 16),
                       _buildTextField(
@@ -951,6 +1117,7 @@ class _EditVideoDialogState extends State<EditVideoDialog> {
                         label: loc.description,
                         icon: Icons.description_outlined,
                         maxLines: 3,
+                        primaryColor: primaryColor,
                       ),
                       if (widget.video.videoType == 'youtube') ...[
                         const SizedBox(height: 16),
@@ -960,28 +1127,45 @@ class _EditVideoDialogState extends State<EditVideoDialog> {
                           icon: Icons.play_circle_filled,
                           hint: loc.youtubeUrlHint,
                           validator: (v) => v!.isEmpty ? 'Required' : null,
+                          primaryColor: primaryColor,
                         ),
                       ],
                       const SizedBox(height: 16),
                       Row(
                         children: [
-                          Expanded(child: _buildDropdown<VideoCategory>(
-                            label: loc.category,
-                            value: selectedCat,
-                            items: widget.categories.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
-                            onChanged: (v) => setState(() => selectedCat = v),
-                          )),
-
+                          Expanded(
+                              child: _buildDropdown<VideoCategory>(
+                                label: loc.category,
+                                value: selectedCat,
+                                items: widget.categories
+                                    .map((c) => DropdownMenuItem(value: c, child: Text(c.name)))
+                                    .toList(),
+                                onChanged: (v) => setState(() => selectedCat = v),
+                                primaryColor: primaryColor,
+                              )),
                         ],
                       ),
                       const SizedBox(height: 8),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
                         title: Text(loc.active, style: const TextStyle(fontWeight: FontWeight.w500)),
-                        subtitle: Text(isArabic?"جعل هذا الفيديو مرئي للمستخدمين":"Make this video visible to users"),
+                        subtitle: Text(isArabic
+                            ? "جعل هذا الفيديو مرئي للمستخدمين"
+                            : "Make this video visible to users"),
                         value: isActive,
-                        activeColor: widget.primaryColor,
+                        activeColor: primaryColor,
                         onChanged: (v) => setState(() => isActive = v),
+                      ),
+                      const SizedBox(height: 8),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(loc.isVertically, style: const TextStyle(fontWeight: FontWeight.w500)),
+                        subtitle: Text(isArabic
+                            ? "جعل هذا الفيديو بالعرض الطولي"
+                            : "Make this video isVertically to users"),
+                        value: isVertically,
+                        activeColor: primaryColor,
+                        onChanged: (v) => setState(() => isVertically = v),
                       ),
                     ],
                   ),
@@ -1008,14 +1192,17 @@ class _EditVideoDialogState extends State<EditVideoDialog> {
                     child: ElevatedButton(
                       onPressed: isLoading ? null : () => _handleUpdate(loc),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: widget.primaryColor,
+                        backgroundColor: primaryColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: isLoading
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                           : Text(loc.save, style: const TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
@@ -1028,7 +1215,6 @@ class _EditVideoDialogState extends State<EditVideoDialog> {
     );
   }
 
-
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -1036,7 +1222,9 @@ class _EditVideoDialogState extends State<EditVideoDialog> {
     int maxLines = 1,
     String? hint,
     String? Function(String?)? validator,
+    required Color primaryColor,
   }) {
+    final theme = Theme.of(context);
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
@@ -1045,11 +1233,15 @@ class _EditVideoDialogState extends State<EditVideoDialog> {
         labelText: label,
         hintText: hint,
         prefixIcon: Icon(icon, size: 20),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: widget.primaryColor, width: 1.5)),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: theme.dividerColor)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: theme.dividerColor)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: primaryColor, width: 1.5)),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: theme.cardColor,
       ),
     );
   }
@@ -1059,7 +1251,9 @@ class _EditVideoDialogState extends State<EditVideoDialog> {
     required T? value,
     required List<DropdownMenuItem<T>> items,
     required ValueChanged<T?> onChanged,
+    required Color primaryColor,
   }) {
+    final theme = Theme.of(context);
     return DropdownButtonFormField<T>(
       value: value,
       items: items,
@@ -1069,38 +1263,49 @@ class _EditVideoDialogState extends State<EditVideoDialog> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: theme.cardColor,
       ),
     );
   }
 }
+
 class ManageCategoriesDialog extends StatefulWidget {
   final List<VideoCategory> categories;
   final CategoryApiService categoryService;
   final VoidCallback onCategoriesUpdated;
-  final Color primaryColor;
   final String languageCode;
 
-  const ManageCategoriesDialog({super.key, required this.categories, required this.categoryService, required this.onCategoriesUpdated, required this.primaryColor, required this.languageCode});
+  const ManageCategoriesDialog({
+    super.key,
+    required this.categories,
+    required this.categoryService,
+    required this.onCategoriesUpdated,
+    required this.languageCode,
+  });
 
   @override
   State<ManageCategoriesDialog> createState() => _ManageCategoriesDialogState();
 }
+
 class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
   late List<VideoCategory> _reorderedCategories;
 
   @override
   void initState() {
     super.initState();
-    // ترتيب التصنيفات حسب الـ index
     _reorderedCategories = List.from(widget.categories)..sort((a, b) => a.index.compareTo(b.index));
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? Colors.green : const Color(0xFF1A56DB);
     final loc = AppLocalizations(widget.languageCode);
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: theme.cardColor,
       child: Container(
         width: 500,
         padding: const EdgeInsets.all(24),
@@ -1110,7 +1315,14 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(children: [Icon(Icons.category, color: Colors.blue.shade900, size: 28), const SizedBox(width: 12), Text(loc.manageCategories, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold))]),
+                Row(
+                  children: [
+                    Icon(Icons.category, color: primaryColor, size: 28),
+                    const SizedBox(width: 12),
+                    Text(loc.manageCategories,
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  ],
+                ),
                 IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
               ],
             ),
@@ -1118,25 +1330,24 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
+                border: Border.all(color: primaryColor.withOpacity(0.2)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                  Icon(Icons.info_outline, color: primaryColor, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       loc.dragToReorder,
-                      style: TextStyle(color: Colors.blue.shade700, fontSize: 13),
+                      style: TextStyle(color: primaryColor, fontSize: 13),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
-            // ✨ ReorderableListView للسحب وإعادة الترتيب
             SizedBox(
               height: 300,
               child: ReorderableListView.builder(
@@ -1154,15 +1365,17 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
                     key: ValueKey(cat.id),
                     elevation: 2,
                     margin: const EdgeInsets.only(bottom: 8),
+                    color: theme.cardColor,
                     child: ListTile(
                       leading: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.drag_handle, color: Colors.grey.shade600),
+                          Icon(Icons.drag_handle, color: theme.hintColor),
                           const SizedBox(width: 8),
                           CircleAvatar(
-                            backgroundColor: widget.primaryColor.withOpacity(0.1),
-                            child: Text('${i + 1}', style: TextStyle(color: widget.primaryColor, fontWeight: FontWeight.bold)),
+                            backgroundColor: primaryColor.withOpacity(0.1),
+                            child: Text('${i + 1}',
+                                style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),
@@ -1170,8 +1383,12 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          IconButton(icon: const Icon(Icons.edit, color: Colors.orange), onPressed: () => _editCategory(cat)),
-                          IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteCategory(cat)),
+                          IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.orange),
+                              onPressed: () => _editCategory(cat)),
+                          IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _deleteCategory(cat)),
                         ],
                       ),
                     ),
@@ -1187,7 +1404,8 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
                     onPressed: _addCategory,
                     icon: const Icon(Icons.add, color: Colors.white),
                     label: Text(loc.addCategory, style: const TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(backgroundColor: widget.primaryColor, padding: const EdgeInsets.symmetric(vertical: 16)),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor, padding: const EdgeInsets.symmetric(vertical: 16)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1196,7 +1414,8 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
                     onPressed: _saveOrder,
                     icon: const Icon(Icons.save, color: Colors.white),
                     label: Text(loc.save, style: const TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(vertical: 16)),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(vertical: 16)),
                   ),
                 ),
               ],
@@ -1207,11 +1426,9 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
     );
   }
 
-  // ✨ حفظ الترتيب الجديد
   Future<void> _saveOrder() async {
     final loc = AppLocalizations(widget.languageCode);
     try {
-      // إرسال الترتيب الجديد للـ API
       final categoryIds = _reorderedCategories.map((c) => c.id).toList();
       await widget.categoryService.reorderCategories(categoryIds);
 
@@ -1228,27 +1445,36 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
   }
 
   void _addCategory() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? Colors.green : const Color(0xFF1A56DB);
     final loc = AppLocalizations(widget.languageCode);
     final nameC = TextEditingController();
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: theme.cardColor,
         title: Text(loc.addCategory),
-        content: TextField(controller: nameC, decoration: InputDecoration(labelText: loc.categoryName)),
+        content: TextField(
+          controller: nameC,
+          decoration: InputDecoration(
+            labelText: loc.categoryName,
+            filled: true,
+            fillColor: theme.cardColor,
+          ),
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.cancel)),
           ElevatedButton(
             onPressed: () async {
               if (nameC.text.isNotEmpty) {
                 await widget.categoryService.addCategory(nameC.text);
-                print('Category added successfully');
-                print(nameC.text);
-                print('Category added successfully');
                 Navigator.pop(context);
                 Navigator.pop(context);
                 widget.onCategoriesUpdated();
               }
             },
+            style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
             child: Text(loc.add),
           ),
         ],
@@ -1257,13 +1483,24 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
   }
 
   void _editCategory(VideoCategory cat) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? Colors.green : const Color(0xFF1A56DB);
     final loc = AppLocalizations(widget.languageCode);
     final nameC = TextEditingController(text: cat.name);
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: theme.cardColor,
         title: Text(loc.editCategory),
-        content: TextField(controller: nameC, decoration: InputDecoration(labelText: loc.categoryName)),
+        content: TextField(
+          controller: nameC,
+          decoration: InputDecoration(
+            labelText: loc.categoryName,
+            filled: true,
+            fillColor: theme.cardColor,
+          ),
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.cancel)),
           ElevatedButton(
@@ -1275,6 +1512,7 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
                 widget.onCategoriesUpdated();
               }
             },
+            style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
             child: Text(loc.save),
           ),
         ],
@@ -1283,15 +1521,21 @@ class _ManageCategoriesDialogState extends State<ManageCategoriesDialog> {
   }
 
   void _deleteCategory(VideoCategory cat) async {
+    final theme = Theme.of(context);
     final loc = AppLocalizations(widget.languageCode);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: theme.cardColor,
         title: Text(loc.deleteCategory),
         content: Text(loc.deleteConfirm),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text(loc.cancel)),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: Text(loc.delete)),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text(loc.delete),
+          ),
         ],
       ),
     );

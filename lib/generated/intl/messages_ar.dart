@@ -30,7 +30,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "emailLabel": MessageLookupByLibrary.simpleMessage("البريد الإلكتروني"),
     "forgotPassword": MessageLookupByLibrary.simpleMessage("نسيت كلمة المرور؟"),
     "loginButton": MessageLookupByLibrary.simpleMessage("دخول"),
-    "loginTitle": MessageLookupByLibrary.simpleMessage("تسجيل دخول المسؤول"),
+    "loginTitle": MessageLookupByLibrary.simpleMessage("تسجيل الدخول "),
     "passwordEmptyError": MessageLookupByLibrary.simpleMessage(
       "أدخل كلمة المرور",
     ),

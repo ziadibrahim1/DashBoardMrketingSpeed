@@ -28,12 +28,21 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
   Set<int> selectedAdmins = {};
   bool isMultiSelectMode = false;
 
-  // الألوان الاحترافية المحسّنة
-  static const Color primaryBlue = Color(0xFF1B367A);
-  static const Color lightBlue =Color(0xFF4FB5F5) ;
-  static const Color darkBlue = Color(0xFF0D47A1);
-  static const Color accentBlue = Color(0xFF64B5F6);
-  static const Color bgLight = Color(0xFFF5F9FF);
+  // ✅ الألوان للوضع الفاتح (نفس الألوان الحالية)
+  static const Color primaryBlueLight = Color(0xFF1B367A);
+  static const Color lightBlueLight = Color(0xFF4FB5F5);
+  static const Color darkBlueLight = Color(0xFF0D47A1);
+  static const Color accentBlueLight = Color(0xFF64B5F6);
+  static const Color bgLightMode = Color(0xFFF5F9FF);
+
+  // ✅ الألوان للوضع الداكن (أخضر)
+  static const Color primaryGreenDark = Color(0xFF10B981);
+  static const Color lightGreenDark = Color(0xFF216532);
+  static const Color darkGreenDark = Color(0xFF059669);
+  static const Color accentGreenDark = Color(0xFF6EE7B7);
+  static const Color bgDarkMode = Color(0xFF1F2937);
+
+  // ألوان مشتركة
   static const Color cardLight = Color(0xFFFFFFFF);
   static const Color textDark = Color(0xFF1A237E);
   static const Color inactiveRed = Color(0xFFE53935);
@@ -62,6 +71,15 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     {'key': 'SendNotificationPage', 'ar': 'صفحة إرسال الإشعارات', 'en': 'Send Notification Page'},
     {'key': 'NotificationHistoryPage', 'ar': 'صفحة سجل الإشعارات', 'en': 'Notification History Page'},
   ];
+
+  // ✅ دوال للحصول على الألوان حسب الثيم
+  Color _getPrimaryColor(bool isDark) => isDark ? primaryGreenDark : primaryBlueLight;
+  Color _getLightColor(bool isDark) => isDark ? lightGreenDark : lightBlueLight;
+  Color _getDarkColor(bool isDark) => isDark ? darkGreenDark : darkBlueLight;
+  Color _getAccentColor(bool isDark) => isDark ? accentGreenDark : accentBlueLight;
+  Color _getBgColor(bool isDark) => isDark ? bgDarkMode : bgLightMode;
+  Color _getCardColor(bool isDark) => isDark ? Colors.grey[850]! : cardLight;
+  Color _getTextColor(bool isDark) => isDark ? Colors.white : textDark;
 
   Future<void> fetchAdmins() async {
     final response = await http.get(Uri.parse("${AppConfig.apiBase}/api/dashboard-users"));
@@ -500,7 +518,6 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     request.fields['UsersPage'] = (admin['UsersPage']).toString();
     request.fields['DashboardStatsSection'] = (admin['DashboardStatsSection']).toString();
 
-    // إرسال Password فقط في حالة الإضافة أو إذا كان موجود في admin map
     if (id == null) {
       request.fields['Password'] = admin['password'] ?? "123456";
     } else if (admin.containsKey('password') && admin['password'] != null && admin['password'].toString().isNotEmpty) {
@@ -512,6 +529,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
       await fetchAdmins();
     }
   }
+
   Future<void> deleteAdmin(int id) async {
     await http.delete(Uri.parse("${AppConfig.apiBase}/api/dashboard-users/$id"));
     fetchAdmins();
@@ -648,7 +666,11 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
   }
 
   Widget _buildDeleteDialog(String langCode, {bool isPermanent = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = _getPrimaryColor(isDark);
+
     return AlertDialog(
+      backgroundColor: _getCardColor(isDark),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Row(
         children: [
@@ -657,14 +679,14 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
           Expanded(
             child: Text(
               isPermanent ? t('confirm_permanent_delete', langCode) : t('confirm_exit_title', langCode),
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.bold, color: _getTextColor(isDark)),
             ),
           ),
         ],
       ),
       content: Text(
         isPermanent ? t('permanent_delete_warning', langCode) : t('confirm_exit_content', langCode),
-        style: const TextStyle(fontSize: 15),
+        style: TextStyle(fontSize: 15, color: _getTextColor(isDark)),
       ),
       actions: [
         TextButton(
@@ -673,7 +695,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: isPermanent ? inactiveRed : primaryBlue,
+            backgroundColor: isPermanent ? inactiveRed : primaryColor,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
           onPressed: () => Navigator.pop(context, true),
@@ -690,6 +712,14 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     int? index,
     required String langCode,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = _getPrimaryColor(isDark);
+    final lightColor = _getLightColor(isDark);
+    final darkColor = _getDarkColor(isDark);
+    final bgColor = _getBgColor(isDark);
+    final cardColor = _getCardColor(isDark);
+    final textColor = _getTextColor(isDark);
+
     final isAdding = existingAdmin == null;
     final isAdminRole = UserSession.role == "admin";
     final firstNameController = TextEditingController(text: existingAdmin?['firstName']);
@@ -740,13 +770,12 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
               textDirection: langCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
               child: AlertDialog(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                backgroundColor: bgLight,
+                backgroundColor: bgColor,
                 title: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF4FB5F5),
-                        Color(0xFF1B367A)],
+                    gradient: LinearGradient(
+                      colors: [lightColor, primaryColor],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -776,28 +805,29 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 16),
-                        _buildSectionTitle(t('basic_info', langCode), Icons.info_outline),
+                        _buildSectionTitle(t('basic_info', langCode), Icons.info_outline, isDark),
                         const SizedBox(height: 12),
-                        _buildModernField(firstNameController, t('first_name', langCode), Icons.person, setModalState, readOnly: !isAdminRole),
-                        _buildModernField(middleNameController, t('middle_name', langCode), Icons.person_outline, setModalState, readOnly: !isAdminRole),
-                        _buildModernField(lastNameController, t('last_name', langCode), Icons.person, setModalState, readOnly: !isAdminRole),
-                        _buildModernField(phoneController, t('phone', langCode), Icons.phone, setModalState, readOnly: !isAdminRole),
-                        _buildModernField(emailController, t('email', langCode), Icons.email, setModalState, readOnly: !isAdminRole),
-                        _buildModernField(countryController, t('country', langCode), Icons.public, setModalState, readOnly: !isAdminRole),
-                        _buildModernField(cityController, t('city', langCode), Icons.location_city, setModalState, readOnly: !isAdminRole),
+                        _buildModernField(firstNameController, t('first_name', langCode), Icons.person, setModalState, isDark, readOnly: !isAdminRole),
+                        _buildModernField(middleNameController, t('middle_name', langCode), Icons.person_outline, setModalState, isDark, readOnly: !isAdminRole),
+                        _buildModernField(lastNameController, t('last_name', langCode), Icons.person, setModalState, isDark, readOnly: !isAdminRole),
+                        _buildModernField(phoneController, t('phone', langCode), Icons.phone, setModalState, isDark, readOnly: !isAdminRole),
+                        _buildModernField(emailController, t('email', langCode), Icons.email, setModalState, isDark, readOnly: !isAdminRole),
+                        _buildModernField(countryController, t('country', langCode), Icons.public, setModalState, isDark, readOnly: !isAdminRole),
+                        _buildModernField(cityController, t('city', langCode), Icons.location_city, setModalState, isDark, readOnly: !isAdminRole),
 
-                          _buildModernField(
-                            passwordController,
-                            t('new_password', langCode),
-                            Icons.lock_reset,
-                            setModalState,
-                            obscureText: true,
-                          ),
+                        _buildModernField(
+                          passwordController,
+                          t('new_password', langCode),
+                          Icons.lock_reset,
+                          setModalState,
+                          isDark,
+                          obscureText: true,
+                        ),
                         const SizedBox(height: 24),
-                        _buildSectionTitle(t('financial_info', langCode), Icons.account_balance),
+                        _buildSectionTitle(t('financial_info', langCode), Icons.account_balance, isDark),
                         const SizedBox(height: 12),
-                        _buildModernField(bankController, t('bank', langCode), Icons.account_balance, setModalState, readOnly: !isAdminRole),
-                        _buildModernField(ibanController, t('iban', langCode), Icons.credit_card, setModalState, readOnly: !isAdminRole),
+                        _buildModernField(bankController, t('bank', langCode), Icons.account_balance, setModalState, isDark, readOnly: !isAdminRole),
+                        _buildModernField(ibanController, t('iban', langCode), Icons.credit_card, setModalState, isDark, readOnly: !isAdminRole),
 
                         const SizedBox(height: 24),
                         Center(
@@ -814,7 +844,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                             icon: const Icon(Icons.cloud_upload),
                             label: Text(t('upload_image', langCode)),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: accentBlue,
+                              backgroundColor: _getAccentColor(isDark),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -835,7 +865,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                           ),
 
                         const SizedBox(height: 24),
-                        _buildSectionTitle(t('page_permissions', langCode), Icons.admin_panel_settings),
+                        _buildSectionTitle(t('page_permissions', langCode), Icons.admin_panel_settings, isDark),
                         const SizedBox(height: 8),
                         Row(
                           children: [
@@ -852,8 +882,8 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                 icon: const Icon(Icons.done_all),
                                 label: Text(t('select_all', langCode)),
                                 style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: primaryBlue),
-                                  foregroundColor: primaryBlue,
+                                  side: BorderSide(color: primaryColor),
+                                  foregroundColor: primaryColor,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                 ),
                               ),
@@ -883,9 +913,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                         const SizedBox(height: 12),
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: cardColor,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: lightBlue.withOpacity(0.3)),
+                            border: Border.all(color: lightColor.withOpacity(0.3)),
                           ),
                           child: Column(
                             children: availablePages.map((page) {
@@ -893,19 +923,19 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                               return Container(
                                 decoration: BoxDecoration(
                                   border: Border(
-                                    bottom: BorderSide(color: Colors.grey.shade200),
+                                    bottom: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade200),
                                   ),
                                 ),
                                 child: CheckboxListTile(
                                   title: Text(
                                     langCode == 'ar' ? page['ar']! : page['en']!,
                                     style: TextStyle(
-                                      color: textDark,
+                                      color: textColor,
                                       fontWeight: isChecked ? FontWeight.w600 : FontWeight.normal,
                                     ),
                                   ),
                                   value: isChecked,
-                                  activeColor: primaryBlue,
+                                  activeColor: primaryColor,
                                   checkColor: Colors.white,
                                   onChanged: !isAdminRole
                                       ? null
@@ -932,7 +962,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey.shade700,
+                      foregroundColor: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
                     child: Text(t('cancel', langCode)),
@@ -964,14 +994,11 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                           newAdmin[page['key']!] = hasPermission.toString();
                         }
 
-                        // إضافة Password فقط إذا كان موجود ومش فارغ
                         if (existingAdmin == null) {
-                          // في حالة الإضافة
                           newAdmin['password'] = newPasswordController.text.trim().isEmpty
                               ? "123456"
                               : newPasswordController.text.trim();
                         } else if (passwordController.text.trim().isNotEmpty) {
-                          // في حالة التعديل، فقط إذا تم إدخال password جديد
                           newAdmin['password'] = passwordController.text.trim();
                         }
 
@@ -1005,7 +1032,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                       icon: const Icon(Icons.save),
                       label: Text(t('save', langCode)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryBlue,
+                        backgroundColor: primaryColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1021,24 +1048,28 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     );
   }
 
-  Widget _buildSectionTitle(String title, IconData icon) {
+  Widget _buildSectionTitle(String title, IconData icon, bool isDark) {
+    final lightColor = _getLightColor(isDark);
+    final darkColor = _getDarkColor(isDark);
+    final textColor = _getTextColor(isDark);
+
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: lightBlue.withOpacity(0.2),
+            color: lightColor.withOpacity(0.2),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: darkBlue, size: 20),
+          child: Icon(icon, color: darkColor, size: 20),
         ),
         const SizedBox(width: 12),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 16,
-            color: textDark,
+            color: textColor,
           ),
         ),
       ],
@@ -1049,30 +1080,36 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
       TextEditingController controller,
       String label,
       IconData icon,
-      void Function(void Function()) setModalState, {
+      void Function(void Function()) setModalState,
+      bool isDark, {
         bool readOnly = false,
         bool obscureText = false,
       }) {
+    final primaryColor = _getPrimaryColor(isDark);
+    final lightColor = _getLightColor(isDark);
+    final cardColor = _getCardColor(isDark);
+    final textColor = _getTextColor(isDark);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextField(
         controller: controller,
         readOnly: readOnly,
         obscureText: obscureText,
-        style: const TextStyle(color: textDark, fontSize: 15),
+        style: TextStyle(color: textColor, fontSize: 15),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: primaryBlue.withOpacity(0.8)),
-          prefixIcon: Icon(icon, color: primaryBlue, size: 20),
+          labelStyle: TextStyle(color: primaryColor.withOpacity(0.8)),
+          prefixIcon: Icon(icon, color: primaryColor, size: 20),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: cardColor,
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: lightBlue.withOpacity(0.5)),
+            borderSide: BorderSide(color: lightColor.withOpacity(0.5)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: primaryBlue, width: 2),
+            borderSide: BorderSide(color: primaryColor, width: 2),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
@@ -1097,9 +1134,17 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final localeProvider = Provider.of<LocaleProvider>(context);
     final langCode = localeProvider.locale.languageCode;
     final isArabic = langCode == 'ar';
+
+    final primaryColor = _getPrimaryColor(isDark);
+    final lightColor = _getLightColor(isDark);
+    final accentColor = _getAccentColor(isDark);
+    final bgColor = _getBgColor(isDark);
+    final cardColor = _getCardColor(isDark);
+    final textColor = _getTextColor(isDark);
 
     final totalAdmins = admins.length;
     final activeAdmins = admins.where((a) => a['isActive'] == true).length;
@@ -1108,7 +1153,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
-        backgroundColor: bgLight,
+        backgroundColor: bgColor,
 
         floatingActionButton: Column(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -1152,12 +1197,6 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                 ],
               ),
             const SizedBox(height: 8),
-            if (!isMultiSelectMode && inactiveUsers.isNotEmpty)
-              Column(
-                children: [
-
-                ],
-              ),
             if (!isMultiSelectMode)
               FloatingActionButton.extended(
                 onPressed: () => _addOrEditAdmin(langCode: langCode),
@@ -1179,15 +1218,15 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
               child: Container(
                 margin: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [primaryBlue, lightBlue],
+                  gradient: LinearGradient(
+                    colors: [primaryColor, lightColor],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: primaryBlue.withOpacity(0.3),
+                      color: primaryColor.withOpacity(0.3),
                       blurRadius: 15,
                       offset: const Offset(0, 8),
                     ),
@@ -1206,6 +1245,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                               totalAdmins.toString(),
                               Icons.people,
                               Colors.blue,
+                              isDark,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -1215,6 +1255,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                               activeAdmins.toString(),
                               Icons.check_circle,
                               successGreen,
+                              isDark,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -1224,6 +1265,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                               inactiveAdmins.toString(),
                               Icons.cancel,
                               inactiveRed,
+                              isDark,
                             ),
                           ),
                         ],
@@ -1238,7 +1280,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                           // Search Box
                           Container(
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: cardColor,
                               borderRadius: BorderRadius.circular(15),
                               boxShadow: [
                                 BoxShadow(
@@ -1249,10 +1291,11 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                               ],
                             ),
                             child: TextField(
+                              style: TextStyle(color: textColor),
                               decoration: InputDecoration(
                                 hintText: t('search_hint', langCode),
-                                hintStyle: TextStyle(color: Colors.grey.shade400),
-                                prefixIcon: const Icon(Icons.search, color: primaryBlue, size: 24),
+                                hintStyle: TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
+                                prefixIcon: Icon(Icons.search, color: primaryColor, size: 24),
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                               ),
@@ -1268,7 +1311,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 16),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: cardColor,
                                     borderRadius: BorderRadius.circular(12),
                                     boxShadow: [
                                       BoxShadow(
@@ -1282,7 +1325,8 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                     child: DropdownButton<String>(
                                       isExpanded: true,
                                       value: selectedRoleFilter,
-                                      icon: const Icon(Icons.arrow_drop_down, color: primaryBlue),
+                                      icon: Icon(Icons.arrow_drop_down, color: primaryColor),
+                                      dropdownColor: cardColor,
                                       items: [
                                         'all',
                                         ...admins.map((e) => e['role'].toString()).toSet(),
@@ -1290,7 +1334,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                         value: role,
                                         child: Text(
                                           role == 'all' ? t('all', langCode) : role,
-                                          style: const TextStyle(color: textDark, fontSize: 14),
+                                          style: TextStyle(color: textColor, fontSize: 14),
                                         ),
                                       )).toList(),
                                       onChanged: (val) {
@@ -1305,7 +1349,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 16),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: cardColor,
                                     borderRadius: BorderRadius.circular(12),
                                     boxShadow: [
                                       BoxShadow(
@@ -1319,7 +1363,8 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                     child: DropdownButton<String>(
                                       isExpanded: true,
                                       value: selectedStatusFilter,
-                                      icon: const Icon(Icons.arrow_drop_down, color: primaryBlue),
+                                      icon: Icon(Icons.arrow_drop_down, color: primaryColor),
+                                      dropdownColor: cardColor,
                                       items: ['all', 'active', 'inactive'].map((status) {
                                         return DropdownMenuItem<String>(
                                           value: status,
@@ -1335,13 +1380,13 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                                     ? successGreen
                                                     : status == 'inactive'
                                                     ? inactiveRed
-                                                    : primaryBlue,
+                                                    : primaryColor,
                                                 size: 18,
                                               ),
                                               const SizedBox(width: 8),
                                               Text(
                                                 t(status, langCode),
-                                                style: const TextStyle(color: textDark, fontSize: 14),
+                                                style: TextStyle(color: textColor, fontSize: 14),
                                               ),
                                             ],
                                           ),
@@ -1371,32 +1416,26 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: lightBlue.withOpacity(0.1),
+                    color: lightColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: lightBlue.withOpacity(0.3)),
+                    border: Border.all(color: lightColor.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
-                          InkWell(
-                            onTap:  toggleMultiSelectMode,
-                            borderRadius: BorderRadius.circular(
-                              8,
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.all(
-                                4,
-                                ),
-                              child: Icon(
-                                isMultiSelectMode ? Icons.cancel : Icons.checklist,
-                                color: primaryBlue,
-                                size: 28,
-
-                              )
-                            )
-                          ),
-
                       InkWell(
-                        onTap:toggleSelectAll,
+                        onTap: toggleMultiSelectMode,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          child: Icon(
+                            isMultiSelectMode ? Icons.cancel : Icons.checklist,
+                            color: primaryColor,
+                            size: 28,
+                          ),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: toggleSelectAll,
                         borderRadius: BorderRadius.circular(8),
                         child: Container(
                           padding: const EdgeInsets.all(4),
@@ -1404,7 +1443,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                             selectedAdmins.length == filteredAdmins.length
                                 ? Icons.check_box
                                 : Icons.check_box_outline_blank,
-                            color: primaryBlue,
+                            color: primaryColor,
                             size: 28,
                           ),
                         ),
@@ -1415,8 +1454,8 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                           selectedAdmins.length == filteredAdmins.length
                               ? t('deselect_all', langCode)
                               : t('select_all', langCode),
-                          style: const TextStyle(
-                            color: textDark,
+                          style: TextStyle(
+                            color: textColor,
                             fontWeight: FontWeight.w600,
                             fontSize: 15,
                           ),
@@ -1425,7 +1464,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: primaryBlue,
+                          color: primaryColor,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -1449,11 +1488,11 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.search_off, size: 80, color: Colors.grey.shade300),
+                    Icon(Icons.search_off, size: 80, color: isDark ? Colors.grey.shade600 : Colors.grey.shade300),
                     const SizedBox(height: 16),
                     Text(
                       t('no_admins', langCode),
-                      style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                      style: TextStyle(fontSize: 18, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                     ),
                   ],
                 ),
@@ -1474,9 +1513,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: isSelected
-                              ? [accentBlue.withOpacity(0.3), accentBlue.withOpacity(0.1)]
+                              ? [accentColor.withOpacity(0.3), accentColor.withOpacity(0.1)]
                               : isActive
-                              ? [Colors.white, Colors.white]
+                              ? [cardColor, cardColor]
                               : [Colors.red.shade50, Colors.red.shade50],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -1485,9 +1524,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                         boxShadow: [
                           BoxShadow(
                             color: isSelected
-                                ? accentBlue.withOpacity(0.2)
+                                ? accentColor.withOpacity(0.2)
                                 : isActive
-                                ? primaryBlue.withOpacity(0.1)
+                                ? primaryColor.withOpacity(0.1)
                                 : inactiveRed.withOpacity(0.1),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
@@ -1495,9 +1534,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                         ],
                         border: Border.all(
                           color: isSelected
-                              ? accentBlue
+                              ? accentColor
                               : isActive
-                              ? lightBlue.withOpacity(0.3)
+                              ? lightColor.withOpacity(0.3)
                               : inactiveRed.withOpacity(0.3),
                           width: isSelected ? 2 : 1.5,
                         ),
@@ -1541,9 +1580,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                       height: 28,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: isSelected ? primaryBlue : Colors.white,
+                                        color: isSelected ? primaryColor : cardColor,
                                         border: Border.all(
-                                          color: isSelected ? primaryBlue : Colors.grey.shade400,
+                                          color: isSelected ? primaryColor : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
                                           width: 2,
                                         ),
                                       ),
@@ -1560,23 +1599,23 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         border: Border.all(
-                                          color: isActive ? primaryBlue : inactiveRed,
+                                          color: isActive ? primaryColor : inactiveRed,
                                           width: 3,
                                         ),
                                       ),
                                       child: CircleAvatar(
                                         radius: 32,
-                                        backgroundColor: lightBlue.withOpacity(0.2),
+                                        backgroundColor: lightColor.withOpacity(0.2),
                                         backgroundImage: admin['profileImagePath'] != null
                                             ? FileImage(File(admin['profileImagePath']))
                                             : null,
                                         child: admin['profileImagePath'] == null
                                             ? Text(
                                           fullName[0].toUpperCase(),
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 24,
                                             fontWeight: FontWeight.bold,
-                                            color: primaryBlue,
+                                            color: primaryColor,
                                           ),
                                         )
                                             : null,
@@ -1614,7 +1653,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                               style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 16,
-                                                color: isSelected ? primaryBlue : textDark,
+                                                color: isSelected ? primaryColor : textColor,
                                               ),
                                             ),
                                           ),
@@ -1637,9 +1676,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                         ],
                                       ),
                                       const SizedBox(height: 6),
-                                      _buildInfoRow(Icons.email, admin['email'], primaryBlue),
+                                      _buildInfoRow(Icons.email, admin['email'], primaryColor, isDark),
                                       const SizedBox(height: 4),
-                                      _buildInfoRow(Icons.phone, admin['phone'], accentBlue),
+                                      _buildInfoRow(Icons.phone, admin['phone'], accentColor, isDark),
                                       const SizedBox(height: 4),
                                       Row(
                                         children: [
@@ -1647,24 +1686,25 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                             child: _buildInfoRow(
                                               Icons.account_balance,
                                               '${admin['bank']}',
-                                              darkBlue,
+                                              _getDarkColor(isDark),
+                                              isDark,
                                             ),
                                           ),
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                             decoration: BoxDecoration(
-                                              color: lightBlue.withOpacity(0.2),
+                                              color: lightColor.withOpacity(0.2),
                                               borderRadius: BorderRadius.circular(8),
                                             ),
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                const Icon(Icons.shield, size: 14, color: primaryBlue),
+                                                Icon(Icons.shield, size: 14, color: primaryColor),
                                                 const SizedBox(width: 4),
                                                 Text(
                                                   admin['role'],
-                                                  style: const TextStyle(
-                                                    color: primaryBlue,
+                                                  style: TextStyle(
+                                                    color: primaryColor,
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.w600,
                                                   ),
@@ -1682,7 +1722,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                                     children: [
                                       IconButton(
                                         icon: const Icon(Icons.edit),
-                                        color: primaryBlue,
+                                        color: primaryColor,
                                         iconSize: 22,
                                         onPressed: () => _addOrEditAdmin(
                                           existingAdmin: admin,
@@ -1735,11 +1775,13 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(String label, String value, IconData icon, Color color, bool isDark) {
+    final cardColor = _getCardColor(isDark);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
+        color: cardColor.withOpacity(0.95),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -1767,7 +1809,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade700,
+              color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
             ),
           ),
         ],
@@ -1775,7 +1817,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String text, Color color) {
+  Widget _buildInfoRow(IconData icon, String text, Color color, bool isDark) {
     return Row(
       children: [
         Icon(icon, size: 16, color: color),
@@ -1785,7 +1827,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
             text,
             style: TextStyle(
               fontSize: 13,
-              color: Colors.grey.shade700,
+              color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,

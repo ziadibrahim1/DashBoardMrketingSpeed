@@ -1,7 +1,7 @@
 {
   "@@locale": "ar",
   "appTitle": "لوحة تحكم سرعة التسويق",
-  "loginTitle": "تسجيل دخول المسؤول",
+  "loginTitle": "تسجيل الدخول",
   "emailLabel": "البريد الإلكتروني",
   "emailEmptyError": "أدخل البريد",
   "passwordLabel": "كلمة المرور",

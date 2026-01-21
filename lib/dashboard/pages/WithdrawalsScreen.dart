@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/WithdrawalRequest.dart';
 import '../../core/report_download.dart';
+import '../../providers/app_providers.dart';
 
 class WithdrawalsScreen extends StatefulWidget {
   const WithdrawalsScreen({super.key});
@@ -88,25 +90,18 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
     return filtered;
   }
 
-  void _clearFilters() {
-    setState(() {
-      _searchController.clear();
-      _dateRange = null;
-      _selectedRole = null;
-      _pointsRange = const RangeValues(0, 10000);
-      _selectedStatus = null;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: reload,
         backgroundColor: const Color(0xFF317EBC),
         icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-        label: const Text('تحديث', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label:  Text(isArabic?'تحديث':'Refresh', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       body: NestedScrollView(
@@ -168,9 +163,9 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
                   labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
                   indicatorSize: TabBarIndicatorSize.tab,
                   dividerColor: Colors.transparent,
-                  tabs: const [
-                    Tab(text: 'المعلقة'),
-                    Tab(text: 'السجل'),
+                  tabs:  [
+                    Tab(text: isArabic?'المعلقة':'pending'),
+                    Tab(text:isArabic? 'السجل':'history'),
                   ],
                 ),
               ),
@@ -199,6 +194,8 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
 
   // شريط البحث والفلترة
   Widget _buildSearchAndFilterBar() {
+    final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // ↓
@@ -222,7 +219,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
                 isDense: true, // مهم
-                hintText: 'البحث بالاسم...',
+                hintText:isArabic? 'البحث بالاسم...':'Search by name...',
                 hintStyle: const TextStyle(fontSize: 13),
                 prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
                 suffixIcon: _searchController.text.isNotEmpty
@@ -272,20 +269,23 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
     );
   }
   Widget _buildFilterIcon() {
+    final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
+
     return _buildIconButton(
       icon: Icons.filter_list_rounded,
       bgColor: _showFilters ? accentColor : Colors.grey.shade200,
       iconColor: _showFilters ? Colors.white : Colors.grey.shade700,
-      tooltip: 'فلترة',
+      tooltip:isArabic? 'فلترة':'Filters',
       onTap: () => setState(() => _showFilters = !_showFilters),
     );
   }
   Widget _buildPdfExportIcon() {
+    final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
     return _buildIconButton(
       icon: Icons.picture_as_pdf_rounded,
       bgColor: Colors.red.shade50,
       iconColor: Colors.red.shade600,
-      tooltip: 'تصدير PDF',
+      tooltip:isArabic? 'تصدير PDF':'PDF',
       onTap: () => ReportDownload.downloadReport(
         'pdf',
         dateRange: _dateRange,
@@ -300,7 +300,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
   Future<void> _showCompactDateRangePicker() async {
     DateTime? start = _dateRange?.start;
     DateTime? end = _dateRange?.end;
-
+    final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
     await showDialog(
       context: context,
       builder: (context) {
@@ -315,8 +315,8 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'اختر التاريخ',
+                   Text(
+                    isArabic ? 'اختر التاريخ':'Select Date Range',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
@@ -345,10 +345,10 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
                   ),
 
                   if (start != null && end == null)
-                    const Padding(
+                     Padding(
                       padding: EdgeInsets.only(top: 8),
                       child: Text(
-                        'اختر تاريخ النهاية',
+                        isArabic ?'اختر تاريخ النهاية':'Select End Date',
                         style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ),
@@ -366,7 +366,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxHeight = MediaQuery.of(context).size.height * 0.75; // 75% من الشاشة
-
+        final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
         return Container(
           margin: const EdgeInsets.all(16),
           constraints: BoxConstraints(
@@ -390,8 +390,8 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'الفلاتر',
+                 Text(
+                   isArabic ? 'الفلاتر':'Filters',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
 
@@ -399,7 +399,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
 
                 // فلتر التاريخ
                 _buildFilterSection(
-                  'التاريخ',
+                    isArabic ?'التاريخ':'Date',
                   Icons.calendar_today,
                     InkWell(
                       onTap: _showCompactDateRangePicker,
@@ -421,7 +421,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
                             Expanded(
                               child: Text(
                                 _dateRange == null
-                                    ? 'اختر نطاق التاريخ'
+                                    ? (isArabic ?'اختر نطاق التاريخ':'Select Date Range')
                                     : '${_dateRange!.start.toString().split(' ')[0]}'
                                     ' - ${_dateRange!.end.toString().split(' ')[0]}',
                                 style: const TextStyle(fontSize: 13),
@@ -444,14 +444,14 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
 
                 // فلتر الدور
                 _buildFilterSection(
-                  'الدور',
+                  isArabic ?'الدور':'Role',
                   Icons.people,
                   Wrap(
                     spacing: 8,
                     runSpacing: 6,
                     children: [
-                      _buildChip('مشرف', 'supervisor', _selectedRole),
-                      _buildChip('مسوق', 'marketer', _selectedRole),
+                      _buildChip(isArabic ?'مشرف':'Supervisor', 'supervisor', _selectedRole),
+                      _buildChip(isArabic ?'مسوق':'Marketer', 'marketer', _selectedRole),
                     ],
                   ),
                 ),
@@ -460,17 +460,17 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
 
                 // فلتر الحالة
                 _buildFilterSection(
-                  'الحالة',
+                  isArabic ?'الحالة':'State',
                   Icons.info_outline,
                   Wrap(
                     spacing: 8,
                     runSpacing: 6,
                     children: [
-                      _buildChip('معلق', 'pending', _selectedStatus,
+                      _buildChip(isArabic ?'معلق':'pending', 'pending', _selectedStatus,
                           color: Colors.orange),
-                      _buildChip('مكتمل', 'approved', _selectedStatus,
+                      _buildChip(isArabic ?'مكتمل':'approved', 'approved', _selectedStatus,
                           color: Colors.green),
-                      _buildChip('مرفوض', 'rejected', _selectedStatus,
+                      _buildChip(isArabic ?'مرفوض':'reject', 'rejected', _selectedStatus,
                           color: Colors.red),
                     ],
                   ),
@@ -480,7 +480,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
 
                 // فلتر النقاط
                 _buildFilterSection(
-                  'نطاق النقاط (${_pointsRange.start.toInt()} - ${_pointsRange.end.toInt()})',
+                  isArabic ? 'نطاق النقاط (${_pointsRange.start.toInt()} - ${_pointsRange.end.toInt()})':'Point range (${_pointsRange.start.toInt()} - ${_pointsRange.end.toInt()})',
                   Icons.auto_awesome,
                   RangeSlider(
                     values: _pointsRange,
@@ -525,13 +525,13 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
   Widget _buildChip(String label, String value, String? selectedValue, {Color? color}) {
     final isSelected = selectedValue == value;
     final chipColor = color ?? accentColor;
-
+    final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
     return FilterChip(
       label: Text(label),
       selected: isSelected,
       onSelected: (selected) {
         setState(() {
-          if (label == 'مشرف' || label == 'مسوق') {
+          if (label == 'مشرف' || label == 'مسوق' || label=='Supervisor' || label=='Marketer') {
             _selectedRole = selected ? value : null;
           } else {
             _selectedStatus = selected ? value : null;
@@ -597,6 +597,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
   }
 
   Widget _buildListView(Future<List<WithdrawalRequest>> future, {required bool showActions}) {
+    final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
     return FutureBuilder<List<WithdrawalRequest>>(
       future: future,
       builder: (context, snapshot) {
@@ -604,13 +605,13 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
           return Center(child: CircularProgressIndicator(color: accentColor));
         }
         if (snapshot.hasError || !snapshot.hasData) {
-          return _buildStatusEmpty(Icons.receipt_long_outlined, 'لا توجد بيانات حالياً');
+          return _buildStatusEmpty(Icons.receipt_long_outlined,isArabic ? 'لا توجد بيانات حالياً':'No data available');
         }
 
         final items = _applyFilters(snapshot.data!);
 
         if (items.isEmpty) {
-          return _buildStatusEmpty(Icons.filter_list_off, 'لا توجد نتائج مطابقة للفلاتر');
+          return _buildStatusEmpty(Icons.filter_list_off, isArabic ?'لا توجد نتائج مطابقة للفلاتر':'No matching results');
         }
 
         return ListView.builder(
@@ -626,7 +627,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
     final bool isPending = w.status == 'pending' || w.status == null;
     final bool isApproved = w.status == 'approved';
     final bool isRejected = w.status == 'rejected';
-
+    final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -659,7 +660,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
                     children: [
                       Text(w.marketerName,
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
-                      Text('بإشراف: ${w.supervisorName}',
+                      Text(isArabic ?'بإشراف: ${w.supervisorName}':'Supervisor: ${w.supervisorName}',
                           style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
                     ],
                   ),
@@ -667,7 +668,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('${w.amount} ر.س',
+                    Text(isArabic ?'${w.amount} ر.س ':'${w.amount} SAR',
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.green)),
                     _buildStatusText(w.status),
                   ],
@@ -680,11 +681,11 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                _buildDataLine(Icons.auto_awesome, 'النقاط المستبدلة', '${w.points} نقطة', Colors.orange),
-                _buildDataLine(Icons.account_balance, 'البنك المستلم', w.bank, Colors.indigo),
-                _buildDataLine(Icons.credit_card, 'رقم الحساب', w.accountNumber, Colors.blueGrey),
+                _buildDataLine(Icons.auto_awesome,isArabic ? 'النقاط المستبدلة':'replaced points', isArabic ?'${w.points} نقطة':'points ${w.points}', Colors.orange),
+                _buildDataLine(Icons.account_balance,isArabic ? 'البنك المستلم':'Bank', w.bank, Colors.indigo),
+                _buildDataLine(Icons.credit_card,isArabic ? 'رقم الحساب':'IBAN', w.accountNumber, Colors.blueGrey),
                 if (isRejected && w.rejectReason != null)
-                  _buildDataLine(Icons.info_outline, 'سبب الرفض', w.rejectReason!, Colors.red),
+                  _buildDataLine(Icons.info_outline,isArabic ? 'سبب الرفض':'Reject Reason', w.rejectReason!, Colors.red),
                 if (isApproved && w.payout != null) ...[
                   const SizedBox(height: 10),
                   Container(
@@ -695,9 +696,9 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
                     ),
                     child: Column(
                       children: [
-                        _buildDataLine(Icons.payments, 'طريقة الدفع', w.payout!.paymentMethod, Colors.green),
-                        _buildDataLine(Icons.confirmation_number, 'رقم المرجع', w.payout!.referenceNumber, Colors.green),
-                        _buildDataLine(Icons.calendar_today, 'تاريخ الصرف', w.payout!.paidAt.toString().split(' ')[0], Colors.green),
+                        _buildDataLine(Icons.payments,isArabic ? 'طريقة الدفع':'pay method', w.payout!.paymentMethod, Colors.green),
+                        _buildDataLine(Icons.confirmation_number, isArabic ?'رقم المرجع':'reference number', w.payout!.referenceNumber, Colors.green),
+                        _buildDataLine(Icons.calendar_today,isArabic ? 'تاريخ الصرف':'date of pay', w.payout!.paidAt.toString().split(' ')[0], Colors.green),
                       ],
                     ),
                   ),
@@ -720,7 +721,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text('اعتماد وصرف', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child:  Text(isArabic ?'اعتماد وصرف':'Accept', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -758,10 +759,11 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
   }
 
   Widget _buildStatusText(String? status) {
-    String text = 'قيد الانتظار';
+    final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
+    String text = isArabic ?'قيد الانتظار':'pending';
     Color color = Colors.orange;
-    if (status == 'approved') { text = 'تم الصرف'; color = Colors.green; }
-    if (status == 'rejected') { text = 'مرفوض'; color = Colors.red; }
+    if (status == 'approved') { text = isArabic ?'تم الصرف':'Paid'; color = Colors.green; }
+    if (status == 'rejected') { text = isArabic ?'مرفوض':'Rejected'; color = Colors.red; }
 
     return Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color));
   }
@@ -782,6 +784,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
   void _approveDialog(WithdrawalRequest w) {
     final methodCtrl = TextEditingController();
     final refCtrl = TextEditingController();
+    final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -796,15 +799,15 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
               child: const Icon(Icons.payments_outlined, color: Colors.blue, size: 32),
             ),
             const SizedBox(height: 16),
-            const Text('تأكيد الدفع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+             Text(isArabic ?'تأكيد الدفع':'Accept', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
           ],
         ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'يرجى إدخال بيانات التحويل لإتمام العملية بنجاح',
+               Text(
+                 isArabic ?'يرجى إدخال بيانات التحويل لإتمام العملية بنجاح':'Please enter the transfer details to complete the operation successfully',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey, fontSize: 14),
               ),
@@ -812,8 +815,8 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
               TextField(
                 controller: methodCtrl,
                 decoration: InputDecoration(
-                  labelText: 'طريقة الدفع',
-                  hintText: 'مثلاً: تحويل بنكي، STC Pay',
+                  labelText: isArabic ?'طريقة الدفع':'Payment Method',
+                  hintText: isArabic ?'مثلاً: تحويل بنكي، STC Pay':'Example: bank transfer, STC Pay',
                   prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
                   filled: true,
                   fillColor: Colors.grey[50],
@@ -831,8 +834,8 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
               TextField(
                 controller: refCtrl,
                 decoration: InputDecoration(
-                  labelText: 'رقم المرجع',
-                  hintText: 'أدخل رقم العملية',
+                  labelText: isArabic ?'رقم المرجع':'Reference Number',
+                  hintText: isArabic ?'أدخل رقم العملية':'Enter the operation number',
                   prefixIcon: const Icon(Icons.tag_rounded),
                   filled: true,
                   fillColor: Colors.grey[50],
@@ -861,7 +864,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     side: BorderSide(color: Colors.grey[300]!),
                   ),
-                  child: Text('إلغاء', style: TextStyle(color: Colors.grey[700])),
+                  child: Text(isArabic ?'إلغاء':'Cancel', style: TextStyle(color: Colors.grey[700])),
                 ),
               ),
               const SizedBox(width: 12),
@@ -879,7 +882,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('تأكيد الدفع', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child:  Text(isArabic ?'تأكيد الدفع':'Accept', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -890,19 +893,20 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> with SingleTicker
   }
   void _rejectDialog(WithdrawalRequest w) {
     final reasonCtrl = TextEditingController();
+    final isArabic = Provider.of<LocaleProvider>(context).locale.languageCode == 'ar';
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('رفض الطلب ❌'),
-        content: TextField(controller: reasonCtrl, decoration: const InputDecoration(labelText: 'سبب الرفض')),
+        title:  Text(isArabic ?'رفض الطلب ❌':'reject request'),
+        content: TextField(controller: reasonCtrl, decoration:  InputDecoration(labelText:isArabic ? 'سبب الرفض':'Reject Reason')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(context), child:  Text(isArabic ?'إلغاء':'Cancel')),
           ElevatedButton(onPressed: () async {
             Navigator.pop(context);
             await WithdrawalsService.reject(w.id, reasonCtrl.text);
             reload();
-          }, style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('رفض')),
+          }, style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child:  Text(isArabic ?'رفض':'Reject')),
         ],
       ),
     );

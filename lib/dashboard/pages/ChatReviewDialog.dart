@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
-
-import '../../core/ConversationModel.dart'; // للـ Blur effect
+import '../../Models/VideoDto.dart';
+import '../../core/ConversationModel.dart';
+import '../../providers/app_providers.dart';
+import 'package:provider/provider.dart';
 
 class ChatReviewDialog extends StatefulWidget {
   final String chatId;
@@ -30,7 +32,7 @@ class _ChatReviewDialogState extends State<ChatReviewDialog> {
   Future<void> _loadMessages() async {
     // محاكاة تحميل البيانات
     await Future.delayed(const Duration(seconds: 1));
-     final data = await ChatApi.getMessages(int.parse(widget.chatId));
+    final data = await ChatApi.getMessages(int.parse(widget.chatId));
     setState(() {
       messages = data; // استبدلها بـ data
       isLoading = false;
@@ -40,61 +42,79 @@ class _ChatReviewDialogState extends State<ChatReviewDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? Colors.green : Colors.blue;
 
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            )
-          ],
-        ),
-        child: Column(
-          children: [
-            _buildHeader(theme),
-            Expanded(
-              child: isLoading
-                  ? _buildShimmerLoading()
-                  : _buildMessagesList(theme),
+    return Consumer<LocaleProvider>(
+      builder: (context, localeProvider, _) {
+        final isRTL = localeProvider.locale.languageCode == 'ar';
+        final loc = AppLocalizations(localeProvider.locale.languageCode);
+
+        return Directionality(
+          textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+            child: Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E1E1E) : theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  )
+                ],
+              ),
+              child: Column(
+                children: [
+                  _buildHeader(theme, primaryColor, isRTL),
+                  Expanded(
+                    child: isLoading
+                        ? _buildShimmerLoading(primaryColor)
+                        : _buildMessagesList(theme, primaryColor, isRTL),
+                  ),
+                  _buildFooter(theme, primaryColor, isRTL),
+                ],
+              ),
             ),
-            _buildFooter(theme),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildHeader(ThemeData theme) {
+  Widget _buildHeader(ThemeData theme, Color primaryColor, bool isRTL) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color:Colors.blue.withOpacity(0.05),
+        color: primaryColor.withOpacity(0.05),
         border: Border(bottom: BorderSide(color: theme.dividerColor.withOpacity(0.1))),
       ),
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: Colors.blue.withOpacity(0.1),
-            child: Text(widget.userName[0].toUpperCase(),
-                style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+            backgroundColor: primaryColor.withOpacity(0.1),
+            child: Text(
+                widget.userName[0].toUpperCase(),
+                style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold)
+            ),
           ),
           const SizedBox(width: 15),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
-                Text(widget.userName,
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                Text("مراجعة سجل المحادثة",
-                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                Text(
+                  widget.userName,
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  isRTL ? "مراجعة سجل المحادثة" : "Chat History Review",
+                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                ),
               ],
             ),
           ),
@@ -107,15 +127,22 @@ class _ChatReviewDialogState extends State<ChatReviewDialog> {
     );
   }
 
-  Widget _buildMessagesList(ThemeData theme) {
+  Widget _buildMessagesList(ThemeData theme, Color primaryColor, bool isRTL) {
     if (messages.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.speaker_notes_off_outlined, size: 64, color: theme.disabledColor),
+            Icon(
+                Icons.speaker_notes_off_outlined,
+                size: 64,
+                color: theme.disabledColor
+            ),
             const SizedBox(height: 16),
-            const Text("لا توجد رسائل سابقة", style: TextStyle(color: Colors.grey)),
+            Text(
+              isRTL ? "لا توجد رسائل سابقة" : "No previous messages",
+              style: TextStyle(color: Colors.grey),
+            ),
           ],
         ),
       );
@@ -131,14 +158,27 @@ class _ChatReviewDialogState extends State<ChatReviewDialog> {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Column(
-            crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            crossAxisAlignment: isUser
+                ? (isRTL ? CrossAxisAlignment.start : CrossAxisAlignment.end)
+                : (isRTL ? CrossAxisAlignment.end : CrossAxisAlignment.start),
             children: [
               Container(
-                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+                constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.7
+                ),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: isUser ? Colors.blue : theme.colorScheme.surfaceVariant.withOpacity(0.5),
-                  borderRadius: BorderRadius.only(
+                  color: isUser
+                      ? primaryColor
+                      : theme.colorScheme.surfaceVariant.withOpacity(0.5),
+                  borderRadius: isRTL
+                      ? BorderRadius.only(
+                    topLeft: const Radius.circular(20),
+                    topRight: const Radius.circular(20),
+                    bottomLeft: Radius.circular(isUser ? 4 : 20),
+                    bottomRight: Radius.circular(isUser ? 20 : 4),
+                  )
+                      : BorderRadius.only(
                     topLeft: const Radius.circular(20),
                     topRight: const Radius.circular(20),
                     bottomLeft: Radius.circular(isUser ? 20 : 4),
@@ -165,29 +205,49 @@ class _ChatReviewDialogState extends State<ChatReviewDialog> {
     );
   }
 
-  Widget _buildShimmerLoading() {
-    return const Center(child: CircularProgressIndicator.adaptive());
+  Widget _buildShimmerLoading(Color primaryColor) {
+    return Center(
+      child: CircularProgressIndicator(
+        color: primaryColor,
+      ),
+    );
   }
 
-  Widget _buildFooter(ThemeData theme) {
+  Widget _buildFooter(ThemeData theme, Color primaryColor, bool isRTL) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-          color: Colors.blue,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))]
+          color: primaryColor,
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -5)
+            )
+          ]
       ),
       child: SizedBox(
         width: double.infinity,
         child: FilledButton.icon(
-
           style: FilledButton.styleFrom(
-            backgroundColor: Colors.white,
+            backgroundColor: theme.brightness == Brightness.dark
+                ? Colors.green[100]
+                : Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.check_circle_outline),
-          label: const Text("تمت المراجعة", style: TextStyle(fontWeight: FontWeight.bold,color: Colors.blue)),
+          icon: Icon(
+            Icons.check_circle_outline,
+            color: primaryColor,
+          ),
+          label: Text(
+            isRTL ? "تمت المراجعة" : "Review Completed",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: primaryColor,
+            ),
+          ),
         ),
       ),
     );

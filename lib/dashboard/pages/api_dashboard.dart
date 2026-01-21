@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../Models/VideoDto.dart';
+import '../../providers/app_providers.dart';
+import 'package:provider/provider.dart';
 
 // Enum للحالة
 enum ConnectionStatus { connected, disconnected }
@@ -115,66 +118,85 @@ class _ApiDashboardScreenState extends State<ApiDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('إدارة تكاملات الـ APIs'),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: searchController,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                hintText: 'ابحث عن خدمة...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onChanged: (query) {
-                setState(() {
-                  displayedServices = allServices
-                      .where((s) => s.name.toLowerCase().contains(query.toLowerCase()))
-                      .toList();
-                });
-              },
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? Colors.green : Colors.blue;
+
+    return Consumer<LocaleProvider>(
+      builder: (context, localeProvider, _) {
+        final isRTL = localeProvider.locale.languageCode == 'ar';
+        final loc = AppLocalizations(localeProvider.locale.languageCode);
+        return Directionality(
+          textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
+          child: Scaffold(
+            backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF8FAFC),
+            appBar: AppBar(
+              title: Text(isRTL ? 'إدارة تكاملات الـ APIs' : 'API Integrations Management'),
+              centerTitle: true,
+              backgroundColor: isDark ? Colors.green[900] : primaryColor,
             ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                itemCount: displayedServices.length,
-                itemBuilder: (context, index) {
-                  final service = displayedServices[index];
-                  return GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ApiServiceDetails(service: service),
+            body: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: searchController,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.search),
+                      hintText: isRTL ? 'ابحث عن خدمة...' : 'Search for a service...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                     ),
-                    child: ApiServiceCard(
-                      service: service,
-                      onAction: (action) => _handleMenuAction(action, service),
+                    onChanged: (query) {
+                      setState(() {
+                        displayedServices = allServices
+                            .where((s) => s.name.toLowerCase().contains(query.toLowerCase()))
+                            .toList();
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: displayedServices.length,
+                      itemBuilder: (context, index) {
+                        final service = displayedServices[index];
+                        return GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ApiServiceDetails(service: service),
+                            ),
+                          ),
+                          child: ApiServiceCard(
+                            service: service,
+                            onAction: (action) => _handleMenuAction(action, service),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   void _handleMenuAction(String action, ApiService service) {
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+    final isRTL = localeProvider.locale.languageCode == 'ar';
+
     switch (action) {
       case 'edit':
-        _showEditDialog(service);
+        _showEditDialog(service, isRTL);
         break;
       case 'test':
-        _showSnack("تم إرسال رسالة اختبار لـ ${service.name}");
+        _showSnack(isRTL ? "تم إرسال رسالة اختبار لـ ${service.name}" : "Test message sent to ${service.name}");
         break;
       case 'toggle':
         setState(() {
@@ -186,20 +208,28 @@ class _ApiDashboardScreenState extends State<ApiDashboardScreen> {
     }
   }
 
-  void _showEditDialog(ApiService service) {
+  void _showEditDialog(ApiService service, bool isRTL) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final controller = TextEditingController(text: service.apiKey);
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text("تعديل مفتاح ${service.name}"),
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        title: Text(isRTL ? "تعديل مفتاح ${service.name}" : "Edit ${service.name} Key"),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(labelText: "API Key"),
+          decoration: InputDecoration(
+            labelText: isRTL ? "API Key" : "API Key",
+            filled: true,
+            fillColor: isDark ? const Color(0xFF2D2D2D) : Colors.grey[50],
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("إلغاء"),
+            child: Text(isRTL ? "إلغاء" : "Cancel"),
           ),
           ElevatedButton(
             onPressed: () {
@@ -207,9 +237,12 @@ class _ApiDashboardScreenState extends State<ApiDashboardScreen> {
                 service.apiKey = controller.text;
               });
               Navigator.pop(context);
-              _showSnack("تم حفظ المفتاح لـ ${service.name}");
+              _showSnack(isRTL ? "تم حفظ المفتاح لـ ${service.name}" : "Key saved for ${service.name}");
             },
-            child: const Text("حفظ"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isDark ? Colors.green : Colors.blue,
+            ),
+            child: Text(isRTL ? "حفظ" : "Save"),
           ),
         ],
       ),
@@ -218,7 +251,11 @@ class _ApiDashboardScreenState extends State<ApiDashboardScreen> {
 
   void _showSnack(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.green[800] : Colors.blue,
+      ),
     );
   }
 }
@@ -228,82 +265,124 @@ class ApiServiceCard extends StatelessWidget {
   final Function(String action) onAction;
 
   const ApiServiceCard({
-  super.key,
-  required this.service,
-  required this.onAction,
+    super.key,
+    required this.service,
+    required this.onAction,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isConnected = service.status == ConnectionStatus.connected;
-    final cardColor = isConnected ?isDark? Colors.green[700]?.withOpacity(.5) :Colors.blue[100]:isDark?Colors.grey[850]: Colors.grey[200];
+    final primaryColor = isDark ? Colors.green : Colors.blue;
 
-    return Card(
-      elevation: 3,
-      color: cardColor,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: service.iconColor.withOpacity(0.1),
-              child: FaIcon(service.icon, color: service.iconColor),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    service.name,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
+    final cardColor = isConnected
+        ? isDark
+        ? Colors.green[700]?.withOpacity(0.1)
+        : Colors.blue[100]
+        : isDark
+        ? Colors.grey[850]
+        : Colors.grey[200];
+
+    return Consumer<LocaleProvider>(
+      builder: (context, localeProvider, _) {
+        final isRTL = localeProvider.locale.languageCode == 'ar';
+
+        return Card(
+          elevation: 3,
+          color: cardColor,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: service.iconColor.withOpacity(0.1),
+                  child: FaIcon(service.icon, color: service.iconColor),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isConnected ? Colors.green[100] : Colors.red[100],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          isConnected ? 'متصل' : 'غير متصل',
-                          style: TextStyle(
-                            color: isConnected ? Colors.green[800] : Colors.red[800],
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       Text(
-                        "آخر اتصال: ${Utils.timeAgo(service.lastConnected)}",
-                        style:  TextStyle(fontSize: 12, color:isDark?Colors.grey[300]: Colors.black54),
-                      )
+                        service.name,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isConnected
+                                  ? isDark
+                                  ? Colors.green[800]?.withOpacity(0.3)
+                                  : Colors.green[100]
+                                  : isDark
+                                  ? Colors.red[900]?.withOpacity(0.3)
+                                  : Colors.red[100],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              isConnected
+                                  ? (isRTL ? 'متصل' : 'Connected')
+                                  : (isRTL ? 'غير متصل' : 'Disconnected'),
+                              style: TextStyle(
+                                color: isConnected
+                                    ? isDark
+                                    ? Colors.green[300]
+                                    : Colors.green[800]
+                                    : isDark
+                                    ? Colors.red[300]
+                                    : Colors.red[800],
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            isRTL
+                                ? "آخر اتصال: ${Utils.timeAgoAr(service.lastConnected)}"
+                                : "Last connected: ${Utils.timeAgoEn(service.lastConnected)}",
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? Colors.grey[300] : Colors.black54
+                            ),
+                          )
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        isRTL
+                            ? "مفتاح API: ${Utils.obscureKey(service.apiKey)}"
+                            : "API Key: ${Utils.obscureKey(service.apiKey)}",
+                        style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : Colors.grey),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    "API Key: ${Utils.obscureKey(service.apiKey)}",
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-            PopupMenuButton<String>(
-              onSelected: onAction,
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'edit', child: Text('تعديل المفتاح')),
-                PopupMenuItem(value: 'test', child: Text('إرسال اختبار')),
-                PopupMenuItem(value: 'toggle', child: Text('تفعيل / تعطيل')),
+                ),
+                PopupMenuButton<String>(
+                  onSelected: onAction,
+                  itemBuilder: (context) => isRTL
+                      ? [
+                    const PopupMenuItem(value: 'edit', child: Text('تعديل المفتاح')),
+                    const PopupMenuItem(value: 'test', child: Text('إرسال اختبار')),
+                    const PopupMenuItem(value: 'toggle', child: Text('تفعيل / تعطيل')),
+                  ]
+                      : [
+                    const PopupMenuItem(value: 'edit', child: Text('Edit Key')),
+                    const PopupMenuItem(value: 'test', child: Text('Send Test')),
+                    const PopupMenuItem(value: 'toggle', child: Text('Enable/Disable')),
+                  ],
+                )
               ],
-            )
-          ],
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -314,42 +393,73 @@ class ApiServiceDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("تفاصيل ${service.name}")),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: service.iconColor.withOpacity(0.2),
-                  child: FaIcon(service.icon, size: 30, color: service.iconColor),
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  service.name,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-              ],
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Consumer<LocaleProvider>(
+      builder: (context, localeProvider, _) {
+        final isRTL = localeProvider.locale.languageCode == 'ar';
+
+        return Directionality(
+          textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
+          child: Scaffold(
+            backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF8FAFC),
+            appBar: AppBar(
+              title: Text(isRTL ? "تفاصيل ${service.name}" : "${service.name} Details"),
+              backgroundColor: isDark ? Colors.green[900] : Colors.blue,
             ),
-            const SizedBox(height: 24),
-            Text("الحالة: ${service.status == ConnectionStatus.connected ? "متصل" : "غير متصل"}"),
-            const SizedBox(height: 12),
-            Text("آخر اتصال: ${Utils.timeAgo(service.lastConnected)}"),
-            const SizedBox(height: 12),
-            Text("API Key: ${service.apiKey.isNotEmpty ? service.apiKey : "غير مضاف"}"),
-          ],
-        ),
-      ),
+            body: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: service.iconColor.withOpacity(0.2),
+                        child: FaIcon(service.icon, size: 30, color: service.iconColor),
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        service.name,
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    isRTL
+                        ? "الحالة: ${service.status == ConnectionStatus.connected ? "متصل" : "غير متصل"}"
+                        : "Status: ${service.status == ConnectionStatus.connected ? "Connected" : "Disconnected"}",
+                    style: TextStyle(fontSize: 16, color: isDark ? Colors.grey[300] : Colors.black87),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    isRTL
+                        ? "آخر اتصال: ${Utils.timeAgoAr(service.lastConnected)}"
+                        : "Last connected: ${Utils.timeAgoEn(service.lastConnected)}",
+                    style: TextStyle(fontSize: 16, color: isDark ? Colors.grey[300] : Colors.black87),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    isRTL
+                        ? "مفتاح API: ${service.apiKey.isNotEmpty ? service.apiKey : "غير مضاف"}"
+                        : "API Key: ${service.apiKey.isNotEmpty ? service.apiKey : "Not added"}",
+                    style: TextStyle(fontSize: 16, color: isDark ? Colors.grey[300] : Colors.black87),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
 class Utils {
-  static String timeAgo(DateTime? time) {
+  static String timeAgoAr(DateTime? time) {
     if (time == null) return "-";
     final diff = DateTime.now().difference(time);
     if (diff.inMinutes < 60) {
@@ -361,8 +471,20 @@ class Utils {
     }
   }
 
+  static String timeAgoEn(DateTime? time) {
+    if (time == null) return "-";
+    final diff = DateTime.now().difference(time);
+    if (diff.inMinutes < 60) {
+      return "${diff.inMinutes} ${diff.inMinutes == 1 ? 'minute' : 'minutes'} ago";
+    } else if (diff.inHours < 24) {
+      return "${diff.inHours} ${diff.inHours == 1 ? 'hour' : 'hours'} ago";
+    } else {
+      return "${diff.inDays} ${diff.inDays == 1 ? 'day' : 'days'} ago";
+    }
+  }
+
   static String obscureKey(String key) {
-    if (key.isEmpty) return "غير مضاف";
+    if (key.isEmpty) return "";
     if (key.length <= 6) return "****";
     return key.substring(0, 4) + "****" + key.substring(key.length - 2);
   }

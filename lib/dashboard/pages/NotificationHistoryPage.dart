@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import '../../core/NotificationItem.dart';
 import '../../core/app_config.dart';
+import '../../providers/app_providers.dart';
 
 class NotificationHistoryPage extends StatefulWidget {
   const NotificationHistoryPage({super.key});
@@ -15,7 +17,67 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
   List<NotificationItem> notifications = [];
   bool loading = true;
   String searchQuery = '';
-  String filterChannel = 'الكل';
+  String filterChannel = 'all';
+
+  // الترجمات
+  Map<String, Map<String, String>> translations = {
+    'ar': {
+      'title': 'سجل الإشعارات',
+      'subtitle': 'إدارة ومتابعة جميع الإشعارات المرسلة',
+      'totalNotifications': 'إجمالي الإشعارات',
+      'inAppNotifications': 'إشعارات في التطبيق',
+      'packageNotifications': 'إشعارات في الباقات',
+      'emailNotifications': 'إشعارات البريد',
+      'searchPlaceholder': 'البحث في الإشعارات...',
+      'all': 'الكل',
+      'inApp': 'في التطبيق',
+      'refresh': 'تحديث',
+      'noNotifications': 'لا توجد إشعارات بعد',
+      'noResults': 'لم يتم العثور على نتائج',
+      'notificationsWillAppear': 'سيظهر سجل الإشعارات هنا',
+      'tryDifferentKeywords': 'جرب البحث بكلمات مختلفة',
+      'resend': 'إعادة إرسال',
+      'notificationDetails': 'تفاصيل الإشعار',
+      'titleLabel': 'العنوان',
+      'messageLabel': 'الرسالة',
+      'channelLabel': 'القناة',
+      'dateLabel': 'التاريخ',
+      'resendNotification': 'إعادة إرسال الإشعار',
+      'errorLoading': 'حدث خطأ في تحميل البيانات',
+      'resendSuccess': 'تم إعادة إرسال الإشعار بنجاح',
+      'resendFailed': 'فشلت عملية إعادة الإرسال',
+    },
+    'en': {
+      'title': 'Notification History',
+      'subtitle': 'Manage and track all sent notifications',
+      'totalNotifications': 'Total Notifications',
+      'inAppNotifications': 'In-App Notifications',
+      'packageNotifications': 'Package Notifications',
+      'emailNotifications': 'Email Notifications',
+      'searchPlaceholder': 'Search notifications...',
+      'all': 'All',
+      'inApp': 'In-App',
+      'refresh': 'Refresh',
+      'noNotifications': 'No notifications yet',
+      'noResults': 'No results found',
+      'notificationsWillAppear': 'Notification history will appear here',
+      'tryDifferentKeywords': 'Try searching with different keywords',
+      'resend': 'Resend',
+      'notificationDetails': 'Notification Details',
+      'titleLabel': 'Title',
+      'messageLabel': 'Message',
+      'channelLabel': 'Channel',
+      'dateLabel': 'Date',
+      'resendNotification': 'Resend Notification',
+      'errorLoading': 'Error loading data',
+      'resendSuccess': 'Notification resent successfully',
+      'resendFailed': 'Failed to resend notification',
+    },
+  };
+
+  String t(String key, String locale) {
+    return translations[locale]?[key] ?? key;
+  }
 
   @override
   void initState() {
@@ -46,9 +108,10 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
     } catch (e) {
       setState(() => loading = false);
       if (mounted) {
+        final locale = context.read<LocaleProvider>().locale.languageCode;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text("حدث خطأ في تحميل البيانات"),
+            content: Text(t('errorLoading', locale)),
             backgroundColor: Colors.red[400],
             behavior: SnackBarBehavior.floating,
           ),
@@ -58,6 +121,7 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
   }
 
   Future<void> _resendNotification(NotificationItem notification) async {
+    final locale = context.read<LocaleProvider>().locale.languageCode;
     final body = {
       "title": notification.title,
       "message": notification.message,
@@ -76,11 +140,11 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Row(
+              content: Row(
                 children: [
-                  Icon(Icons.check_circle, color: Colors.white),
-                  SizedBox(width: 12),
-                  Text("تم إعادة إرسال الإشعار بنجاح"),
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Text(t('resendSuccess', locale)),
                 ],
               ),
               backgroundColor: const Color(0xFF10B981),
@@ -95,7 +159,7 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text("فشلت عملية إعادة الإرسال"),
+            content: Text(t('resendFailed', locale)),
             backgroundColor: Colors.red[400],
             behavior: SnackBarBehavior.floating,
           ),
@@ -108,47 +172,76 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
     return notifications.where((n) {
       final matchesSearch = n.title.contains(searchQuery) ||
           n.message.contains(searchQuery);
-      final matchesFilter = filterChannel == 'الكل' ||
-          n.destination.toLowerCase() == filterChannel.toLowerCase() || (filterChannel == 'في التطبيق' && n.destination.toLowerCase() == 'in_app');
+      final matchesFilter = filterChannel == 'all' ||
+          n.destination.toLowerCase() == filterChannel.toLowerCase() ||
+          (filterChannel == 'in_app' && n.destination.toLowerCase() == 'in_app');
       return matchesSearch && matchesFilter;
     }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: CustomScrollView(
-        slivers: [
-          _buildAppBar(),
-          SliverToBoxAdapter(
-            child: Center(
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 1200),
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    _buildStatsSection(),
-                    const SizedBox(height: 24),
-                    _buildFilterSection(),
-                    const SizedBox(height: 24),
-                    _buildNotificationsList(),
-                  ],
+    final themeMode = context.watch<ThemeProvider>().themeMode;
+    final isDark = themeMode == ThemeMode.dark;
+    final locale = context.watch<LocaleProvider>().locale.languageCode;
+    final isRTL = locale == 'ar';
+
+    // ألوان الوضع الفاتح
+    final lightBg = const Color(0xFFF8FAFC);
+    final lightCardBg = Colors.white;
+    final lightBorder = const Color(0xFFE2E8F0);
+    final lightPrimary = const Color(0xFF2563EB);
+
+    // ألوان الوضع الداكن (أخضر)
+    final darkBg = const Color(0xFF0F172A);
+    final darkCardBg = const Color(0xFF1E293B);
+    final darkBorder = const Color(0xFF334155);
+    final darkPrimary = const Color(0xFF10B981);
+
+    final bg = isDark ? darkBg : lightBg;
+    final cardBg = isDark ? darkCardBg : lightCardBg;
+    final border = isDark ? darkBorder : lightBorder;
+    final primary = isDark ? darkPrimary : lightPrimary;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? Colors.grey[400] : Colors.grey[600];
+    final textTertiary = isDark ? Colors.grey[500] : Colors.grey[500];
+
+    return Directionality(
+      textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: bg,
+        body: CustomScrollView(
+          slivers: [
+            _buildAppBar(isDark, primary, locale),
+            SliverToBoxAdapter(
+              child: Center(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      _buildStatsSection(isDark, cardBg, border, textPrimary, textSecondary, locale),
+                      const SizedBox(height: 24),
+                      _buildFilterSection(isDark, cardBg, border, primary, textPrimary, textSecondary, textTertiary, locale),
+                      const SizedBox(height: 24),
+                      _buildNotificationsList(isDark, cardBg, border, primary, textPrimary, textSecondary, textTertiary, locale),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildAppBar() {
+  Widget _buildAppBar(bool isDark, Color primary, String locale) {
     return SliverAppBar(
       expandedHeight: 100,
       floating: false,
       pinned: true,
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       elevation: 0,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
@@ -156,16 +249,14 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
             gradient: LinearGradient(
               begin: Alignment.topRight,
               end: Alignment.bottomLeft,
-              colors: [
-                const Color(0xff2581eb),
-                const Color(0xff62a4f3),
-              ],
+              colors: isDark
+                  ? [const Color(0xFF10B981), const Color(0xFF059669)]
+                  : [const Color(0xff2581eb), const Color(0xff62a4f3)],
             ),
           ),
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -185,21 +276,21 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "سجل الإشعارات",
-                            style: TextStyle(
+                            t('title', locale),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
-                            "إدارة ومتابعة جميع الإشعارات المرسلة",
-                            style: TextStyle(
+                            t('subtitle', locale),
+                            style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 14,
                             ),
@@ -217,7 +308,7 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
     );
   }
 
-  Widget _buildStatsSection() {
+  Widget _buildStatsSection(bool isDark, Color cardBg, Color border, Color textPrimary, Color? textSecondary, String locale) {
     final fcmCount = notifications.where((n) => n.destination.toLowerCase() == 'in_app').length;
     final pkgCount = notifications.where((n) => n.targetAudience.toLowerCase() == 'package').length;
     final emailCount = notifications.where((n) => n.destination.toLowerCase() == 'email').length;
@@ -226,54 +317,70 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
       children: [
         Expanded(
           child: _buildStatCard(
-            "إجمالي الإشعارات",
+            t('totalNotifications', locale),
             notifications.length.toString(),
             Icons.campaign_rounded,
-            const Color(0xFF2563EB),
-            const Color(0xFFEFF6FF),
+            isDark ? const Color(0xFF10B981) : const Color(0xFF2563EB),
+            isDark ? const Color(0xFF064E3B) : const Color(0xFFEFF6FF),
+            cardBg,
+            border,
+            textPrimary,
+            textSecondary,
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: _buildStatCard(
-            "إشعارات في التطبيق",
+            t('inAppNotifications', locale),
             fcmCount.toString(),
             Icons.phone_android_rounded,
             const Color(0xFF10B981),
-            const Color(0xFFECFDF5),
+            isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5),
+            cardBg,
+            border,
+            textPrimary,
+            textSecondary,
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: _buildStatCard(
-            "إشعارات في الباقات",
+            t('packageNotifications', locale),
             pkgCount.toString(),
             Icons.wallet,
             const Color(0xFF56C0DC),
-            const Color(0xFFECFDF5),
+            isDark ? const Color(0xFF164E63) : const Color(0xFFECFDF5),
+            cardBg,
+            border,
+            textPrimary,
+            textSecondary,
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: _buildStatCard(
-            "إشعارات البريد",
+            t('emailNotifications', locale),
             emailCount.toString(),
             Icons.email_rounded,
             const Color(0xFFF59E0B),
-            const Color(0xFFFEF3C7),
+            isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7),
+            cardBg,
+            border,
+            textPrimary,
+            textSecondary,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color, Color bgColor) {
+  Widget _buildStatCard(String title, String value, IconData icon, Color color, Color bgColor, Color cardBg, Color border, Color textPrimary, Color? textSecondary) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        border: Border.all(color: border, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -300,7 +407,7 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                 Text(
                   title,
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: textSecondary,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -308,10 +415,10 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
+                    color: textPrimary,
                   ),
                 ),
               ],
@@ -322,13 +429,15 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
     );
   }
 
-  Widget _buildFilterSection() {
+  Widget _buildFilterSection(bool isDark, Color cardBg, Color border, Color primary, Color textPrimary, Color? textSecondary, Color? textTertiary, String locale) {
+    final inputBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -343,12 +452,13 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
             flex: 2,
             child: TextField(
               onChanged: (value) => setState(() => searchQuery = value),
+              style: TextStyle(color: textPrimary),
               decoration: InputDecoration(
-                hintText: "البحث في الإشعارات...",
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                hintText: t('searchPlaceholder', locale),
+                hintStyle: TextStyle(color: textTertiary),
+                prefixIcon: Icon(Icons.search, color: textTertiary),
                 filled: true,
-                fillColor: const Color(0xFFF8FAFC),
+                fillColor: inputBg,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -361,19 +471,20 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: inputBg,
               borderRadius: BorderRadius.circular(12),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: filterChannel,
-                icon: const Icon(Icons.keyboard_arrow_down),
-                items: ['الكل', 'في التطبيق', 'Email'].map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
+                icon: Icon(Icons.keyboard_arrow_down, color: textPrimary),
+                dropdownColor: cardBg,
+                style: TextStyle(color: textPrimary),
+                items: [
+                  DropdownMenuItem(value: 'all', child: Text(t('all', locale))),
+                  DropdownMenuItem(value: 'in_app', child: Text(t('inApp', locale))),
+                  DropdownMenuItem(value: 'email', child: Text('Email')),
+                ],
                 onChanged: (value) => setState(() => filterChannel = value!),
               ),
             ),
@@ -383,27 +494,27 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
             onPressed: _fetchNotifications,
             icon: const Icon(Icons.refresh_rounded),
             style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF2563EB),
+              backgroundColor: primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.all(14),
             ),
-            tooltip: "تحديث",
+            tooltip: t('refresh', locale),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNotificationsList() {
+  Widget _buildNotificationsList(bool isDark, Color cardBg, Color border, Color primary, Color textPrimary, Color? textSecondary, Color? textTertiary, String locale) {
     if (loading) {
       return Container(
         height: 400,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardBg,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Center(
-          child: CircularProgressIndicator(strokeWidth: 2.5),
+        child: Center(
+          child: CircularProgressIndicator(strokeWidth: 2.5, color: primary),
         ),
       );
     }
@@ -414,9 +525,9 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
       return Container(
         height: 400,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: border),
         ),
         child: Center(
           child: Column(
@@ -425,30 +536,28 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.inbox_outlined,
                   size: 48,
-                  color: Colors.grey[400],
+                  color: textTertiary,
                 ),
               ),
               const SizedBox(height: 16),
               Text(
-                searchQuery.isEmpty ? "لا توجد إشعارات بعد" : "لم يتم العثور على نتائج",
+                searchQuery.isEmpty ? t('noNotifications', locale) : t('noResults', locale),
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: textSecondary,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                searchQuery.isEmpty
-                    ? "سيظهر سجل الإشعارات هنا"
-                    : "جرب البحث بكلمات مختلفة",
-                style: TextStyle(color: Colors.grey[400], fontSize: 14),
+                searchQuery.isEmpty ? t('notificationsWillAppear', locale) : t('tryDifferentKeywords', locale),
+                style: TextStyle(color: textTertiary, fontSize: 14),
               ),
             ],
           ),
@@ -458,9 +567,9 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -475,30 +584,31 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
         itemCount: filtered.length,
         separatorBuilder: (context, index) => Divider(
           height: 1,
-          color: Colors.grey[100],
+          color: isDark ? const Color(0xFF334155) : Colors.grey[100],
           indent: 20,
           endIndent: 20,
         ),
-        itemBuilder: (context, index) => _buildNotificationCard(filtered[index]),
+        itemBuilder: (context, index) => _buildNotificationCard(filtered[index], isDark, primary, textPrimary, textSecondary, textTertiary, locale),
       ),
     );
   }
 
-  Widget _buildNotificationCard(NotificationItem notification) {
+  Widget _buildNotificationCard(NotificationItem notification, bool isDark, Color primary, Color textPrimary, Color? textSecondary, Color? textTertiary, String locale) {
     final isEmail = notification.destination.toLowerCase() == 'email';
     final channelColor = isEmail ? const Color(0xFFF59E0B) : const Color(0xFF10B981);
-    final channelBg = isEmail ? const Color(0xFFFEF3C7) : const Color(0xFFECFDF5);
+    final channelBg = isEmail
+        ? (isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7))
+        : (isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5));
     final channelIcon = isEmail ? Icons.email_rounded : Icons.phone_android_rounded;
 
     return InkWell(
-      onTap: () => _showNotificationDetails(notification),
-      hoverColor: const Color(0xFFF8FAFC),
+      onTap: () => _showNotificationDetails(notification, isDark, primary, textPrimary, textSecondary, locale),
+      hoverColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // أيقونة القناة
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -508,8 +618,6 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
               child: Icon(channelIcon, color: channelColor, size: 20),
             ),
             const SizedBox(width: 16),
-
-            // المحتوى
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -519,17 +627,17 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                       Expanded(
                         child: Text(
                           notification.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F172A),
+                            color: textPrimary,
                           ),
                         ),
                       ),
                       Text(
                         _formatDate(notification.createdAt),
                         style: TextStyle(
-                          color: Colors.grey[500],
+                          color: textTertiary,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -540,7 +648,7 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                   Text(
                     notification.message,
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: textSecondary,
                       fontSize: 14,
                       height: 1.5,
                     ),
@@ -578,10 +686,10 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                       OutlinedButton.icon(
                         onPressed: () => _resendNotification(notification),
                         icon: const Icon(Icons.replay_rounded, size: 16),
-                        label: const Text("إعادة إرسال"),
+                        label: Text(t('resend', locale)),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF2563EB),
-                          side: const BorderSide(color: Color(0xFFDBEAFE)),
+                          foregroundColor: primary,
+                          side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFDBEAFE)),
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -611,10 +719,14 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
     }
   }
 
-  void _showNotificationDetails(NotificationItem notification) {
+  void _showNotificationDetails(NotificationItem notification, bool isDark, Color primary, Color textPrimary, Color? textSecondary, String locale) {
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final inputBg = isDark ? const Color(0xFF0F172A) : Colors.grey[100];
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 500),
@@ -628,41 +740,42 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
+                      color: isDark ? const Color(0xFF064E3B) : const Color(0xFFEFF6FF),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.notifications_active_rounded,
-                      color: Color(0xFF2563EB),
+                      color: primary,
                       size: 24,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    "تفاصيل الإشعار",
+                  Text(
+                    t('notificationDetails', locale),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
+                      color: textPrimary,
                     ),
                   ),
                   const Spacer(),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: Icon(Icons.close, color: textPrimary),
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.grey[100],
+                      backgroundColor: inputBg,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              _detailRow("العنوان", notification.title),
+              _detailRow(t('titleLabel', locale), notification.title, textSecondary, textPrimary),
               const SizedBox(height: 16),
-              _detailRow("الرسالة", notification.message),
+              _detailRow(t('messageLabel', locale), notification.message, textSecondary, textPrimary),
               const SizedBox(height: 16),
-              _detailRow("القناة", notification.destination.toUpperCase()),
+              _detailRow(t('channelLabel', locale), notification.destination.toUpperCase(), textSecondary, textPrimary),
               const SizedBox(height: 16),
-              _detailRow("التاريخ", notification.createdAt),
+              _detailRow(t('dateLabel', locale), notification.createdAt, textSecondary, textPrimary),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -672,9 +785,9 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                     _resendNotification(notification);
                   },
                   icon: const Icon(Icons.replay_rounded),
-                  label: const Text("إعادة إرسال الإشعار"),
+                  label: Text(t('resendNotification', locale)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
+                    backgroundColor: primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -690,14 +803,14 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
     );
   }
 
-  Widget _detailRow(String label, String value) {
+  Widget _detailRow(String label, String value, Color? textSecondary, Color textPrimary) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey[600],
+            color: textSecondary,
             fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
@@ -705,9 +818,9 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
         const SizedBox(height: 6),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
-            color: Color(0xFF0F172A),
+            color: textPrimary,
             height: 1.5,
           ),
         ),
