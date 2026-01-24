@@ -237,6 +237,85 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
       );
     }
   }
+  void _showRejectDialog(BuildContext context, GroupRequestModel request, bool isDark, bool isArabic) {
+    final TextEditingController reasonController = TextEditingController();
+    final Color bgColor = isDark ? const Color(0xFF2C2C2C) : Colors.white;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: bgColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.report_problem_rounded, color: Colors.redAccent),
+            SizedBox(width: 10),
+            Text(
+              isArabic ? "رفض الطلب" : "Reject Request",
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isArabic ? "سبب الرفض (اختياري):" : "Reason for rejection (Optional):",
+              style: TextStyle(fontSize: 13, color: isDark ? Colors.grey[300] : Colors.grey[700]),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              maxLines: 3,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              decoration: InputDecoration(
+                hintText: isArabic ? "اكتب السبب هنا..." : "Write the reason here...",
+                hintStyle: TextStyle(fontSize: 12, color: Colors.grey),
+                filled: true,
+                fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(isArabic ? "إلغاء" : "Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+             await rejectGroupRequest(request.id,reasonController.text);
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(isArabic ? "تأكيد الرفض" : "Confirm", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+  Future<void> _launchURL(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(
+          url,
+          mode: LaunchMode.externalApplication,
+        );
+      } else {
+        debugPrint('Could not launch $urlString');
+      }
+    } catch (e) {
+      debugPrint('Error launching URL: $e');
+    }
+  }
 
   Future<DashboardStats> fetchDashboardStats() async {
     final response = await http.get(
@@ -270,7 +349,8 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
       int requestId,
       int countryId,
       int categoryId,
-      ) async {
+      )
+  async {
     await http.post(
       Uri.parse(
         '${AppConfig.baseUrl}dashboard/group-requests/$requestId/approve',
@@ -282,7 +362,21 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
       }),
     );
   }
-
+  Future<void> rejectGroupRequest(
+      int requestId,
+      String adminNote,
+      )
+  async {
+    await http.post(
+      Uri.parse(
+        '${AppConfig.baseUrl}dashboard/group-requests/$requestId/reject',
+      ),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'AdminNote': adminNote,
+      }),
+    );
+  }
   Color get primaryBlue => widget.isDark ? const Color(0xFF4A9EFF) : const Color(0xFF2563EB);
   Color get secondaryBlue => widget.isDark ? const Color(0xFF1E40AF) : const Color(0xFF3B82F6);
   Color get accentBlue => widget.isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8);
@@ -1105,89 +1199,101 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
       bool isArabic,
       bool isDark,
       ) {
+    final Color themeColor = isDark ? Colors.greenAccent[400]! : primaryBlue;
+    final Color rejectColor = Colors.redAccent;
+    final Color bgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [primaryBlue, secondaryBlue],
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.group_rounded, color: Colors.white, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  request.groupName,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: textColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  request.groupLink,
-                  style: TextStyle(
-                    color: primaryBlue,
-                    fontSize: 12,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          request.isApproved
-              ? Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.green.withOpacity(0.3)),
-            ),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Material(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        elevation: isDark ? 0 : 1,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _launchURL(request.groupLink),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               children: [
-                Icon(Icons.check_circle_rounded, size: 16, color: Colors.green),
-                const SizedBox(width: 6),
-                Text(
-                  titles['approved']!,
-                  style: const TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
+                // أيقونة المجموعة
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: themeColor.withOpacity(0.1),
+                  child: Icon(Icons.link_rounded, color: themeColor, size: 18),
+                ),
+                const SizedBox(width: 12),
+
+                // بيانات المجموعة
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        request.groupName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        "${request.category} • ${request.country}",
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+
+                // الأزرار أو حالة القبول
+                if (request.isApproved)
+                  Icon(Icons.verified_rounded, color: themeColor, size: 22)
+                else if (request.status == 'pending')
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // زر الرفض
+                      _buildIconButton(
+                        icon: Icons.close_rounded,
+                        color: rejectColor,
+                        onTap: () => _showRejectDialog(context, request, isDark, isArabic),
+                      ),
+                      const SizedBox(width: 8),
+                      // زر القبول
+                      _buildIconButton(
+                        icon: Icons.check_rounded,
+                        color: themeColor,
+                        onTap: () => showApproveDialog(request),
+                      ),
+                    ],
+                  ),
+                if (request.status == 'rejected')
+                  Icon(Icons.cancel_presentation, color: Colors.red, size: 22),
               ],
             ),
-          )
-              : ElevatedButton.icon(
-            onPressed: () {
-              showApproveDialog(request);
-            },
-            icon: const Icon(Icons.check_rounded, size: 18),
-            label: Text(titles['approve']!),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryBlue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 0,
-            ),
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+// ويدجت للأزرار الصغيرة لتقليل الارتفاع
+  Widget _buildIconButton({required IconData icon, required Color color, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: color, size: 18),
       ),
     );
   }

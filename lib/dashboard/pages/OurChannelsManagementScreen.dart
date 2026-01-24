@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../providers/app_providers.dart';
 
@@ -509,10 +510,22 @@ class _TelegramChannelsScreenState extends State<TelegramChannelsScreen> {
       ),
     );
   }
-  void _launchUrl(String url) {
-
-    debugPrint('فتح الرابط: $url');
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(
+          url,
+          mode: LaunchMode.externalApplication,
+        );
+      } else {
+        debugPrint('Could not launch $urlString');
+      }
+    } catch (e) {
+      debugPrint('Error launching URL: $e');
+    }
   }
+
   void _confirmDeleteItem({required String itemName, required String itemType, required VoidCallback onConfirm}) {
     showDialog(
       context: context,

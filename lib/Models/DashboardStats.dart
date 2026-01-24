@@ -45,12 +45,22 @@ class GroupRequestModel {
   final String groupName;
   final String groupLink;
   final String status;
+  final String country;
+  final String category;
+  final int countryId;
+  final int categoryId;
+
+
 
   GroupRequestModel({
     required this.id,
     required this.groupName,
     required this.groupLink,
     required this.status,
+    required this.country,
+    required this.category,
+    required this.countryId,
+    required this.categoryId,
   });
 
   factory GroupRequestModel.fromJson(Map<String, dynamic> json) {
@@ -59,6 +69,10 @@ class GroupRequestModel {
       groupName: json['groupName'] ?? '',
       groupLink: json['groupLink'],
       status: json['status'],
+      country: json['countryName'] ??'',
+      countryId: json['countryId'] ?? 0 ,
+      category: json['categoryName'] ??'',
+      categoryId: json['categoryId'] ?? 0 ,
     );
   }
 
