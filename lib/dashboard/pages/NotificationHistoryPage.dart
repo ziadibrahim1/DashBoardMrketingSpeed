@@ -147,7 +147,7 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
                   Text(t('resendSuccess', locale)),
                 ],
               ),
-              backgroundColor: const Color(0xFF10B981),
+              backgroundColor: const Color(0xFF259C40),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               margin: const EdgeInsets.all(20),
@@ -190,13 +190,13 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
     final lightBg = const Color(0xFFF8FAFC);
     final lightCardBg = Colors.white;
     final lightBorder = const Color(0xFFE2E8F0);
-    final lightPrimary = const Color(0xFF2563EB);
+    final lightPrimary = const Color(0xFF1B367A);
 
     // ألوان الوضع الداكن (أخضر)
-    final darkBg = const Color(0xFF0F172A);
-    final darkCardBg = const Color(0xFF1E293B);
-    final darkBorder = const Color(0xFF334155);
-    final darkPrimary = const Color(0xFF10B981);
+    final darkBg = const Color(0xFF1D201D);
+    final darkCardBg = const Color(0xFF19231B);
+    final darkBorder = const Color(0xFF233526);
+    final darkPrimary = const Color(0xFF139838);
 
     final bg = isDark ? darkBg : lightBg;
     final cardBg = isDark ? darkCardBg : lightCardBg;
@@ -210,100 +210,90 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
       textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: bg,
-        body: CustomScrollView(
-          slivers: [
-            _buildAppBar(isDark, primary, locale),
-            SliverToBoxAdapter(
-              child: Center(
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      _buildStatsSection(isDark, cardBg, border, textPrimary, textSecondary, locale),
-                      const SizedBox(height: 24),
-                      _buildFilterSection(isDark, cardBg, border, primary, textPrimary, textSecondary, textTertiary, locale),
-                      const SizedBox(height: 24),
-                      _buildNotificationsList(isDark, cardBg, border, primary, textPrimary, textSecondary, textTertiary, locale),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppBar(bool isDark, Color primary, String locale) {
-    return SliverAppBar(
-      expandedHeight: 100,
-      floating: false,
-      pinned: true,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-      elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              colors: isDark
-                  ? [const Color(0xFF10B981), const Color(0xFF059669)]
-                  : [const Color(0xff2581eb), const Color(0xff62a4f3)],
-            ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+        body: SingleChildScrollView(
+          child: Center(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              padding: const EdgeInsets.all(24),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.notifications_active_rounded,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            t('title', locale),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            t('subtitle', locale),
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                  _buildHeaderCard(isDark, cardBg, border, primary, textPrimary, locale),
+                  const SizedBox(height: 24),
+                  _buildStatsSection(isDark, cardBg, border, textPrimary, textSecondary, locale),
+                  const SizedBox(height: 24),
+                  _buildFilterSection(isDark, cardBg, border, primary, textPrimary, textSecondary, textTertiary, locale),
+                  const SizedBox(height: 24),
+                  _buildNotificationsList(isDark, cardBg, border, primary, textPrimary, textSecondary, textTertiary, locale),
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderCard(bool isDark, Color cardBg, Color border, Color primary, Color textPrimary, String locale) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: isDark
+              ? [const Color(0xFF268C3F), const Color(0xFF216532)]
+              : [const Color(0xFF1B367A), const Color(0xFF0B3DB6)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: (isDark ? const Color(0xFF268C3F) : const Color(0xff2581eb)).withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(32),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.notifications_active_rounded,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t('title', locale),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  t('subtitle', locale),
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -334,7 +324,7 @@ class _NotificationHistoryPageState extends State<NotificationHistoryPage> {
             t('inAppNotifications', locale),
             fcmCount.toString(),
             Icons.phone_android_rounded,
-            const Color(0xFF10B981),
+            const Color(0xFF08932D),
             isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5),
             cardBg,
             border,

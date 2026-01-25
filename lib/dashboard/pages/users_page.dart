@@ -5,14 +5,24 @@ import '../../Models/UserModel.dart';
 import '../../core/app_config.dart';
 import 'UserDetailsPage.dart';
 
-// --- الهوية البصرية الجديدة (Premium Theme) ---
-class ThemeLib {
-  static const primary = Color(0xFF399EF3); // Indigo Modern
-  static const success = Color(0xFF10B981);
-  static const danger = Color(0xFFEF4444);
-  static const cardBgLight = Colors.white;
-  static const cardBgDark = Color(0xFF1E1E2E);
-  static const scaffoldBg = Color(0xFFF8FAFC);
+class AppColors {
+  // Colors for Light Mode
+  static const lightPrimary = Color(0xFF399EF3); // Indigo Modern
+  static const lightSuccess = Color(0xFF10B981);
+  static const lightDanger = Color(0xFFEF4444);
+  static const lightCardBg = Colors.white;
+  static const lightScaffoldBg = Color(0xFFF8FAFC);
+  static const lightTextPrimary = Color(0xFF1E293B);
+  static const lightTextSecondary = Color(0xFF64748B);
+
+  // Colors for Dark Mode (Green Theme)
+  static const darkPrimary = Color(0xFF4CAF50); // Green
+  static const darkSuccess = Color(0xFF66BB6A);
+  static const darkDanger = Color(0xFFF44336);
+  static const darkCardBg = Color(0xFF1E1E2E);
+  static const darkScaffoldBg = Color(0xFF121212);
+  static const darkTextPrimary = Color(0xFFE4E6EB);
+  static const darkTextSecondary = Color(0xFFB0B3B8);
 }
 
 class UsersPage extends StatefulWidget {
@@ -53,8 +63,19 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isAr = Localizations.localeOf(context).languageCode == 'ar';
+
+    // Choose colors based on theme
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+    final successColor = isDark ? AppColors.darkSuccess : AppColors.lightSuccess;
+    final dangerColor = isDark ? AppColors.darkDanger : AppColors.lightDanger;
+    final cardBgColor = isDark ? AppColors.darkCardBg : AppColors.lightCardBg;
+    final scaffoldBgColor = isDark ? AppColors.darkScaffoldBg : AppColors.lightScaffoldBg;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
     final filtered = _allUsers.where((u) {
       // 1️⃣ البحث: الاسم أو الايميل
       final matchSearch = _searchQuery.isEmpty ||
@@ -71,21 +92,37 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
     }).toList();
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121212) : ThemeLib.scaffoldBg,
+      backgroundColor: scaffoldBgColor,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          _buildModernHeader(isAr, isDark),
-          _buildFilterPanel(isAr, isDark),
+          _buildModernHeader(isAr, isDark, primaryColor),
+          _buildFilterPanel(isAr, isDark, cardBgColor, primaryColor, textPrimaryColor),
           _isLoading
-              ? const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
-              : _buildContentGrid(filtered, isAr, isDark),
+              ? SliverFillRemaining(
+            child: Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+              ),
+            ),
+          )
+              : _buildContentGrid(
+              filtered,
+              isAr,
+              isDark,
+              cardBgColor,
+              primaryColor,
+              successColor,
+              dangerColor,
+              textPrimaryColor,
+              textSecondaryColor
+          ),
         ],
       ),
       // ✅ الزر العائم هنا
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _isLoading ? null : _fetchData,
-        backgroundColor: ThemeLib.primary,
+        backgroundColor: primaryColor,
         elevation: 8,
         icon: _isLoading
             ? const SizedBox(
@@ -106,7 +143,11 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
   }
 
   // --- 1. رأس الصفحة الانسيابي ---
-  Widget _buildModernHeader(bool isAr, bool isDark) {
+  Widget _buildModernHeader(bool isAr, bool isDark, Color primaryColor) {
+    final gradientColors = isDark
+        ? [Color(0xFF2E7D32), Color(0xFF1B5E20)] // Green gradient for dark mode
+        : [Color(0xFF4FB5F5), Color(0xFF1B367A)]; // Original gradient for light mode
+
     return SliverAppBar(
       expandedHeight: 80,
       floating: true,
@@ -117,13 +158,17 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Color(0xFF4FB5F5),Color(0xFF1B367A)]),
+            gradient: LinearGradient(colors: gradientColors),
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: ThemeLib.primary.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
+            boxShadow: [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
           ),
           child: Row(
             children: [
-              const Icon(Icons.auto_awesome_motion_rounded, color: Colors.white, size: 30),
+              Icon(
+                  isDark ? Icons.people_alt_rounded : Icons.auto_awesome_motion_rounded,
+                  color: Colors.white,
+                  size: 30
+              ),
               const SizedBox(width: 15),
               Text(
                 isAr ? "المستخدمين" : "Users Center",
@@ -139,7 +184,7 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
   }
 
   // --- 2. لوحة التحكم والفلاتر  ---
-  Widget _buildFilterPanel(bool isAr, bool isDark) {
+  Widget _buildFilterPanel(bool isAr, bool isDark, Color cardBgColor, Color primaryColor, Color textPrimaryColor) {
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -148,15 +193,17 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: isDark ? ThemeLib.cardBgDark : Colors.white,
+                  color: cardBgColor,
                   borderRadius: BorderRadius.circular(15),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.1 : 0.03), blurRadius: 10)],
                 ),
                 child: TextField(
                   onChanged: (v) => setState(() => _searchQuery = v),
+                  style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: isAr ? "ابحث عن مستخدم..." : "Search user...",
-                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                    hintStyle: TextStyle(color: textPrimaryColor.withOpacity(0.6)),
+                    prefixIcon: Icon(Icons.search_rounded, size: 20, color: primaryColor),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 15),
                   ),
@@ -169,16 +216,27 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: isDark ? ThemeLib.cardBgDark : Colors.white,
+                color: cardBgColor,
                 borderRadius: BorderRadius.circular(15),
               ),
               child: DropdownButton<String>(
                 value: _statusFilter,
                 underline: const SizedBox(),
-                items: const [
-                  DropdownMenuItem(value: 'all', child: Text('الكل')),
-                  DropdownMenuItem(value: 'active', child: Text('نشط')),
-                  DropdownMenuItem(value: 'inactive', child: Text('غير نشط')),
+                dropdownColor: cardBgColor,
+                style: TextStyle(color: textPrimaryColor),
+                items: [
+                  DropdownMenuItem(
+                      value: 'all',
+                      child: Text(isAr ? 'الكل' : 'All', style: TextStyle(color: textPrimaryColor))
+                  ),
+                  DropdownMenuItem(
+                      value: 'active',
+                      child: Text(isAr ? 'نشط' : 'Active', style: TextStyle(color: textPrimaryColor))
+                  ),
+                  DropdownMenuItem(
+                      value: 'inactive',
+                      child: Text(isAr ? 'غير نشط' : 'Inactive', style: TextStyle(color: textPrimaryColor))
+                  ),
                 ],
                 onChanged: (v) {
                   if (v != null) setState(() => _statusFilter = v);
@@ -187,7 +245,7 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
             ),
 
             const SizedBox(width: 12),
-            _buildFilterAction(Icons.filter_list_rounded, isDark),
+            _buildFilterAction(Icons.filter_list_rounded, isDark, cardBgColor, primaryColor),
           ],
         ),
       ),
@@ -195,7 +253,17 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
   }
 
   // --- 3. عرض المحتوى (Grid/List) المتجاوب ---
-  Widget _buildContentGrid(List<UserModel> users, bool isAr, bool isDark) {
+  Widget _buildContentGrid(
+      List<UserModel> users,
+      bool isAr,
+      bool isDark,
+      Color cardBgColor,
+      Color primaryColor,
+      Color successColor,
+      Color dangerColor,
+      Color textPrimaryColor,
+      Color textSecondaryColor
+      ) {
     return SliverPadding(
       padding: const EdgeInsets.all(16),
       sliver: SliverGrid(
@@ -206,7 +274,18 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
           mainAxisSpacing: 16,
         ),
         delegate: SliverChildBuilderDelegate(
-              (context, index) => _UserCard(user: users[index], isAr: isAr, isDark: isDark, onRefresh: _fetchData),
+              (context, index) => _UserCard(
+              user: users[index],
+              isAr: isAr,
+              isDark: isDark,
+              cardBgColor: cardBgColor,
+              primaryColor: primaryColor,
+              successColor: successColor,
+              dangerColor: dangerColor,
+              textPrimaryColor: textPrimaryColor,
+              textSecondaryColor: textSecondaryColor,
+              onRefresh: _fetchData
+          ),
           childCount: users.length,
         ),
       ),
@@ -224,17 +303,17 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _buildFilterAction(IconData icon, bool isDark, {VoidCallback? onTap}) {
+  Widget _buildFilterAction(IconData icon, bool isDark, Color cardBgColor, Color primaryColor) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {},
       borderRadius: BorderRadius.circular(15),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isDark ? ThemeLib.cardBgDark : Colors.white,
+          color: cardBgColor,
           borderRadius: BorderRadius.circular(15),
         ),
-        child: Icon(icon, color: ThemeLib.primary),
+        child: Icon(icon, color: primaryColor),
       ),
     );
   }
@@ -244,52 +323,128 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
 class _UserCard extends StatelessWidget {
   final UserModel user;
   final bool isAr, isDark;
+  final Color cardBgColor, primaryColor, successColor, dangerColor, textPrimaryColor, textSecondaryColor;
   final VoidCallback onRefresh;
 
-  const _UserCard({required this.user, required this.isAr, required this.isDark, required this.onRefresh});
+  const _UserCard({
+    required this.user,
+    required this.isAr,
+    required this.isDark,
+    required this.cardBgColor,
+    required this.primaryColor,
+    required this.successColor,
+    required this.dangerColor,
+    required this.textPrimaryColor,
+    required this.textSecondaryColor,
+    required this.onRefresh
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? ThemeLib.cardBgDark : Colors.white,
+        color: cardBgColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
           Row(
             children: [
               CircleAvatar(
-                backgroundColor: ThemeLib.primary.withOpacity(0.1),
-                child: Text(user.name[0], style: const TextStyle(color: ThemeLib.primary, fontWeight: FontWeight.bold)),
+                backgroundColor: primaryColor.withOpacity(0.1),
+                child: Text(
+                    user.name[0],
+                    style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold)
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(user.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1),
-                    Text(user.email, style: const TextStyle(color: Colors.grey, fontSize: 12), maxLines: 1),
+                    Text(
+                        user.name,
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: textPrimaryColor
+                        ),
+                        maxLines: 1
+                    ),
+                    Text(
+                        user.email,
+                        style: TextStyle(color: textSecondaryColor, fontSize: 12),
+                        maxLines: 1
+                    ),
                   ],
                 ),
               ),
-              _StatusIndicator(isActive: user.status == 'active'),
+              _StatusIndicator(isActive: user.status == 'active', successColor: successColor, dangerColor: dangerColor),
             ],
           ),
-          const Divider(height: 24),
+          Divider(height: 24, color: textSecondaryColor.withOpacity(0.2)),
           Expanded(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildMiniStat(Icons.message_rounded, "${user.totalMessages}", isAr ? "رسالة" : "Msgs"),
-                _buildMiniStat(Icons.calendar_today_rounded, "${user.subscriptionDaysLeft}d", isAr ? "متبقي" : "Left"),
-                _buildMiniStat(Icons.group_rounded, "${user.groups}", isAr ? "مجموعة" : "Groups"),
-                _buildMiniStat(Icons.block_rounded, "${user.blockedGroups}", isAr ? "محظورة" : "Blocked Groups"),
-                _buildMiniStat(Icons.exit_to_app_rounded, "${user.leftGroups}", isAr ? "تم مغادرته" : "Left Groups"),
-                _buildMiniStat(Icons.report_rounded, "${user.suggestionsCount}", isAr ? "اقتراح" : "Suggestions"),
-                _buildMiniStat(Icons.reply_rounded, "${user.suggestionRepliesCount}", isAr ? "رد" : "Replies"),
+                _buildMiniStat(
+                    Icons.message_rounded,
+                    "${user.totalMessages}",
+                    isAr ? "رسالة" : "Msgs",
+                    textPrimaryColor,
+                    textSecondaryColor
+                ),
+                _buildMiniStat(
+                    Icons.calendar_today_rounded,
+                    "${user.subscriptionDaysLeft}d",
+                    isAr ? "متبقي" : "Left",
+                    textPrimaryColor,
+                    textSecondaryColor
+                ),
+                _buildMiniStat(
+                    Icons.group_rounded,
+                    "${user.groups}",
+                    isAr ? "مجموعة" : "Groups",
+                    textPrimaryColor,
+                    textSecondaryColor
+                ),
+                _buildMiniStat(
+                    Icons.block_rounded,
+                    "${user.blockedGroups}",
+                    isAr ? "محظورة" : "Blocked Groups",
+                    textPrimaryColor,
+                    textSecondaryColor
+                ),
+                _buildMiniStat(
+                    Icons.exit_to_app_rounded,
+                    "${user.leftGroups}",
+                    isAr ? "تم مغادرته" : "Left Groups",
+                    textPrimaryColor,
+                    textSecondaryColor
+                ),
+                _buildMiniStat(
+                    Icons.report_rounded,
+                    "${user.suggestionsCount}",
+                    isAr ? "اقتراح" : "Suggestions",
+                    textPrimaryColor,
+                    textSecondaryColor
+                ),
+                _buildMiniStat(
+                    Icons.reply_rounded,
+                    "${user.suggestionRepliesCount}",
+                    isAr ? "رد" : "Replies",
+                    textPrimaryColor,
+                    textSecondaryColor
+                ),
               ],
             ),
           ),
@@ -299,12 +454,18 @@ class _UserCard extends StatelessWidget {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => UserDetailsPage(user: user))),
-                  icon: const Icon(Icons.visibility_outlined, size: 16),
-                  label: Text(isAr ? "التفاصيل" : "Details"),
+                  onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => UserDetailsPage(user: user))
+                  ),
+                  icon: Icon(Icons.visibility_outlined, size: 16, color: primaryColor),
+                  label: Text(
+                    isAr ? "التفاصيل" : "Details",
+                    style: TextStyle(color: primaryColor),
+                  ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: ThemeLib.primary.withOpacity(0.1),
-                    foregroundColor: ThemeLib.primary,
+                    backgroundColor: primaryColor.withOpacity(0.1),
+                    foregroundColor: primaryColor,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -313,7 +474,7 @@ class _UserCard extends StatelessWidget {
               const SizedBox(width: 8),
               _ActionIcon(
                 icon: user.status == 'active' ? Icons.block_rounded : Icons.check_circle_outline,
-                color: user.status == 'active' ? ThemeLib.danger : ThemeLib.success,
+                color: user.status == 'active' ? dangerColor : successColor,
                 onTap: () async {
                   final res = await http.put(Uri.parse("${AppConfig.apiBase}/api/users/toggle-status/${user.id}"));
                   if (res.statusCode == 200) onRefresh();
@@ -326,13 +487,13 @@ class _UserCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMiniStat(IconData icon, String val, String label) {
+  Widget _buildMiniStat(IconData icon, String val, String label, Color textPrimaryColor, Color textSecondaryColor) {
     return Column(
       children: [
-        Icon(icon, size: 16, color: Colors.grey),
+        Icon(icon, size: 16, color: textSecondaryColor),
         const SizedBox(height: 4),
-        Text(val, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+        Text(val, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimaryColor)),
+        Text(label, style: TextStyle(color: textSecondaryColor, fontSize: 10)),
       ],
     );
   }
@@ -351,7 +512,10 @@ class _ActionIcon extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12)
+        ),
         child: Icon(icon, color: color, size: 20),
       ),
     );
@@ -360,16 +524,28 @@ class _ActionIcon extends StatelessWidget {
 
 class _StatusIndicator extends StatelessWidget {
   final bool isActive;
-  const _StatusIndicator({required this.isActive});
+  final Color successColor;
+  final Color dangerColor;
+  const _StatusIndicator({
+    required this.isActive,
+    required this.successColor,
+    required this.dangerColor,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 10, height: 10,
+      width: 10,
+      height: 10,
       decoration: BoxDecoration(
-        color: isActive ? ThemeLib.success : ThemeLib.danger,
+        color: isActive ? successColor : dangerColor,
         shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: (isActive ? ThemeLib.success : ThemeLib.danger).withOpacity(0.4), blurRadius: 6)],
+        boxShadow: [
+          BoxShadow(
+              color: (isActive ? successColor : dangerColor).withOpacity(0.4),
+              blurRadius: 6
+          ),
+        ],
       ),
     );
   }

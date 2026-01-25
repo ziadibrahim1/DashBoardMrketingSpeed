@@ -6,6 +6,7 @@ import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_providers.dart';
 import '../core/user_session.dart'; // 👈 استيراد UserSession
+import '../reports/reports_screen.dart';
 import 'pages/AdminManagementScreen.dart';
 import 'pages/AdminVideoManager.dart';
 import 'pages/FlexManagement.dart';
@@ -249,15 +250,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         pageIndex: items.length,
       ));
     }
-    if (_hasPermission('VideoManagerScreen')) {
+    if (_hasPermission('ReportsScreen')) {
       items.add(NavigationItem(
-        icon: Icons.data_exploration_sharp ,
+        icon: Icons.receipt,
         labelAr: 'التقارير',
         labelEn: 'Reports',
         pageIndex: items.length,
       ));
     }
-
     return items;
   }
 
@@ -327,8 +327,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       pages.add(VideoManagerScreen());
     }
 
-    if (_hasPermission('VideoManagerScreen')) {
-      pages.add(VideoManagerScreen());
+    if (_hasPermission('ReportsScreen')) {
+      pages.add(ReportsScreen());
     }
 
     return pages;
@@ -701,11 +701,6 @@ class _MovableSpeedDialState extends State<MovableSpeedDial> {
           backgroundColor:
           widget.isDark ? Colors.green.shade700.withOpacity(.9) : Colors.blue.shade700.withOpacity(.9),
           children: [
-            SpeedDialChild(
-              child: const Icon(Icons.person),
-              label: widget.isRTL ? 'عرض الملف الشخصي' : 'Open profile',
-              onTap: () {},
-            ),
             SpeedDialChild(
               child: const Icon(Icons.logout),
               label: widget.isRTL ? 'تسجيل خروج' : 'Logout',

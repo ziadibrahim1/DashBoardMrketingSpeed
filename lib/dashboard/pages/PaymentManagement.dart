@@ -33,6 +33,49 @@ class _PaymentManagementSectionState extends State<PaymentManagementSection>
     Tab(icon: Icon(Icons.people_outline), text: 'Customer Payments'),
   ];
 
+  // دالة للحصول على الألوان بناءً على الوضع
+  Map<String, Color> _getColors(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (isDark) {
+      // ألوان خضراء للوضع الداكن
+      return {
+        'primary': const Color(0xFF1B5E20),           // أخضر داكن جداً
+        'secondary': const Color(0xFF2E7D32),         // أخضر داكن
+        'accent': const Color(0xFF4CAF50),           // أخضر متوسط
+        'light': const Color(0xFF81C784),           // أخضر فاتح
+        'background': const Color(0xFF121212),      // خلفية داكنة
+        'card': const Color(0xFF1E1E1E),           // كارت داكن
+        'surface': const Color(0xFF2D2D2D),        // سطح داكن
+        'text': const Color(0xFFE0E0E0),          // نص فاتح
+        'textSecondary': const Color(0xFFB0B0B0), // نص ثانوي
+        'gradientStart': const Color(0xFF1B5E20), // تدرج بداية
+        'gradientEnd': const Color(0xFF2E7D32),   // تدرج نهاية
+        'success': const Color(0xFF4CAF50),       // نجاح
+        'warning': Colors.orange,                // تحذير
+        'error': Colors.redAccent,               // خطأ
+      };
+    } else {
+      // ألوان زرقاء للوضع الفاتح
+      return {
+        'primary': const Color(0xFF1E293B),           // أزرق داكن
+        'secondary': const Color(0xFF334155),         // أزرق داكن متوسط
+        'accent': const Color(0xFF3B82F6),           // أزرق فاتح
+        'light': const Color(0xFF60A5FA),          // أزرق فاتح جداً
+        'background': const Color(0xFFF5F7FA),     // خلفية فاتحة
+        'card': Colors.white,                     // كارت أبيض
+        'surface': Colors.white,                  // سطح أبيض
+        'text': const Color(0xFF1E293B),          // نص داكن
+        'textSecondary': const Color(0xFF64748B), // نص ثانوي
+        'gradientStart': const Color(0xFF4FB5F5), // تدرج بداية
+        'gradientEnd': const Color(0xFF1B367A),   // تدرج نهاية
+        'success': Colors.green,                 // نجاح
+        'warning': Colors.orange,                // تحذير
+        'error': Colors.redAccent,               // خطأ
+      };
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -49,16 +92,12 @@ class _PaymentManagementSectionState extends State<PaymentManagementSection>
   Widget build(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context);
     final isArabic = localeProvider.locale.languageCode == 'ar';
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colors = _getColors(context);
 
     return Scaffold(
-      backgroundColor: isDark
-          ? const Color(0xFF0A0E21)
-          : const Color(0xFFF5F7FA),
+      backgroundColor: colors['background'],
       body: Column(
         children: [
-
           /// ===== Elegant Header Card =====
           SafeArea(
             bottom: false,
@@ -74,15 +113,7 @@ class _PaymentManagementSectionState extends State<PaymentManagementSection>
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(18),
                     gradient: LinearGradient(
-                      colors: isDark
-                          ? const [
-                        Color(0xFF1F2937),
-                        Color(0xFF273449),
-                      ]
-                          : const [
-                        Color(0xFF4FB5F5),
-                        Color(0xFF1B367A),
-                      ],
+                      colors: [colors['gradientStart']!, colors['gradientEnd']!],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -90,7 +121,6 @@ class _PaymentManagementSectionState extends State<PaymentManagementSection>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-
                       /// ===== Header Row =====
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
@@ -111,9 +141,7 @@ class _PaymentManagementSectionState extends State<PaymentManagementSection>
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                isArabic
-                                    ? 'إدارة الدفع'
-                                    : 'Payment Management',
+                                isArabic ? 'إدارة الدفع' : 'Payment Management',
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
@@ -152,11 +180,8 @@ class _PaymentManagementSectionState extends State<PaymentManagementSection>
                                 indicatorPadding: EdgeInsets.zero,
                                 indicatorSize: TabBarIndicatorSize.tab,
 
-                                labelColor: isDark
-                                    ?  Colors.white
-                                    :  Colors.white,
-                                unselectedLabelColor:
-                                Colors.white30.withOpacity(0.8),
+                                labelColor: Colors.white,
+                                unselectedLabelColor: Colors.white30.withOpacity(0.8),
                                 labelStyle: const TextStyle(
                                     fontSize: 11, fontWeight: FontWeight.w600),
                                 unselectedLabelStyle: const TextStyle(
@@ -211,13 +236,47 @@ class PaymentHistoryScreen extends StatelessWidget {
 class PaymentHistoryBody extends StatelessWidget {
   const PaymentHistoryBody({super.key});
 
+  // دالة للحصول على الألوان بناءً على الوضع
+  Map<String, Color> _getColors(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (isDark) {
+      return {
+        'primary': const Color(0xFF1B5E20),
+        'secondary': const Color(0xFF2E7D32),
+        'accent': const Color(0xFF4CAF50),
+        'background': const Color(0xFF121212),
+        'card': const Color(0xFF1E1E1E),
+        'surface': const Color(0xFF2D2D2D),
+        'text': const Color(0xFFE0E0E0),
+        'textSecondary': const Color(0xFFB0B0B0),
+        'success': const Color(0xFF4CAF50),
+        'warning': Colors.orange,
+        'error': Colors.redAccent,
+      };
+    } else {
+      return {
+        'primary': const Color(0xFF1E293B),
+        'secondary': const Color(0xFF334155),
+        'accent': const Color(0xFF3B82F6),
+        'background': const Color(0xFFF5F7FA),
+        'card': Colors.white,
+        'surface': Colors.white,
+        'text': const Color(0xFF1E293B),
+        'textSecondary': const Color(0xFF64748B),
+        'success': Colors.green,
+        'warning': Colors.orange,
+        'error': Colors.redAccent,
+      };
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context);
     final isArabic = localeProvider.locale.languageCode == 'ar';
     final vm = context.watch<PaymentViewModel>();
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colors = _getColors(context);
 
     if (vm.isLoading) {
       return Center(
@@ -227,7 +286,7 @@ class PaymentHistoryBody extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E2746) : Colors.white,
+                color: colors['card'],
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -236,14 +295,14 @@ class PaymentHistoryBody extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const CircularProgressIndicator(),
+              child: CircularProgressIndicator(color: colors['accent']),
             ),
             const SizedBox(height: 24),
             Text(
               isArabic ? 'جاري التحميل...' : 'Loading...',
               style: TextStyle(
                 fontSize: 16,
-                color: isDark ? Colors.white70 : Colors.black54,
+                color: colors['textSecondary'],
               ),
             ),
           ],
@@ -257,7 +316,7 @@ class PaymentHistoryBody extends StatelessWidget {
           margin: const EdgeInsets.all(24),
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E2746) : Colors.white,
+            color: colors['card'],
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
@@ -272,24 +331,33 @@ class PaymentHistoryBody extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: colors['error']!.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                child: Icon(Icons.error_outline, size: 48, color: colors['error']),
               ),
               const SizedBox(height: 16),
               Text(
                 isArabic ? 'حدث خطأ في تحميل البيانات' : 'Error loading data',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: colors['text'],
+                ),
               ),
               const SizedBox(height: 8),
-              Text(vm.error!, textAlign: TextAlign.center),
+              Text(vm.error!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colors['textSecondary']),
+              ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: () => vm.loadPayments(refresh: true),
-                icon: const Icon(Icons.refresh),
+                icon: Icon(Icons.refresh, color: colors['card']),
                 label: Text(isArabic ? 'إعادة المحاولة' : 'Retry'),
                 style: ElevatedButton.styleFrom(
+                  backgroundColor: colors['accent'],
+                  foregroundColor: colors['card'],
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -311,7 +379,7 @@ class PaymentHistoryBody extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E2746) : Colors.white,
+              color: colors['card'],
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -320,20 +388,26 @@ class PaymentHistoryBody extends StatelessWidget {
                   offset: const Offset(0, 4),
                 ),
               ],
+              border: Border.all(
+                color: colors['surface']!.withOpacity(0.1),
+                width: 1,
+              ),
             ),
             child: Row(
               children: [
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0A0E21) : const Color(0xFFF5F7FA),
+                      color: colors['background'],
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: TextField(
                       onChanged: vm.updateSearchQuery,
+                      style: TextStyle(color: colors['text']),
                       decoration: InputDecoration(
                         hintText: isArabic ? 'ابحث باسم العميل...' : 'Search by client name...',
-                        prefixIcon: const Icon(Icons.search, color: Color(0xFF143E71)),
+                        hintStyle: TextStyle(color: colors['textSecondary']),
+                        prefixIcon: Icon(Icons.search, color: colors['accent']),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       ),
@@ -349,23 +423,23 @@ class PaymentHistoryBody extends StatelessWidget {
                         SnackBar(
                           content: Row(
                             children: [
-                              const Icon(Icons.check_circle, color: Colors.white),
+                              Icon(Icons.check_circle, color: colors['card']),
                               const SizedBox(width: 12),
                               Text(isArabic ? 'تم حفظ ملف CSV بنجاح' : 'CSV file saved successfully'),
                             ],
                           ),
-                          backgroundColor: Colors.green,
+                          backgroundColor: colors['success'],
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       );
                     }
                   },
-                  icon: const Icon(Icons.download_rounded),
+                  icon: Icon(Icons.download_rounded, color: colors['card']),
                   label: Text(isArabic ? 'تصدير CSV' : 'Export CSV'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
-                    foregroundColor: Colors.white,
+                    backgroundColor: colors['success'],
+                    foregroundColor: colors['card'],
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -382,7 +456,7 @@ class PaymentHistoryBody extends StatelessWidget {
           // Modern Table
           Container(
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E2746) : Colors.white,
+              color: colors['card'],
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -391,6 +465,10 @@ class PaymentHistoryBody extends StatelessWidget {
                   offset: const Offset(0, 4),
                 ),
               ],
+              border: Border.all(
+                color: colors['surface']!.withOpacity(0.1),
+                width: 1,
+              ),
             ),
             child: Column(
               children: [
@@ -398,9 +476,7 @@ class PaymentHistoryBody extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xFF2D3561).withOpacity(0.5)
-                        : const Color(0xFFF5F7FA),
+                    color: colors['surface']!.withOpacity(0.5),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(16),
                       topRight: Radius.circular(16),
@@ -408,26 +484,27 @@ class PaymentHistoryBody extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.receipt_long, color: Color(0xFF143E71)),
+                      Icon(Icons.receipt_long, color: colors['accent']),
                       const SizedBox(width: 12),
                       Text(
                         isArabic ? 'عمليات الدفع' : 'Payment Transactions',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: colors['text'],
                         ),
                       ),
                       const Spacer(),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF143E71).withOpacity(0.1),
+                          color: colors['accent']!.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           '${vm.payments.length} ${isArabic ? 'عملية' : 'transactions'}',
-                          style: const TextStyle(
-                            color: Color(0xFF143E71),
+                          style: TextStyle(
+                            color: colors['accent'],
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -443,11 +520,11 @@ class PaymentHistoryBody extends StatelessWidget {
                   itemCount: vm.payments.length,
                   separatorBuilder: (context, index) => Divider(
                     height: 1,
-                    color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.1),
+                    color: colors['surface']!.withOpacity(0.1),
                   ),
                   itemBuilder: (context, index) {
                     final payment = vm.payments[index];
-                    return _PaymentRow(payment: payment, isArabic: isArabic, isDark: isDark);
+                    return _PaymentRow(payment: payment, isArabic: isArabic, colors: colors);
                   },
                 ),
               ],
@@ -460,7 +537,7 @@ class PaymentHistoryBody extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E2746) : Colors.white,
+              color: colors['card'],
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -469,6 +546,10 @@ class PaymentHistoryBody extends StatelessWidget {
                   offset: const Offset(0, 4),
                 ),
               ],
+              border: Border.all(
+                color: colors['surface']!.withOpacity(0.1),
+                width: 1,
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -477,7 +558,10 @@ class PaymentHistoryBody extends StatelessWidget {
                   isArabic
                       ? 'صفحة ${vm.currentPage} من ${vm.totalPages}'
                       : 'Page ${vm.currentPage} of ${vm.totalPages}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: colors['text'],
+                  ),
                 ),
                 Row(
                   children: [
@@ -486,9 +570,9 @@ class PaymentHistoryBody extends StatelessWidget {
                       icon: const Icon(Icons.arrow_back_ios_rounded),
                       style: IconButton.styleFrom(
                         backgroundColor: vm.currentPage > 1
-                            ? const Color(0xFF143E71).withOpacity(0.1)
-                            : Colors.grey.withOpacity(0.1),
-                        foregroundColor: vm.currentPage > 1 ? const Color(0xFF143E71) : Colors.grey,
+                            ? colors['accent']!.withOpacity(0.1)
+                            : colors['surface']!.withOpacity(0.1),
+                        foregroundColor: vm.currentPage > 1 ? colors['accent'] : colors['textSecondary'],
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -497,9 +581,9 @@ class PaymentHistoryBody extends StatelessWidget {
                       icon: const Icon(Icons.arrow_forward_ios_rounded),
                       style: IconButton.styleFrom(
                         backgroundColor: vm.currentPage < vm.totalPages
-                            ? const Color(0xFF143E71).withOpacity(0.1)
-                            : Colors.grey.withOpacity(0.1),
-                        foregroundColor: vm.currentPage < vm.totalPages ? const Color(0xFF143E71) : Colors.grey,
+                            ? colors['accent']!.withOpacity(0.1)
+                            : colors['surface']!.withOpacity(0.1),
+                        foregroundColor: vm.currentPage < vm.totalPages ? colors['accent'] : colors['textSecondary'],
                       ),
                     ),
                   ],
@@ -517,21 +601,21 @@ class PaymentHistoryBody extends StatelessWidget {
 class _PaymentRow extends StatelessWidget {
   final Payment payment;
   final bool isArabic;
-  final bool isDark;
+  final Map<String, Color> colors;
 
   const _PaymentRow({
     required this.payment,
     required this.isArabic,
-    required this.isDark,
+    required this.colors,
   });
 
   Color _getStatusColor() {
     if (payment.status == 'تم' || payment.status == 'completed') {
-      return const Color(0xFF10B981);
+      return colors['success']!;
     } else if (payment.status == 'معلق' || payment.status == 'pending') {
-      return const Color(0xFFF59E0B);
+      return colors['warning']!;
     }
-    return const Color(0xFFEF4444);
+    return colors['error']!;
   }
 
   IconData _getMethodIcon() {
@@ -556,8 +640,8 @@ class _PaymentRow extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFF6366F1).withOpacity(0.2),
-                  const Color(0xFF8B5CF6).withOpacity(0.2),
+                  colors['accent']!.withOpacity(0.2),
+                  colors['secondary']!.withOpacity(0.2),
                 ],
               ),
               borderRadius: BorderRadius.circular(12),
@@ -565,10 +649,10 @@ class _PaymentRow extends StatelessWidget {
             child: Center(
               child: Text(
                 payment.username.isNotEmpty ? payment.username[0].toUpperCase() : '?',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF6366F1),
+                  color: colors['accent'],
                 ),
               ),
             ),
@@ -583,9 +667,10 @@ class _PaymentRow extends StatelessWidget {
               children: [
                 Text(
                   payment.username,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
+                    color: colors['text'],
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -594,14 +679,14 @@ class _PaymentRow extends StatelessWidget {
                     Icon(
                       Icons.workspace_premium,
                       size: 14,
-                      color: isDark ? Colors.white60 : Colors.black54,
+                      color: colors['textSecondary'],
                     ),
                     const SizedBox(width: 4),
                     Text(
                       payment.plan,
                       style: TextStyle(
                         fontSize: 13,
-                        color: isDark ? Colors.white60 : Colors.black54,
+                        color: colors['textSecondary'],
                       ),
                     ),
                   ],
@@ -615,14 +700,14 @@ class _PaymentRow extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFF6366F1).withOpacity(0.1),
+                color: colors['accent']!.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 '${payment.amount.toStringAsFixed(2)} ${isArabic ? "ر.س" : "SAR"}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF6366F1),
+                  color: colors['accent'],
                   fontSize: 14,
                 ),
                 textAlign: TextAlign.center,
@@ -671,17 +756,23 @@ class _PaymentRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.1),
+              color: colors['surface']!.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(_getMethodIcon(), size: 16),
+                Icon(_getMethodIcon(),
+                    size: 16,
+                    color: colors['textSecondary']
+                ),
                 const SizedBox(width: 6),
                 Text(
                   payment.method,
-                  style: const TextStyle(fontSize: 13),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: colors['text'],
+                  ),
                 ),
               ],
             ),
@@ -697,12 +788,16 @@ class _PaymentRow extends StatelessWidget {
                   Icon(
                     Icons.calendar_today,
                     size: 14,
-                    color: isDark ? Colors.white60 : Colors.black54,
+                    color: colors['textSecondary'],
                   ),
                   const SizedBox(width: 4),
                   Text(
                     DateFormat('yyyy-MM-dd').format(payment.date),
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: colors['text'],
+                    ),
                   ),
                 ],
               ),
@@ -711,7 +806,7 @@ class _PaymentRow extends StatelessWidget {
                 DateFormat('HH:mm').format(payment.date),
                 style: TextStyle(
                   fontSize: 12,
-                  color: isDark ? Colors.white60 : Colors.black54,
+                  color: colors['textSecondary'],
                 ),
               ),
             ],
@@ -738,13 +833,47 @@ class CustomerPaymentsScreen extends StatelessWidget {
 class CustomerPaymentsBody extends StatelessWidget {
   const CustomerPaymentsBody({super.key});
 
+  // دالة للحصول على الألوان بناءً على الوضع
+  Map<String, Color> _getColors(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (isDark) {
+      return {
+        'primary': const Color(0xFF1B5E20),
+        'secondary': const Color(0xFF2E7D32),
+        'accent': const Color(0xFF4CAF50),
+        'background': const Color(0xFF121212),
+        'card': const Color(0xFF1E1E1E),
+        'surface': const Color(0xFF2D2D2D),
+        'text': const Color(0xFFE0E0E0),
+        'textSecondary': const Color(0xFFB0B0B0),
+        'success': const Color(0xFF4CAF50),
+        'warning': Colors.orange,
+        'error': Colors.redAccent,
+      };
+    } else {
+      return {
+        'primary': const Color(0xFF1E293B),
+        'secondary': const Color(0xFF334155),
+        'accent': const Color(0xFF3B82F6),
+        'background': const Color(0xFFF5F7FA),
+        'card': Colors.white,
+        'surface': Colors.white,
+        'text': const Color(0xFF1E293B),
+        'textSecondary': const Color(0xFF64748B),
+        'success': Colors.green,
+        'warning': Colors.orange,
+        'error': Colors.redAccent,
+      };
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context);
     final isArabic = localeProvider.locale.languageCode == 'ar';
     final vm = context.watch<CustomerSubscriptionViewModel>();
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colors = _getColors(context);
 
     final statusOptions = isArabic ? ['الكل', 'نشط', 'منتهي'] : ['All', 'Active', 'Expired'];
 
@@ -756,7 +885,7 @@ class CustomerPaymentsBody extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E2746) : Colors.white,
+                color: colors['card'],
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -765,14 +894,14 @@ class CustomerPaymentsBody extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const CircularProgressIndicator(),
+              child: CircularProgressIndicator(color: colors['accent']),
             ),
             const SizedBox(height: 24),
             Text(
               isArabic ? 'جاري التحميل...' : 'Loading...',
               style: TextStyle(
                 fontSize: 16,
-                color: isDark ? Colors.white70 : Colors.black54,
+                color: colors['textSecondary'],
               ),
             ),
           ],
@@ -786,7 +915,7 @@ class CustomerPaymentsBody extends StatelessWidget {
           margin: const EdgeInsets.all(24),
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E2746) : Colors.white,
+            color: colors['card'],
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
@@ -801,24 +930,33 @@ class CustomerPaymentsBody extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: colors['error']!.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                child: Icon(Icons.error_outline, size: 48, color: colors['error']),
               ),
               const SizedBox(height: 16),
               Text(
                 isArabic ? 'حدث خطأ في تحميل البيانات' : 'Error loading data',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: colors['text'],
+                ),
               ),
               const SizedBox(height: 8),
-              Text(vm.error!, textAlign: TextAlign.center),
+              Text(vm.error!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colors['textSecondary']),
+              ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: () => vm.loadSubscriptions(refresh: true),
-                icon: const Icon(Icons.refresh),
+                icon: Icon(Icons.refresh, color: colors['card']),
                 label: Text(isArabic ? 'إعادة المحاولة' : 'Retry'),
                 style: ElevatedButton.styleFrom(
+                  backgroundColor: colors['accent'],
+                  foregroundColor: colors['card'],
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -840,7 +978,7 @@ class CustomerPaymentsBody extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E2746) : Colors.white,
+              color: colors['card'],
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -849,6 +987,10 @@ class CustomerPaymentsBody extends StatelessWidget {
                   offset: const Offset(0, 4),
                 ),
               ],
+              border: Border.all(
+                color: colors['surface']!.withOpacity(0.1),
+                width: 1,
+              ),
             ),
             child: Wrap(
               spacing: 16,
@@ -859,14 +1001,15 @@ class CustomerPaymentsBody extends StatelessWidget {
                   width: 300,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0A0E21) : const Color(0xFFF5F7FA),
+                      color: colors['background'],
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: TextField(
+                      style: TextStyle(color: colors['text']),
                       decoration: InputDecoration(
                         hintText: isArabic ? 'ابحث عن عميل...' : 'Search for client...',
-                        prefixIcon: const Icon(Icons.search, color: Color(
-                            0xFF235C88)),
+                        hintStyle: TextStyle(color: colors['textSecondary']),
+                        prefixIcon: Icon(Icons.search, color: colors['accent']),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       ),
@@ -877,20 +1020,22 @@ class CustomerPaymentsBody extends StatelessWidget {
 
                 // Status Filter
                 Container(
-
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0.7),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0A0E21) : const Color(0xFFF5F7FA),
+                    color: colors['background'],
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.filter_list, color: Color(0xFF235C88), size: 14),
+                      Icon(Icons.filter_list, color: colors['accent'], size: 14),
                       const SizedBox(width: 8),
                       Text(
                         isArabic ? 'الحالة:' : 'Status:',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: colors['text'],
+                        ),
                       ),
                       const SizedBox(width: 8),
                       DropdownButton<String>(
@@ -900,13 +1045,17 @@ class CustomerPaymentsBody extends StatelessWidget {
                         items: statusOptions.map((status) {
                           return DropdownMenuItem<String>(
                             value: status,
-                            child: Text(status),
+                            child: Text(
+                              status,
+                              style: TextStyle(color: colors['text']),
+                            ),
                           );
                         }).toList(),
                         onChanged: (value) {
                           if (value != null) vm.updateStatusFilter(value);
                         },
                         underline: const SizedBox(),
+                        dropdownColor: colors['card'],
                       ),
                     ],
                   ),
@@ -916,7 +1065,7 @@ class CustomerPaymentsBody extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0.7),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF235C88).withOpacity(0.1),
+                    color: colors['accent']!.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Material(
@@ -931,14 +1080,14 @@ class CustomerPaymentsBody extends StatelessWidget {
                           children: [
                             Icon(
                               vm.sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                              color: const Color(0xFF235C88),
+                              color: colors['accent'],
                               size: 20,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               isArabic ? 'تاريخ الانتهاء' : 'End Date',
-                              style: const TextStyle(
-                                color: Color(0xFF235C88),
+                              style: TextStyle(
+                                color: colors['accent'],
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -959,8 +1108,12 @@ class CustomerPaymentsBody extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(48),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E2746) : Colors.white,
+                color: colors['card'],
                 borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: colors['surface']!.withOpacity(0.1),
+                  width: 1,
+                ),
               ),
               child: Center(
                 child: Column(
@@ -968,14 +1121,14 @@ class CustomerPaymentsBody extends StatelessWidget {
                     Icon(
                       Icons.inbox_outlined,
                       size: 64,
-                      color: isDark ? Colors.white38 : Colors.black38,
+                      color: colors['textSecondary'],
                     ),
                     const SizedBox(height: 16),
                     Text(
                       isArabic ? 'لا يوجد نتائج' : 'No results',
                       style: TextStyle(
                         fontSize: 18,
-                        color: isDark ? Colors.white60 : Colors.black54,
+                        color: colors['textSecondary'],
                       ),
                     ),
                   ],
@@ -990,7 +1143,7 @@ class CustomerPaymentsBody extends StatelessWidget {
               return Container(
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E2746) : Colors.white,
+                  color: colors['card'],
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
@@ -1001,8 +1154,8 @@ class CustomerPaymentsBody extends StatelessWidget {
                   ],
                   border: Border.all(
                     color: (sub.isActive && !isExpired)
-                        ? const Color(0xFF10B981).withOpacity(0.3)
-                        : Colors.transparent,
+                        ? colors['success']!.withOpacity(0.3)
+                        : colors['surface']!.withOpacity(0.1),
                     width: 2,
                   ),
                 ),
@@ -1017,8 +1170,8 @@ class CustomerPaymentsBody extends StatelessWidget {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: (sub.isActive && !isExpired)
-                                ? [const Color(0xFF10B981), const Color(0xFF059669)]
-                                : [const Color(0xFFEF4444), const Color(0xFFDC2626)],
+                                ? [colors['success']!, colors['success']!.withOpacity(0.8)]
+                                : [colors['error']!, colors['error']!.withOpacity(0.8)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -1026,8 +1179,8 @@ class CustomerPaymentsBody extends StatelessWidget {
                           boxShadow: [
                             BoxShadow(
                               color: (sub.isActive && !isExpired
-                                  ? const Color(0xFF10B981)
-                                  : const Color(0xFFEF4444))
+                                  ? colors['success']!
+                                  : colors['error']!)
                                   .withOpacity(0.3),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
@@ -1057,9 +1210,10 @@ class CustomerPaymentsBody extends StatelessWidget {
                                 Expanded(
                                   child: Text(
                                     sub.name,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
+                                      color: colors['text'],
                                     ),
                                   ),
                                 ),
@@ -1067,14 +1221,14 @@ class CustomerPaymentsBody extends StatelessWidget {
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: (sub.isActive && !isExpired
-                                        ? const Color(0xFF10B981)
-                                        : const Color(0xFFEF4444))
+                                        ? colors['success']!
+                                        : colors['error']!)
                                         .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
                                       color: (sub.isActive && !isExpired
-                                          ? const Color(0xFF10B981)
-                                          : const Color(0xFFEF4444))
+                                          ? colors['success']!
+                                          : colors['error']!)
                                           .withOpacity(0.3),
                                     ),
                                   ),
@@ -1086,8 +1240,8 @@ class CustomerPaymentsBody extends StatelessWidget {
                                         height: 6,
                                         decoration: BoxDecoration(
                                           color: sub.isActive && !isExpired
-                                              ? const Color(0xFF10B981)
-                                              : const Color(0xFFEF4444),
+                                              ? colors['success']!
+                                              : colors['error']!,
                                           shape: BoxShape.circle,
                                         ),
                                       ),
@@ -1098,8 +1252,8 @@ class CustomerPaymentsBody extends StatelessWidget {
                                             : (isArabic ? 'منتهي' : 'Expired'),
                                         style: TextStyle(
                                           color: sub.isActive && !isExpired
-                                              ? const Color(0xFF10B981)
-                                              : const Color(0xFFEF4444),
+                                              ? colors['success']!
+                                              : colors['error']!,
                                           fontWeight: FontWeight.w600,
                                           fontSize: 13,
                                         ),
@@ -1115,28 +1269,28 @@ class CustomerPaymentsBody extends StatelessWidget {
                                 Icon(
                                   Icons.workspace_premium,
                                   size: 16,
-                                  color: isDark ? Colors.white60 : Colors.black54,
+                                  color: colors['textSecondary'],
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
                                   sub.packageName,
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: isDark ? Colors.white60 : Colors.black54,
+                                    color: colors['textSecondary'],
                                   ),
                                 ),
                                 const Spacer(),
                                 Icon(
                                   Icons.calendar_today,
                                   size: 16,
-                                  color: isDark ? Colors.white60 : Colors.black54,
+                                  color: colors['textSecondary'],
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
                                   '${isArabic ? 'ينتهي في' : 'Ends'} ${DateFormat('yyyy-MM-dd').format(sub.endDate)}',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: isDark ? Colors.white60 : Colors.black54,
+                                    color: colors['textSecondary'],
                                   ),
                                 ),
                                 if (!isExpired && daysLeft <= 7) ...[
@@ -1144,14 +1298,14 @@ class CustomerPaymentsBody extends StatelessWidget {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFF59E0B).withOpacity(0.1),
+                                      color: colors['warning']!.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
                                       '$daysLeft ${isArabic ? 'أيام متبقية' : 'days left'}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
-                                        color: Color(0xFFF59E0B),
+                                        color: colors['warning'],
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -1162,7 +1316,6 @@ class CustomerPaymentsBody extends StatelessWidget {
                           ],
                         ),
                       ),
-
                     ],
                   ),
                 ),
@@ -1175,7 +1328,7 @@ class CustomerPaymentsBody extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E2746) : Colors.white,
+              color: colors['card'],
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -1184,6 +1337,10 @@ class CustomerPaymentsBody extends StatelessWidget {
                   offset: const Offset(0, 4),
                 ),
               ],
+              border: Border.all(
+                color: colors['surface']!.withOpacity(0.1),
+                width: 1,
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1192,7 +1349,10 @@ class CustomerPaymentsBody extends StatelessWidget {
                   isArabic
                       ? 'صفحة ${vm.currentPage} من ${vm.totalPages}'
                       : 'Page ${vm.currentPage} of ${vm.totalPages}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: colors['text'],
+                  ),
                 ),
                 Row(
                   children: [
@@ -1201,9 +1361,9 @@ class CustomerPaymentsBody extends StatelessWidget {
                       icon: const Icon(Icons.arrow_back_ios_rounded),
                       style: IconButton.styleFrom(
                         backgroundColor: vm.currentPage > 1
-                            ? const Color(0xFF6366F1).withOpacity(0.1)
-                            : Colors.grey.withOpacity(0.1),
-                        foregroundColor: vm.currentPage > 1 ? const Color(0xFF6366F1) : Colors.grey,
+                            ? colors['accent']!.withOpacity(0.1)
+                            : colors['surface']!.withOpacity(0.1),
+                        foregroundColor: vm.currentPage > 1 ? colors['accent'] : colors['textSecondary'],
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -1212,9 +1372,9 @@ class CustomerPaymentsBody extends StatelessWidget {
                       icon: const Icon(Icons.arrow_forward_ios_rounded),
                       style: IconButton.styleFrom(
                         backgroundColor: vm.currentPage < vm.totalPages
-                            ? const Color(0xFF6366F1).withOpacity(0.1)
-                            : Colors.grey.withOpacity(0.1),
-                        foregroundColor: vm.currentPage < vm.totalPages ? const Color(0xFF6366F1) : Colors.grey,
+                            ? colors['accent']!.withOpacity(0.1)
+                            : colors['surface']!.withOpacity(0.1),
+                        foregroundColor: vm.currentPage < vm.totalPages ? colors['accent'] : colors['textSecondary'],
                       ),
                     ),
                   ],

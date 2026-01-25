@@ -1,6 +1,32 @@
 import 'package:flutter/material.dart';
-
 import '../../Models/AdminUser.dart';
+
+// ألوان مخصصة للوضعين
+class AppColors {
+  // Colors for Light Mode
+  static const Color lightPrimary = Color(0xFF1976D2);
+  static const Color lightSecondary = Color(0xFF42A5F5);
+  static const Color lightSurface = Color(0xFFF8FAFC);
+  static const Color lightCardBg = Colors.white;
+  static const Color lightBorder = Color(0xFFE2E8F0);
+  static const Color lightTextPrimary = Color(0xFF1A1A1A);
+  static const Color lightTextSecondary = Color(0xFF64748B);
+  static const Color lightSuccess = Color(0xFF4CAF50);
+  static const Color lightDanger = Color(0xFFF44336);
+  static const Color lightWarning = Color(0xFFFF9800);
+
+  // Colors for Dark Mode (Green Theme)
+  static const Color darkPrimary = Color(0xFF2E7D32);
+  static const Color darkSecondary = Color(0xFF4CAF50);
+  static const Color darkSurface = Color(0xFF121212);
+  static const Color darkCardBg = Color(0xFF1E1E2E);
+  static const Color darkBorder = Color(0xFF2D2D3E);
+  static const Color darkTextPrimary = Color(0xFFE4E6EB);
+  static const Color darkTextSecondary = Color(0xFFB0B3B8);
+  static const Color darkSuccess = Color(0xFF66BB6A);
+  static const Color darkDanger = Color(0xFFEF5350);
+  static const Color darkWarning = Color(0xFFFFB74D);
+}
 
 class SendMessageDialog extends StatefulWidget {
   final AdminUser user;
@@ -21,6 +47,7 @@ class _SendMessageDialogState extends State<SendMessageDialog> with SingleTicker
   bool _isSending = false;
   bool _selectAll = false;
   final AdminApi api = AdminApi();
+
   @override
   void initState() {
     super.initState();
@@ -106,6 +133,10 @@ class _SendMessageDialogState extends State<SendMessageDialog> with SingleTicker
   }
 
   void _showErrorSnackBar(String message) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dangerColor = isDark ? AppColors.darkDanger : AppColors.lightDanger;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -115,7 +146,7 @@ class _SendMessageDialogState extends State<SendMessageDialog> with SingleTicker
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: Colors.red.shade400,
+        backgroundColor: dangerColor,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -126,6 +157,10 @@ class _SendMessageDialogState extends State<SendMessageDialog> with SingleTicker
   }
 
   void _showSuccessSnackBar(String message) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -142,7 +177,7 @@ class _SendMessageDialogState extends State<SendMessageDialog> with SingleTicker
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: Colors.blue.shade600,
+        backgroundColor: primaryColor,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -155,13 +190,16 @@ class _SendMessageDialogState extends State<SendMessageDialog> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return AlertDialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(32),
       ),
       contentPadding: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
       content: Container(
         width: MediaQuery.of(context).size.width * 0.9,
         constraints: BoxConstraints(
@@ -170,7 +208,7 @@ class _SendMessageDialogState extends State<SendMessageDialog> with SingleTicker
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _DialogHeader(user: widget.user),
+            _DialogHeader(user: widget.user, isDark: isDark),
             Flexible(
               child: _DialogBody(
                 loadingGroups: _loadingGroups,
@@ -181,6 +219,7 @@ class _SendMessageDialogState extends State<SendMessageDialog> with SingleTicker
                 onGroupToggle: _toggleGroupSelection,
                 onSelectAllToggle: _toggleSelectAll,
                 animation: _animController,
+                isDark: isDark,
               ),
             ),
             _DialogFooter(
@@ -188,6 +227,7 @@ class _SendMessageDialogState extends State<SendMessageDialog> with SingleTicker
               selectedCount: _selectedGroups.length,
               onCancel: () => Navigator.pop(context),
               onSend: _handleSend,
+              isDark: isDark,
             ),
           ],
         ),
@@ -195,27 +235,30 @@ class _SendMessageDialogState extends State<SendMessageDialog> with SingleTicker
     );
   }
 }
+
+// ===== Dialog Header Component =====
 class _DialogHeader extends StatelessWidget {
   final AdminUser user;
+  final bool isDark;
 
-  const _DialogHeader({required this.user});
+  const _DialogHeader({required this.user, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+    final secondaryColor = isDark ? AppColors.darkSecondary : AppColors.lightSecondary;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Colors.blue.shade500,
-            Colors.blue.shade700,
-          ],
+          colors: [primaryColor, secondaryColor],
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.shade200.withOpacity(0.5),
+            color: (isDark ? AppColors.darkSecondary : AppColors.lightSecondary).withOpacity(0.5),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -298,6 +341,7 @@ class _DialogBody extends StatelessWidget {
   final Function(GroupModel) onGroupToggle;
   final VoidCallback onSelectAllToggle;
   final AnimationController animation;
+  final bool isDark;
 
   const _DialogBody({
     required this.loadingGroups,
@@ -308,10 +352,17 @@ class _DialogBody extends StatelessWidget {
     required this.onGroupToggle,
     required this.onSelectAllToggle,
     required this.animation,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final cardBgColor = isDark ? AppColors.darkCardBg : AppColors.lightCardBg;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -325,14 +376,29 @@ class _DialogBody extends StatelessWidget {
             onGroupToggle: onGroupToggle,
             onSelectAllToggle: onSelectAllToggle,
             animation: animation,
+            isDark: isDark,
+            primaryColor: primaryColor,
+            textPrimaryColor: textPrimaryColor,
+            textSecondaryColor: textSecondaryColor,
+            cardBgColor: cardBgColor,
+            borderColor: borderColor,
           ),
           const SizedBox(height: 28),
-          _MessageSection(controller: messageController),
+          _MessageSection(
+            controller: messageController,
+            isDark: isDark,
+            primaryColor: primaryColor,
+            textPrimaryColor: textPrimaryColor,
+            textSecondaryColor: textSecondaryColor,
+            borderColor: borderColor,
+          ),
         ],
       ),
     );
   }
 }
+
+// ===== Groups Section =====
 class _GroupsSection extends StatelessWidget {
   final bool loadingGroups;
   final List<GroupModel> groups;
@@ -341,6 +407,12 @@ class _GroupsSection extends StatelessWidget {
   final Function(GroupModel) onGroupToggle;
   final VoidCallback onSelectAllToggle;
   final AnimationController animation;
+  final bool isDark;
+  final Color primaryColor;
+  final Color textPrimaryColor;
+  final Color textSecondaryColor;
+  final Color cardBgColor;
+  final Color borderColor;
 
   const _GroupsSection({
     required this.loadingGroups,
@@ -350,6 +422,12 @@ class _GroupsSection extends StatelessWidget {
     required this.onGroupToggle,
     required this.onSelectAllToggle,
     required this.animation,
+    required this.isDark,
+    required this.primaryColor,
+    required this.textPrimaryColor,
+    required this.textSecondaryColor,
+    required this.cardBgColor,
+    required this.borderColor,
   });
 
   @override
@@ -362,23 +440,23 @@ class _GroupsSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 Icons.groups_rounded,
-                color: Colors.blue.shade700,
+                color: primaryColor,
                 size: 22,
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
                 'المجموعات المستهدفة',
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A1A1A),
+                  color: textPrimaryColor,
                 ),
               ),
             ),
@@ -386,6 +464,8 @@ class _GroupsSection extends StatelessWidget {
               _SelectAllButton(
                 selectAll: selectAll,
                 onTap: onSelectAllToggle,
+                primaryColor: primaryColor,
+                isDark: isDark,
               ),
           ],
         ),
@@ -401,14 +481,14 @@ class _GroupsSection extends StatelessWidget {
                     height: 50,
                     child: CircularProgressIndicator(
                       strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation(Colors.blue.shade400),
+                      valueColor: AlwaysStoppedAnimation(primaryColor),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'جاري تحميل المجموعات...',
                     style: TextStyle(
-                      color: Colors.grey.shade600,
+                      color: textSecondaryColor,
                       fontSize: 14,
                     ),
                   ),
@@ -429,8 +509,8 @@ class _GroupsSection extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Colors.blue.shade50.withOpacity(0.5),
-                      Colors.white,
+                      primaryColor.withOpacity(0.05),
+                      isDark ? Colors.black.withOpacity(0.3) : Colors.white,
                     ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
@@ -438,15 +518,15 @@ class _GroupsSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: selectedGroups.isNotEmpty
-                        ? Colors.blue.shade300
-                        : Colors.grey.shade200,
+                        ? primaryColor.withOpacity(0.5)
+                        : borderColor,
                     width: selectedGroups.isNotEmpty ? 2 : 1,
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: selectedGroups.isNotEmpty
-                          ? Colors.blue.shade100.withOpacity(0.5)
-                          : Colors.grey.shade100,
+                          ? primaryColor.withOpacity(0.1)
+                          : Colors.black.withOpacity(isDark ? 0.1 : 0.05),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -454,7 +534,11 @@ class _GroupsSection extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    _GroupsHeader(selectedCount: selectedGroups.length),
+                    _GroupsHeader(
+                      selectedCount: selectedGroups.length,
+                      primaryColor: primaryColor,
+                      isDark: isDark,
+                    ),
                     if (groups.isEmpty)
                       Padding(
                         padding: const EdgeInsets.all(40),
@@ -463,13 +547,13 @@ class _GroupsSection extends StatelessWidget {
                             Icon(
                               Icons.inbox_rounded,
                               size: 64,
-                              color: Colors.grey.shade300,
+                              color: textSecondaryColor.withOpacity(0.5),
                             ),
                             const SizedBox(height: 12),
                             Text(
                               'لا توجد مجموعات متاحة',
                               style: TextStyle(
-                                color: Colors.grey.shade500,
+                                color: textSecondaryColor,
                                 fontSize: 15,
                               ),
                             ),
@@ -502,6 +586,12 @@ class _GroupsSection extends StatelessWidget {
                                 group: group,
                                 isSelected: isSelected,
                                 onTap: () => onGroupToggle(group),
+                                primaryColor: primaryColor,
+                                textPrimaryColor: textPrimaryColor,
+                                textSecondaryColor: textSecondaryColor,
+                                cardBgColor: cardBgColor,
+                                borderColor: borderColor,
+                                isDark: isDark,
                               ),
                             );
                           },
@@ -516,13 +606,19 @@ class _GroupsSection extends StatelessWidget {
     );
   }
 }
+
+// ===== Select All Button =====
 class _SelectAllButton extends StatelessWidget {
   final bool selectAll;
   final VoidCallback onTap;
+  final Color primaryColor;
+  final bool isDark;
 
   const _SelectAllButton({
     required this.selectAll,
     required this.onTap,
+    required this.primaryColor,
+    required this.isDark,
   });
 
   @override
@@ -537,10 +633,10 @@ class _SelectAllButton extends StatelessWidget {
           curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: selectAll ? Colors.blue.shade600 : Colors.blue.shade50,
+            color: selectAll ? primaryColor : primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selectAll ? Colors.blue.shade700 : Colors.blue.shade200,
+              color: selectAll ? primaryColor : primaryColor.withOpacity(0.5),
               width: 1.5,
             ),
           ),
@@ -550,7 +646,7 @@ class _SelectAllButton extends StatelessWidget {
               Icon(
                 selectAll ? Icons.check_circle : Icons.check_circle_outline,
                 size: 18,
-                color: selectAll ? Colors.white : Colors.blue.shade700,
+                color: selectAll ? Colors.white : primaryColor,
               ),
               const SizedBox(width: 6),
               Text(
@@ -558,7 +654,7 @@ class _SelectAllButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: selectAll ? Colors.white : Colors.blue.shade700,
+                  color: selectAll ? Colors.white : primaryColor,
                 ),
               ),
             ],
@@ -572,8 +668,14 @@ class _SelectAllButton extends StatelessWidget {
 // ===== Groups Header =====
 class _GroupsHeader extends StatelessWidget {
   final int selectedCount;
+  final Color primaryColor;
+  final bool isDark;
 
-  const _GroupsHeader({required this.selectedCount});
+  const _GroupsHeader({
+    required this.selectedCount,
+    required this.primaryColor,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -584,12 +686,14 @@ class _GroupsHeader extends StatelessWidget {
         gradient: selectedCount > 0
             ? LinearGradient(
           colors: [
-            Colors.blue.shade600,
-            Colors.blue.shade500,
+            primaryColor,
+            primaryColor.withOpacity(0.8),
           ],
         )
             : null,
-        color: selectedCount == 0 ? Colors.grey.shade50 : null,
+        color: selectedCount == 0
+            ? (isDark ? Colors.black.withOpacity(0.2) : Colors.grey.shade50)
+            : null,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(20),
         ),
@@ -615,7 +719,7 @@ class _GroupsHeader extends StatelessWidget {
                 : Icon(
               key: const ValueKey('unselected'),
               Icons.checklist_rounded,
-              color: Colors.grey.shade600,
+              color: isDark ? Colors.white70 : Colors.grey.shade600,
               size: 20,
             ),
           ),
@@ -626,7 +730,7 @@ class _GroupsHeader extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: selectedCount > 0 ? Colors.white : Colors.grey.shade700,
+                color: selectedCount > 0 ? Colors.white : (isDark ? Colors.white70 : Colors.grey.shade700),
               ),
               child: Text(
                 selectedCount > 0
@@ -646,11 +750,23 @@ class _GroupTile extends StatelessWidget {
   final GroupModel group;
   final bool isSelected;
   final VoidCallback onTap;
+  final Color primaryColor;
+  final Color textPrimaryColor;
+  final Color textSecondaryColor;
+  final Color cardBgColor;
+  final Color borderColor;
+  final bool isDark;
 
   const _GroupTile({
     required this.group,
     required this.isSelected,
     required this.onTap,
+    required this.primaryColor,
+    required this.textPrimaryColor,
+    required this.textSecondaryColor,
+    required this.cardBgColor,
+    required this.borderColor,
+    required this.isDark,
   });
 
   @override
@@ -660,15 +776,24 @@ class _GroupTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: isSelected
-            ? Colors.blue.shade50
-            : Colors.white,
+            ? primaryColor.withOpacity(0.1)
+            : cardBgColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isSelected
-              ? Colors.blue.shade300
-              : Colors.transparent,
+              ? primaryColor.withOpacity(0.5)
+              : borderColor,
           width: 1.5,
         ),
+        boxShadow: isSelected
+            ? [
+          BoxShadow(
+            color: primaryColor.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ]
+            : null,
       ),
       child: Material(
         color: Colors.transparent,
@@ -684,10 +809,10 @@ class _GroupTile extends StatelessWidget {
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: isSelected ? Colors.blue.shade600 : Colors.white,
+                    color: isSelected ? primaryColor : cardBgColor,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isSelected ? Colors.blue.shade600 : Colors.grey.shade400,
+                      color: isSelected ? primaryColor : borderColor,
                       width: 2,
                     ),
                   ),
@@ -709,7 +834,7 @@ class _GroupTile extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                          color: isSelected ? Colors.blue.shade900 : Colors.grey.shade800,
+                          color: isSelected ? primaryColor : textPrimaryColor,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -719,16 +844,16 @@ class _GroupTile extends StatelessWidget {
                             padding: const EdgeInsets.all(3),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? Colors.blue.shade100
-                                  : Colors.grey.shade100,
+                                  ? primaryColor.withOpacity(0.2)
+                                  : (isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade100),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Icon(
                               Icons.people_rounded,
                               size: 13,
                               color: isSelected
-                                  ? Colors.blue.shade700
-                                  : Colors.grey.shade600,
+                                  ? primaryColor
+                                  : textSecondaryColor,
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -737,8 +862,8 @@ class _GroupTile extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 13,
                               color: isSelected
-                                  ? Colors.blue.shade700
-                                  : Colors.grey.shade600,
+                                  ? primaryColor
+                                  : textSecondaryColor,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -759,8 +884,20 @@ class _GroupTile extends StatelessWidget {
 // ===== Message Section =====
 class _MessageSection extends StatelessWidget {
   final TextEditingController controller;
+  final bool isDark;
+  final Color primaryColor;
+  final Color textPrimaryColor;
+  final Color textSecondaryColor;
+  final Color borderColor;
 
-  const _MessageSection({required this.controller});
+  const _MessageSection({
+    required this.controller,
+    required this.isDark,
+    required this.primaryColor,
+    required this.textPrimaryColor,
+    required this.textSecondaryColor,
+    required this.borderColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -772,22 +909,22 @@ class _MessageSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 Icons.edit_note_rounded,
-                color: Colors.blue.shade700,
+                color: primaryColor,
                 size: 22,
               ),
             ),
             const SizedBox(width: 12),
-            const Text(
+            Text(
               'نص الرسالة',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF1A1A1A),
+                color: textPrimaryColor,
               ),
             ),
           ],
@@ -798,7 +935,7 @@ class _MessageSection extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.blue.shade50,
+                color: primaryColor.withOpacity(0.05),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -808,33 +945,34 @@ class _MessageSection extends StatelessWidget {
             controller: controller,
             maxLines: 5,
             maxLength: 500,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               height: 1.5,
+              color: textPrimaryColor,
             ),
             decoration: InputDecoration(
               hintText: 'اكتب رسالتك هنا...\nسيتم إرسالها إلى جميع المجموعات المحددة',
               hintStyle: TextStyle(
-                color: Colors.grey.shade400,
+                color: textSecondaryColor.withOpacity(0.7),
                 fontSize: 14,
                 height: 1.5,
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: isDark ? Colors.black.withOpacity(0.3) : Colors.white,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(20),
-                borderSide: BorderSide(color: Colors.grey.shade200),
+                borderSide: BorderSide(color: borderColor),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(20),
-                borderSide: BorderSide(color: Colors.grey.shade200),
+                borderSide: BorderSide(color: borderColor),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(20),
-                borderSide: BorderSide(color: Colors.blue.shade400, width: 2),
+                borderSide: BorderSide(color: primaryColor, width: 2),
               ),
               counterStyle: TextStyle(
-                color: Colors.grey.shade500,
+                color: textSecondaryColor,
                 fontSize: 12,
               ),
               contentPadding: const EdgeInsets.all(18),
@@ -852,33 +990,40 @@ class _DialogFooter extends StatelessWidget {
   final int selectedCount;
   final VoidCallback onCancel;
   final VoidCallback onSend;
+  final bool isDark;
 
   const _DialogFooter({
     required this.isSending,
     required this.selectedCount,
     required this.onCancel,
     required this.onSend,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final cardBgColor = isDark ? AppColors.darkCardBg : AppColors.lightCardBg;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.grey.shade50,
-            Colors.white,
+            surfaceColor,
+            cardBgColor,
           ],
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
         ),
         border: Border(
-          top: BorderSide(color: Colors.grey.shade100),
+          top: BorderSide(color: borderColor),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade200.withOpacity(0.5),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
@@ -895,15 +1040,16 @@ class _DialogFooter extends StatelessWidget {
                   borderRadius: BorderRadius.circular(18),
                 ),
                 side: BorderSide(
-                  color: Colors.grey.shade300,
+                  color: borderColor,
                   width: 1.5,
                 ),
               ),
-              child: const Text(
+              child: Text(
                 'إلغاء',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white70 : Colors.grey.shade700,
                 ),
               ),
             ),
@@ -917,14 +1063,14 @@ class _DialogFooter extends StatelessWidget {
                 borderRadius: BorderRadius.circular(18),
                 gradient: LinearGradient(
                   colors: isSending
-                      ? [Colors.grey.shade400, Colors.grey.shade400]
-                      : [Colors.blue.shade600, Colors.blue.shade700],
+                      ? [Colors.grey.shade600, Colors.grey.shade600]
+                      : [primaryColor, primaryColor.withOpacity(0.8)],
                 ),
                 boxShadow: isSending
                     ? null
                     : [
                   BoxShadow(
-                    color: Colors.blue.shade300.withOpacity(0.5),
+                    color: primaryColor.withOpacity(0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),
@@ -953,7 +1099,7 @@ class _DialogFooter extends StatelessWidget {
                     : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.send_rounded, size: 20,color: Colors.white),
+                    const Icon(Icons.send_rounded, size: 20, color: Colors.white),
                     const SizedBox(width: 10),
                     Text(
                       selectedCount > 0
@@ -972,4 +1118,6 @@ class _DialogFooter extends StatelessWidget {
           ),
         ],
       ),
-    );}}
+    );
+  }
+}

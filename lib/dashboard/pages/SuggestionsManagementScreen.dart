@@ -73,13 +73,13 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.blue.shade700.withOpacity(0.3)
+                        ? const Color(0xFF4CAF50).withOpacity(0.3)
                         : Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     Icons.reply_rounded,
-                    color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                    color: isDark ? const Color(0xFF81C784) : Colors.blue.shade700,
                     size: 24,
                   ),
                 ),
@@ -87,7 +87,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                 Text(
                   isArabic ? 'رد إداري' : 'Admin Reply',
                   style: TextStyle(
-                    color: isDark ? Colors.blue.shade200 : Colors.blue.shade900,
+                    color: isDark ? const Color(0xFFA5D6A7) : Colors.blue.shade900,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -111,24 +111,24 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                   ),
                   filled: true,
                   fillColor: isDark
-                      ? Colors.blue.shade900.withOpacity(0.1)
+                      ? const Color(0xFF2E7D32).withOpacity(0.1)
                       : Colors.blue.shade50.withOpacity(0.3),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                      color: isDark ? Colors.blue.shade700 : Colors.blue.shade200,
+                      color: isDark ? const Color(0xFF388E3C) : Colors.blue.shade200,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                      color: isDark ? Colors.blue.shade700 : Colors.blue.shade200,
+                      color: isDark ? const Color(0xFF388E3C) : Colors.blue.shade200,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                      color: isDark ? Colors.blue.shade400 : Colors.blue.shade600,
+                      color: isDark ? const Color(0xFF81C784) : Colors.blue.shade600,
                       width: 2,
                     ),
                   ),
@@ -150,7 +150,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isDark ? Colors.blue.shade700 : Colors.blue.shade600,
+                  backgroundColor: isDark ? const Color(0xFF388E3C) : Colors.blue.shade600,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   elevation: 0,
@@ -162,32 +162,32 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                   isArabic ? 'إرسال' : 'Send',
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
-                  onPressed: () async {
-                    final trimmedReply = replyText.trim();
-                    if (trimmedReply.isEmpty) return;
+                onPressed: () async {
+                  final trimmedReply = replyText.trim();
+                  if (trimmedReply.isEmpty) return;
 
-                    try {
-                      await SuggestionsService.replyToSuggestion(
-                        suggestion.id,
-                        trimmedReply,
-                      );
+                  try {
+                    await SuggestionsService.replyToSuggestion(
+                      suggestion.id,
+                      trimmedReply,
+                    );
 
-                      setState(() {
-                        suggestion.adminReply = trimmedReply;
-                        suggestion.isNew = false; // 🔥 خلاص بقى قديم
-                      });
+                    setState(() {
+                      suggestion.adminReply = trimmedReply;
+                      suggestion.isNew = false; // 🔥 خلاص بقى قديم
+                    });
 
-                      Navigator.pop(context);
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            isArabic ? 'فشل إرسال الرد' : 'Failed to send reply',
-                          ),
+                    Navigator.pop(context);
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isArabic ? 'فشل إرسال الرد' : 'Failed to send reply',
                         ),
-                      );
-                    }
-                  },
+                      ),
+                    );
+                  }
+                },
 
               ),
             ],
@@ -235,18 +235,42 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
     return filtered.sublist(start, end);
   }
 
+  // دالة للحصول على الألوان بناءً على الوضع
+  Map<String, Color> _getColors(bool isDark) {
+    if (isDark) {
+      // ألوان خضراء للوضع الداكن
+      return {
+        'primary': const Color(0xFF388E3C),     // أخضر داكن
+        'secondary': const Color(0xFF4CAF50),    // أخضر متوسط
+        'light': const Color(0xFF81C784),        // أخضر فاتح
+        'background': const Color(0xFF1E2720),   // خلفية خضراء داكنة
+        'card': const Color(0xFF263238),         // كارت أخضر داكن
+      };
+    } else {
+      // ألوان زرقاء للوضع الفاتح
+      return {
+        'primary': Colors.blue.shade700,
+        'secondary': Colors.blue.shade600,
+        'light': Colors.blue.shade400,
+        'background': const Color(0xFFF5F7FA),
+        'card': Colors.white,
+      };
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context);
     final isArabic = localeProvider.locale.languageCode == 'ar';
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final colors = _getColors(isDark);
 
     if (isLoading) {
       return Center(
         child: CircularProgressIndicator(
           valueColor: AlwaysStoppedAnimation<Color>(
-            isDark ? Colors.blue.shade400 : Colors.blue.shade600,
+            isDark ? const Color(0xFF4CAF50) : Colors.blue.shade600,
           ),
         ),
       );
@@ -281,7 +305,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
     return Directionality(
       textDirection: textDirection,
       child: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF0F1419) : const Color(0xFFF5F7FA),
+        backgroundColor: isDark ? const Color(0xFF0F1419) : colors['background']!,
         body: CustomScrollView(
           slivers: [
             // Header
@@ -304,10 +328,10 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                           end: Alignment.bottomRight,
                           colors: isDark
                               ? const [
-                            Color(0xFF1E3A5F),
-                            Color(0xFF2A4F73),
+                            Color(0xFF1B5E20),
+                            Color(0xFF2E7D32),
                           ]
-                              : const [Color(0xFF4FB5F5),Color(0xFF1B367A), ],
+                              : const [Color(0xFF4FB5F5), Color(0xFF1B367A)],
                         ),
                       ),
                       child: Padding(
@@ -389,7 +413,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                 child: Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1A2332) : Colors.white,
+                    color: isDark ? colors['card']! : colors['card']!,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
@@ -405,7 +429,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                     children: [
                       Icon(
                         Icons.filter_list_rounded,
-                        color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                        color: isDark ? colors['light']! : colors['primary']!,
                         size: 24,
                       ),
                       const SizedBox(width: 12),
@@ -414,7 +438,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.blue.shade200 : Colors.blue.shade900,
+                          color: isDark ? colors['light']! : colors['primary']!,
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -423,13 +447,13 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
                             color: isDark
-                                ? Colors.blue.shade900.withOpacity(0.2)
-                                : Colors.blue.shade50,
+                                ? colors['primary']!.withOpacity(0.2)
+                                : colors['primary']!.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isDark
-                                  ? Colors.blue.shade700
-                                  : Colors.blue.shade200,
+                                  ? colors['primary']!
+                                  : colors['primary']!.withOpacity(0.5),
                             ),
                           ),
                           child: DropdownButtonHideUnderline(
@@ -438,15 +462,15 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                               isExpanded: true,
                               icon: Icon(
                                 Icons.keyboard_arrow_down_rounded,
-                                color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                                color: isDark ? colors['light']! : colors['primary']!,
                               ),
-                              dropdownColor: isDark ? const Color(0xFF1A2332) : Colors.white,
+                              dropdownColor: isDark ? colors['card']! : colors['card']!,
                               items: [
-                                _buildFilterItem(SuggestionFilter.all, titles['allSuggestions']!, Icons.all_inclusive_rounded, isDark),
-                                _buildFilterItem(SuggestionFilter.newest, titles['newestFirst']!, Icons.new_releases_rounded, isDark),
-                                _buildFilterItem(SuggestionFilter.replied, titles['replied']!, Icons.check_circle_rounded, isDark),
-                                _buildFilterItem(SuggestionFilter.notReplied, titles['notReplied']!, Icons.schedule_rounded, isDark),
-                                _buildFilterItem(SuggestionFilter.starred, titles['starred']!, Icons.star_rounded, isDark),
+                                _buildFilterItem(SuggestionFilter.all, titles['allSuggestions']!, Icons.all_inclusive_rounded, isDark, colors),
+                                _buildFilterItem(SuggestionFilter.newest, titles['newestFirst']!, Icons.new_releases_rounded, isDark, colors),
+                                _buildFilterItem(SuggestionFilter.replied, titles['replied']!, Icons.check_circle_rounded, isDark, colors),
+                                _buildFilterItem(SuggestionFilter.notReplied, titles['notReplied']!, Icons.schedule_rounded, isDark, colors),
+                                _buildFilterItem(SuggestionFilter.starred, titles['starred']!, Icons.star_rounded, isDark, colors),
                               ],
                               onChanged: (val) {
                                 if (val != null) {
@@ -478,29 +502,29 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                                 : 'Search by username...',
                             prefixIcon: Icon(
                               Icons.search_rounded,
-                              color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                              color: isDark ? colors['light']! : colors['primary']!,
                             ),
                             filled: true,
                             fillColor: isDark
-                                ? Colors.blue.shade900.withOpacity(0.2)
-                                : Colors.blue.shade50,
+                                ? colors['primary']!.withOpacity(0.2)
+                                : colors['primary']!.withOpacity(0.1),
                             contentPadding: const EdgeInsets.symmetric(vertical: 0),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDark ? Colors.blue.shade700 : Colors.blue.shade200,
+                                color: isDark ? colors['primary']! : colors['primary']!.withOpacity(0.5),
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDark ? Colors.blue.shade700 : Colors.blue.shade200,
+                                color: isDark ? colors['primary']! : colors['primary']!.withOpacity(0.5),
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: isDark ? Colors.blue.shade400 : Colors.blue.shade600,
+                                color: isDark ? colors['light']! : colors['primary']!,
                                 width: 2,
                               ),
                             ),
@@ -524,7 +548,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                     Icon(
                       Icons.inbox_rounded,
                       size: 80,
-                      color: isDark ? Colors.blue.shade800 : Colors.blue.shade200,
+                      color: isDark ? colors['primary']! : colors['primary']!.withOpacity(0.3),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -553,6 +577,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                         isDark,
                         textDirection,
                         titles,
+                        colors,
                       ),
                     );
                   },
@@ -566,7 +591,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
-                  child: _buildPagination(totalPages, isDark),
+                  child: _buildPagination(totalPages, isDark, colors),
                 ),
               ),
           ],
@@ -576,7 +601,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
   }
 
   DropdownMenuItem<SuggestionFilter> _buildFilterItem(
-      SuggestionFilter value, String label, IconData icon, bool isDark) {
+      SuggestionFilter value, String label, IconData icon, bool isDark, Map<String, Color> colors) {
     return DropdownMenuItem(
       value: value,
       child: Row(
@@ -584,13 +609,13 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
           Icon(
             icon,
             size: 20,
-            color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+            color: isDark ? colors['light']! : colors['primary']!,
           ),
           const SizedBox(width: 10),
           Text(
             label,
             style: TextStyle(
-              color: isDark ? Colors.blue.shade100 : Colors.blue.shade900,
+              color: isDark ? colors['light']! : colors['primary']!,
               fontSize: 15,
             ),
           ),
@@ -650,20 +675,21 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
       bool isDark,
       TextDirection textDirection,
       Map<String, String> titles,
+      Map<String, Color> colors,
       ) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A2332) : Colors.white,
+        color: isDark ? colors['card']! : colors['card']!,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? Colors.blue.shade800.withOpacity(0.3) : Colors.blue.shade100,
+          color: isDark ? colors['primary']!.withOpacity(0.3) : colors['primary']!.withOpacity(0.1),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
             color: isDark
                 ? Colors.black.withOpacity(0.3)
-                : Colors.blue.shade100.withOpacity(0.5),
+                : colors['primary']!.withOpacity(0.1),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -681,12 +707,12 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [
-                  Colors.blue.shade900.withOpacity(0.3),
-                  Colors.blue.shade800.withOpacity(0.2),
+                  colors['primary']!.withOpacity(0.3),
+                  colors['secondary']!.withOpacity(0.2),
                 ]
                     : [
-                  Colors.blue.shade50,
-                  Colors.blue.shade100.withOpacity(0.5),
+                  colors['primary']!.withOpacity(0.1),
+                  colors['primary']!.withOpacity(0.05),
                 ],
               ),
               borderRadius: const BorderRadius.only(
@@ -700,7 +726,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.blue.shade700 : Colors.blue.shade600,
+                    color: isDark ? colors['primary']! : colors['primary']!,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -719,7 +745,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 17,
-                          color: isDark ? Colors.blue.shade100 : Colors.blue.shade900,
+                          color: isDark ? colors['light']! : colors['primary']!,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -727,7 +753,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                         _formatDate(suggestion.createdAt, isArabic),
                         style: TextStyle(
                           fontSize: 13,
-                          color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                          color: isDark ? colors['light']!.withOpacity(0.8) : colors['primary']!.withOpacity(0.7),
                         ),
                       ),
                     ],
@@ -769,7 +795,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                 Container(
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.blue.shade800.withOpacity(0.3)
+                        ? colors['primary']!.withOpacity(0.3)
                         : Colors.white,
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -779,7 +805,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                       suggestion.isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
                       color: suggestion.isStarred
                           ? Colors.amber.shade600
-                          : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+                          : (isDark ? colors['light']!.withOpacity(0.6) : colors['primary']!.withOpacity(0.4)),
                       size: 26,
                     ),
                     onPressed: () async {
@@ -812,11 +838,11 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.blue.shade900.withOpacity(0.1)
-                        : Colors.blue.shade50.withOpacity(0.5),
+                        ? colors['primary']!.withOpacity(0.1)
+                        : colors['primary']!.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isDark ? Colors.blue.shade800.withOpacity(0.3) : Colors.blue.shade100,
+                      color: isDark ? colors['primary']!.withOpacity(0.3) : colors['primary']!.withOpacity(0.1),
                     ),
                   ),
                   child: Text(
@@ -824,7 +850,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                     style: TextStyle(
                       fontSize: 15,
                       height: 1.6,
-                      color: isDark ? Colors.blue.shade50 : Colors.blue.shade900,
+                      color: isDark ? colors['light']! : colors['primary']!,
                     ),
                     textDirection: textDirection,
                   ),
@@ -840,17 +866,17 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                         end: Alignment.bottomRight,
                         colors: isDark
                             ? [
-                          Colors.blue.shade800.withOpacity(0.3),
-                          Colors.blue.shade700.withOpacity(0.2),
+                          colors['primary']!.withOpacity(0.3),
+                          colors['secondary']!.withOpacity(0.2),
                         ]
                             : [
-                          Colors.blue.shade100,
-                          Colors.blue.shade50,
+                          colors['primary']!.withOpacity(0.1),
+                          colors['primary']!.withOpacity(0.05),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isDark ? Colors.blue.shade600 : Colors.blue.shade300,
+                        color: isDark ? colors['primary']!.withOpacity(0.5) : colors['primary']!.withOpacity(0.3),
                         width: 1.5,
                       ),
                     ),
@@ -861,7 +887,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.blue.shade700 : Colors.blue.shade600,
+                            color: isDark ? colors['primary']! : colors['primary']!,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(
@@ -880,7 +906,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                                  color: isDark ? colors['light']! : colors['primary']!,
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -889,7 +915,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                                 style: TextStyle(
                                   fontSize: 14,
                                   height: 1.5,
-                                  color: isDark ? Colors.blue.shade100 : Colors.blue.shade900,
+                                  color: isDark ? colors['light']! : colors['primary']!,
                                 ),
                                 textDirection: textDirection,
                               ),
@@ -907,7 +933,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                   child: ElevatedButton.icon(
                     onPressed: () => _replyToSuggestion(suggestion, isArabic, isDark),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark ? Colors.blue.shade700 : Colors.blue.shade600,
+                      backgroundColor: isDark ? colors['primary']! : colors['primary']!,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                       elevation: 0,
@@ -933,11 +959,11 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
     );
   }
 
-  Widget _buildPagination(int totalPages, bool isDark) {
+  Widget _buildPagination(int totalPages, bool isDark, Map<String, Color> colors) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A2332) : Colors.white,
+        color: isDark ? colors['card']! : colors['card']!,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -974,26 +1000,26 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: isDark
-                        ? [Colors.blue.shade700, Colors.blue.shade800]
-                        : [Colors.blue.shade600, Colors.blue.shade700],
+                        ? [colors['primary']!, colors['secondary']!]
+                        : [colors['primary']!, colors['secondary']!],
                   )
                       : null,
                   color: isSelected
                       ? null
                       : isDark
-                      ? Colors.blue.shade900.withOpacity(0.2)
-                      : Colors.blue.shade50,
+                      ? colors['primary']!.withOpacity(0.2)
+                      : colors['primary']!.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isSelected
-                        ? (isDark ? Colors.blue.shade500 : Colors.blue.shade800)
-                        : (isDark ? Colors.blue.shade800 : Colors.blue.shade200),
+                        ? (isDark ? colors['light']! : colors['primary']!)
+                        : (isDark ? colors['primary']! : colors['primary']!.withOpacity(0.3)),
                     width: isSelected ? 2 : 1,
                   ),
                   boxShadow: isSelected
                       ? [
                     BoxShadow(
-                      color: Colors.blue.shade600.withOpacity(0.4),
+                      color: colors['primary']!.withOpacity(0.4),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -1008,7 +1034,7 @@ class _SuggestionsManagementPageState extends State<SuggestionsManagementPage> {
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                       color: isSelected
                           ? Colors.white
-                          : (isDark ? Colors.blue.shade300 : Colors.blue.shade700),
+                          : (isDark ? colors['light']! : colors['primary']!),
                     ),
                   ),
                 ),

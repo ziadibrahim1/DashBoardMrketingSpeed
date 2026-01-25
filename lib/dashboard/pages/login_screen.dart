@@ -274,8 +274,9 @@ class _LoginScreenState extends State<LoginScreen>
           'AdminChatHistoryScreen': rawUser['adminChatHistoryScreen'],
           'SendNotificationPage': rawUser['sendNotificationPage'],
           'NotificationHistoryPage': rawUser['notificationHistoryPage'],
+          'ReportsScreen': rawUser['reportsScreen'],
         };
-
+        print('user data ${UserSession.getUser()}');
         UserSession.saveUser(user);
 
         final role = (user['role'] ?? '').toString().toLowerCase();
@@ -663,10 +664,10 @@ class _LoginScreenState extends State<LoginScreen>
                                           accentColor,
                                         ]
                                             : [
-                                           Color(0xFF076BC5),
-                                           Color(0xFF1889E4),
-                                           Color(0xFF5AADEC),
-                                           Color(0xFF9CC4E1),
+                                          Color(0xFF076BC5),
+                                          Color(0xFF1889E4),
+                                          Color(0xFF5AADEC),
+                                          Color(0xFF9CC4E1),
                                         ],
                                       ),
                                       borderRadius: const BorderRadius.only(

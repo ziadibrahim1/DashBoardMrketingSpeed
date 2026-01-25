@@ -5,6 +5,35 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../Models/api_service.dart';
 import '../../providers/app_providers.dart';
 
+// ألوان مخصصة للوضعين
+class AppColors {
+  // Colors for Light Mode
+  static const Color lightPrimary = Color(0xFF2196F3);
+  static const Color lightDarkBlue = Color(0xFF1565C0);
+  static const Color lightBlue = Color(0xFF64B5F6);
+  static const Color lightOrange = Color(0xFFFF9800);
+  static const Color lightPurple = Color(0xFF2742B0);
+  static const Color lightBackground = Color(0xFFF5F9FF);
+  static const Color lightCard = Colors.white;
+  static const Color lightTextPrimary = Colors.black87;
+  static const Color lightTextSecondary = Color(0xFF666666);
+  static const Color lightSuccess = Color(0xFF4CAF50);
+  static const Color lightDanger = Color(0xFFF44336);
+
+  // Colors for Dark Mode (Green Theme)
+  static const Color darkPrimary = Color(0xFF2E7D32);
+  static const Color darkDarkBlue = Color(0xFF1B5E20);
+  static const Color darkBlue = Color(0xFF4CAF50);
+  static const Color darkOrange = Color(0xFFFFB74D);
+  static const Color darkPurple = Color(0xFF5C6BC0);
+  static const Color darkBackground = Color(0xFF0D1117);
+  static const Color darkCard = Color(0xFF1E2732);
+  static const Color darkTextPrimary = Colors.white;
+  static const Color darkTextSecondary = Color(0xFFB0B3B8);
+  static const Color darkSuccess = Color(0xFF66BB6A);
+  static const Color darkDanger = Color(0xFFEF5350);
+}
+
 class OurGroupsManagementScreen extends StatefulWidget {
   const OurGroupsManagementScreen({super.key});
 
@@ -26,17 +55,6 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
   final int groupsPerPage = 20;
   bool _isLoading = true;
   String viewMode = 'grid';
-
-  // ألوان محسّنة
-  static const Color primaryBlue = Color(0xFF2196F3);
-  static const Color darkBlue = Color(0xFF1565C0);
-  static const Color lightBlue = Color(0xFF64B5F6);
-  static const Color accentOrange = Color(0xFFFF9800);
-  static const Color accentPurple = Color(0xFF2742B0);
-  static const Color backgroundColor = Color(0xFFF5F9FF);
-  static const Color cardColor = Colors.white;
-  static const Color darkCardColor = Color(0xFF1E2732);
-  static const Color darkBackground = Color(0xFF0D1117);
 
   @override
   void initState() {
@@ -104,37 +122,47 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
   Widget build(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context);
     final isArabic = localeProvider.locale.languageCode == 'ar';
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    final bgColor = isDark ? darkBackground : backgroundColor;
-    final cardBg = isDark ? darkCardColor : cardColor;
-    final textColor = isDark ? Colors.white : Colors.black87;
+    // Choose colors based on theme
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+    final darkBlueColor = isDark ? AppColors.darkDarkBlue : AppColors.lightDarkBlue;
+    final blueColor = isDark ? AppColors.darkBlue : AppColors.lightBlue;
+    final orangeColor = isDark ? AppColors.darkOrange : AppColors.lightOrange;
+    final purpleColor = isDark ? AppColors.darkPurple : AppColors.lightPurple;
+    final backgroundColor = isDark ? AppColors.darkBackground : AppColors.lightBackground;
+    final cardColor = isDark ? AppColors.darkCard : AppColors.lightCard;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final successColor = isDark ? AppColors.darkSuccess : AppColors.lightSuccess;
+    final dangerColor = isDark ? AppColors.darkDanger : AppColors.lightDanger;
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: backgroundColor,
       body: _isLoading
-          ? _buildLoadingState(isArabic, textColor)
+          ? _buildLoadingState(isArabic, textPrimaryColor, primaryColor, blueColor)
           : CustomScrollView(
         slivers: [
-          _buildAppBar(isArabic, isDark),
+          _buildAppBar(isArabic, isDark, primaryColor, darkBlueColor, purpleColor),
           SliverToBoxAdapter(
             child: Column(
               children: [
-                _buildSearchAndActions(isArabic, isDark, cardBg, textColor),
+                _buildSearchAndActions(isArabic, isDark, cardColor, textPrimaryColor, primaryColor, darkBlueColor, orangeColor),
                 if (showFiltersPanel)
-                  _buildFiltersPanel(isArabic, isDark, cardBg, textColor),
-                _buildStatsBar(isArabic, isDark, cardBg, textColor),
+                  _buildFiltersPanel(isArabic, isDark, cardColor, textPrimaryColor, textSecondaryColor, primaryColor, orangeColor),
+                _buildStatsBar(isArabic, isDark, cardColor, textPrimaryColor, textSecondaryColor, primaryColor, orangeColor, purpleColor),
               ],
             ),
           ),
-          _buildGroupsContent(isArabic, isDark, cardBg, textColor),
+          _buildGroupsContent(isArabic, isDark, cardColor, textPrimaryColor, textSecondaryColor, primaryColor, orangeColor, blueColor),
         ],
       ),
-      floatingActionButton: _buildFloatingActions(isArabic, isDark),
+      floatingActionButton: _buildFloatingActions(isArabic, isDark, primaryColor),
     );
   }
 
-  Widget _buildLoadingState(bool isArabic, Color textColor) {
+  Widget _buildLoadingState(bool isArabic, Color textColor, Color primaryColor, Color blueColor) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -143,15 +171,15 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
             width: 70,
             height: 70,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [primaryBlue, lightBlue],
+              gradient: LinearGradient(
+                colors: [primaryColor, blueColor],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: primaryBlue.withOpacity(0.3),
+                  color: primaryColor.withOpacity(0.3),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -178,12 +206,12 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     );
   }
 
-  Widget _buildAppBar(bool isArabic, bool isDark) {
+  Widget _buildAppBar(bool isArabic, bool isDark, Color primaryColor, Color darkBlueColor, Color purpleColor) {
     return SliverAppBar(
       expandedHeight: 50,
       floating: false,
       pinned: true,
-      backgroundColor: primaryBlue,
+      backgroundColor: primaryColor,
       iconTheme: const IconThemeData(color: Colors.white),
       flexibleSpace: FlexibleSpaceBar(
         title: Text(
@@ -195,11 +223,11 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
           ),
         ),
         background: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [primaryBlue, darkBlue, accentPurple],
+              colors: [primaryColor, darkBlueColor, purpleColor],
             ),
           ),
         ),
@@ -228,7 +256,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
               value: 'clear',
               child: Row(
                 children: [
-                  const Icon(Icons.clear_all_rounded, color: primaryBlue, size: 20),
+                  Icon(Icons.clear_all_rounded, color: primaryColor, size: 20),
                   const SizedBox(width: 8),
                   Text(isArabic ? 'مسح جميع الفلاتر' : 'Clear All Filters'),
                 ],
@@ -240,10 +268,15 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
       ],
     );
   }
+
   void _showAddCategoryDialog(
       String title,
       bool isDark,
       bool isArabic,
+      Color cardColor,
+      Color textPrimaryColor,
+      Color textSecondaryColor,
+      Color primaryColor,
       ) {
     final nameArController = TextEditingController();
     final nameEnController = TextEditingController();
@@ -252,32 +285,49 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(title),
+          backgroundColor: cardColor,
+          title: Text(
+            title,
+            style: TextStyle(color: textPrimaryColor),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameArController,
+                style: TextStyle(color: textPrimaryColor),
                 decoration: InputDecoration(
                   labelText: isArabic ? 'اسم المجال (عربي)' : 'Category Name (Arabic)',
+                  labelStyle: TextStyle(color: textSecondaryColor),
                 ),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: nameEnController,
+                style: TextStyle(color: textPrimaryColor),
                 decoration: InputDecoration(
                   labelText: isArabic ? 'اسم المجال (إنجليزي)' : 'Category Name (English)',
+                  labelStyle: TextStyle(color: textSecondaryColor),
                 ),
               ),
             ],
           ),
           actions: [
             TextButton(
-              child: Text(isArabic ? 'إلغاء' : 'Cancel'),
+              child: Text(
+                isArabic ? 'إلغاء' : 'Cancel',
+                style: TextStyle(color: textSecondaryColor),
+              ),
               onPressed: () => Navigator.pop(context),
             ),
             ElevatedButton(
-              child: Text(isArabic ? 'حفظ' : 'Save'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+              ),
+              child: Text(
+                isArabic ? 'حفظ' : 'Save',
+                style: TextStyle(color: Colors.white),
+              ),
               onPressed: () async {
                 if (nameArController.text.trim().isEmpty) {
                   _showErrorSnackBar(
@@ -321,7 +371,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     );
   }
 
-  Widget _buildSearchAndActions(bool isArabic, bool isDark, Color cardBg, Color textColor) {
+  Widget _buildSearchAndActions(bool isArabic, bool isDark, Color cardBg, Color textColor, Color primaryColor, Color darkBlueColor, Color orangeColor) {
     return Container(
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(14),
@@ -330,7 +380,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -354,7 +404,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
               decoration: InputDecoration(
                 hintText: isArabic ? 'ابحث...' : 'Search...',
                 hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-                prefixIcon: Icon(Icons.search_rounded, color: primaryBlue, size: 20),
+                prefixIcon: Icon(Icons.search_rounded, color: primaryColor, size: 20),
                 suffixIcon: searchController.text.isNotEmpty
                     ? IconButton(
                   icon: Icon(Icons.clear_rounded, color: Colors.grey.shade600, size: 18),
@@ -379,7 +429,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                   isActive: showFiltersPanel,
                   count: selectedCountryIds.length + selectedCategoryIds.length,
                   onTap: () => setState(() => showFiltersPanel = !showFiltersPanel),
-                  gradient: const LinearGradient(colors: [primaryBlue, darkBlue]),
+                  gradient: LinearGradient(colors: [primaryColor, darkBlueColor]),
                 ),
               ),
               const SizedBox(width: 8),
@@ -392,11 +442,11 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                     showLockedOnly = !showLockedOnly;
                     currentPage = 0;
                   }),
-                  gradient: const LinearGradient(colors: [accentOrange, Colors.deepOrange]),
+                  gradient: LinearGradient(colors: [orangeColor, Colors.deepOrange]),
                 ),
               ),
               const SizedBox(width: 8),
-              _buildViewModeButton(isDark),
+              _buildViewModeButton(isDark, textColor, primaryColor),
             ],
           ),
         ],
@@ -453,13 +503,13 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                   decoration: BoxDecoration(
-                    color: isActive ? Colors.white.withOpacity(0.3) : primaryBlue.withOpacity(0.2),
+                    color: isActive ? Colors.white.withOpacity(0.3) : AppColors.lightPrimary.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     '$count',
                     style: TextStyle(
-                      color: isActive ? Colors.white : primaryBlue,
+                      color: isActive ? Colors.white : AppColors.lightPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 10,
                     ),
@@ -473,7 +523,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     );
   }
 
-  Widget _buildViewModeButton(bool isDark) {
+  Widget _buildViewModeButton(bool isDark, Color textColor, Color primaryColor) {
     return Container(
       height: 40,
       decoration: BoxDecoration(
@@ -486,17 +536,17 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildViewModeIcon(Icons.grid_view_rounded, 'grid'),
-          _buildViewModeIcon(Icons.view_list_rounded, 'list'),
+          _buildViewModeIcon(Icons.grid_view_rounded, 'grid', primaryColor),
+          _buildViewModeIcon(Icons.view_list_rounded, 'list', primaryColor),
         ],
       ),
     );
   }
 
-  Widget _buildViewModeIcon(IconData icon, String mode) {
+  Widget _buildViewModeIcon(IconData icon, String mode, Color primaryColor) {
     final isActive = viewMode == mode;
     return Material(
-      color: isActive ? primaryBlue : Colors.transparent,
+      color: isActive ? primaryColor : Colors.transparent,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: () => setState(() => viewMode = mode),
@@ -513,7 +563,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     );
   }
 
-  Widget _buildFiltersPanel(bool isArabic, bool isDark, Color cardBg, Color textColor) {
+  Widget _buildFiltersPanel(bool isArabic, bool isDark, Color cardBg, Color textPrimaryColor, Color textSecondaryColor, Color primaryColor, Color orangeColor) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12),
       padding: const EdgeInsets.all(14),
@@ -522,7 +572,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -536,7 +586,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [primaryBlue, lightBlue]),
+                  gradient: LinearGradient(colors: [primaryColor, AppColors.lightBlue]),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.public_rounded, color: Colors.white, size: 16),
@@ -547,7 +597,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: textColor,
+                  color: textPrimaryColor,
                 ),
               ),
               const Spacer(),
@@ -562,16 +612,19 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                   ),
                 ),
               IconButton(
-                icon: const Icon(Icons.add_rounded, color: primaryBlue, size: 20),
+                icon: const Icon(Icons.add_rounded, color: AppColors.lightPrimary, size: 20),
                 padding: const EdgeInsets.all(8),
                 constraints: const BoxConstraints(),
                 onPressed: () => _showAddCountryDialog(
                   isArabic ? 'إضافة دولة جديدة' : 'Add New Country',
                   isDark,
                   isArabic,
+                  cardBg,
+                  textPrimaryColor,
+                  textSecondaryColor,
+                  primaryColor,
                 ),
               ),
-
             ],
           ),
           const SizedBox(height: 10),
@@ -590,6 +643,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                   currentPage = 0;
                 }),
                 isDark: isDark,
+                primaryColor: primaryColor,
               );
             }).toList(),
           ),
@@ -601,7 +655,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [accentOrange, Colors.deepOrange]),
+                  gradient: LinearGradient(colors: [orangeColor, Colors.deepOrange]),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.category_rounded, color: Colors.white, size: 16),
@@ -612,7 +666,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: textColor,
+                  color: textPrimaryColor,
                 ),
               ),
               const Spacer(),
@@ -627,16 +681,19 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                   ),
                 ),
               IconButton(
-                icon: const Icon(Icons.add_rounded, color: accentOrange, size: 20),
+                icon: const Icon(Icons.add_rounded, color: AppColors.lightOrange, size: 20),
                 padding: const EdgeInsets.all(8),
                 constraints: const BoxConstraints(),
                 onPressed: () => _showAddCategoryDialog(
                   isArabic ? 'إضافة مجال جديد' : 'Add New Category',
                   isDark,
                   isArabic,
+                  cardBg,
+                  textPrimaryColor,
+                  textSecondaryColor,
+                  primaryColor,
                 ),
               ),
-
             ],
           ),
           const SizedBox(height: 10),
@@ -655,7 +712,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                   currentPage = 0;
                 }),
                 isDark: isDark,
-                color: accentOrange,
+                color: orangeColor,
               );
             }).toList(),
           ),
@@ -669,10 +726,12 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     required bool isSelected,
     required VoidCallback onTap,
     required bool isDark,
-    Color color = primaryBlue,
+    Color color = AppColors.lightPrimary,
+    Color? primaryColor,
   }) {
+    final chipColor = primaryColor ?? color;
     return Material(
-      color: isSelected ? color : (isDark ? Colors.grey.shade800 : Colors.grey.shade50),
+      color: isSelected ? chipColor : (isDark ? Colors.grey.shade800 : Colors.grey.shade50),
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
@@ -681,7 +740,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             border: Border.all(
-              color: isSelected ? color : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+              color: isSelected ? chipColor : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
             ),
             borderRadius: BorderRadius.circular(8),
           ),
@@ -709,7 +768,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     );
   }
 
-  Widget _buildStatsBar(bool isArabic, bool isDark, Color cardBg, Color textColor) {
+  Widget _buildStatsBar(bool isArabic, bool isDark, Color cardBg, Color textPrimaryColor, Color textSecondaryColor, Color primaryColor, Color orangeColor, Color purpleColor) {
     final total = allGroups.length;
     final filtered = filteredGroups.length;
     final visible = filteredGroups.where((g) => g['isVisible'] == true).length;
@@ -719,10 +778,10 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [primaryBlue.withOpacity(0.08), accentPurple.withOpacity(0.08)],
+          colors: [primaryColor.withOpacity(0.08), purpleColor.withOpacity(0.08)],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: primaryBlue.withOpacity(0.2)),
+        border: Border.all(color: primaryColor.withOpacity(0.2)),
       ),
       child: Row(
         children: [
@@ -731,7 +790,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
               icon: Icons.groups_rounded,
               label: isArabic ? 'الإجمالي' : 'Total',
               value: '$total',
-              color: primaryBlue,
+              color: primaryColor,
             ),
           ),
           Container(width: 1, height: 30, color: Colors.grey.shade300),
@@ -740,7 +799,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
               icon: Icons.filter_list_rounded,
               label: isArabic ? 'النتائج' : 'Results',
               value: '$filtered',
-              color: accentOrange,
+              color: orangeColor,
             ),
           ),
           Container(width: 1, height: 30, color: Colors.grey.shade300),
@@ -786,7 +845,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     );
   }
 
-  Widget _buildGroupsContent(bool isArabic, bool isDark, Color cardBg, Color textColor) {
+  Widget _buildGroupsContent(bool isArabic, bool isDark, Color cardBg, Color textPrimaryColor, Color textSecondaryColor, Color primaryColor, Color orangeColor, Color blueColor) {
     final paginatedGroups = filteredGroups
         .skip(currentPage * groupsPerPage)
         .take(groupsPerPage)
@@ -802,17 +861,17 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [primaryBlue.withOpacity(0.1), lightBlue.withOpacity(0.1)],
+                    colors: [primaryColor.withOpacity(0.1), blueColor.withOpacity(0.1)],
                   ),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.inbox_rounded, size: 60, color: Colors.grey.shade400),
+                child: Icon(Icons.inbox_rounded, size: 60, color: textSecondaryColor.withOpacity(0.5)),
               ),
               const SizedBox(height: 16),
               Text(
                 isArabic ? 'لا توجد جروبات مطابقة' : 'No matching groups',
                 style: TextStyle(
-                  color: textColor,
+                  color: textPrimaryColor,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -820,7 +879,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
               const SizedBox(height: 6),
               Text(
                 isArabic ? 'جرب تغيير الفلاتر أو البحث' : 'Try changing filters or search',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                style: TextStyle(color: textSecondaryColor, fontSize: 13),
               ),
             ],
           ),
@@ -841,14 +900,18 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
           delegate: SliverChildBuilderDelegate(
                 (context, index) {
               if (index == paginatedGroups.length) {
-                return _buildPagination(isArabic, isDark);
+                return _buildPagination(isArabic, isDark, primaryColor, blueColor);
               }
               return _buildGroupGridCard(
                 paginatedGroups[index],
                 isArabic,
                 isDark,
                 cardBg,
-                textColor,
+                textPrimaryColor,
+                textSecondaryColor,
+                primaryColor,
+                orangeColor,
+                blueColor,
               );
             },
             childCount: paginatedGroups.length + 1,
@@ -860,7 +923,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
         delegate: SliverChildBuilderDelegate(
               (context, index) {
             if (index == paginatedGroups.length) {
-              return _buildPagination(isArabic, isDark);
+              return _buildPagination(isArabic, isDark, primaryColor, blueColor);
             }
             return Padding(
               padding: EdgeInsets.fromLTRB(
@@ -874,7 +937,11 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                 isArabic,
                 isDark,
                 cardBg,
-                textColor,
+                textPrimaryColor,
+                textSecondaryColor,
+                primaryColor,
+                orangeColor,
+                blueColor,
               ),
             );
           },
@@ -890,6 +957,10 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
       bool isDark,
       Color cardBg,
       Color textColor,
+      Color textSecondaryColor,
+      Color primaryColor,
+      Color orangeColor,
+      Color blueColor,
       ) {
     final isLocked = group['isSendingLocked'] == true;
     final isVisible = group['isVisible'] == true;
@@ -899,12 +970,12 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
         color: cardBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isLocked ? accentOrange.withOpacity(0.3) : Colors.transparent,
+          color: isLocked ? orangeColor.withOpacity(0.3) : Colors.transparent,
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(isDark ? 0.1 : 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -914,7 +985,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => _showGroupDetails(group, isArabic, isDark),
+          onTap: () => _showGroupDetails(group, isArabic, isDark, cardBg, textColor, textSecondaryColor, primaryColor, orangeColor),
           child: Padding(
             padding: const EdgeInsets.all(10),
             child: Column(
@@ -927,8 +998,8 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: isLocked
-                              ? [accentOrange, Colors.deepOrange]
-                              : [primaryBlue, lightBlue],
+                              ? [orangeColor, Colors.deepOrange]
+                              : [primaryColor, blueColor],
                         ),
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -979,14 +1050,14 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                       if (group['countryName']?.toString().isNotEmpty == true)
                         Row(
                           children: [
-                            Icon(Icons.location_on, size: 11, color: primaryBlue),
+                            Icon(Icons.location_on, size: 11, color: primaryColor),
                             const SizedBox(width: 3),
                             Expanded(
                               child: Text(
                                 group['countryName'] ?? '',
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.grey.shade600,
+                                  color: textSecondaryColor,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -997,14 +1068,14 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                       if (group['categoryName']?.toString().isNotEmpty == true)
                         Row(
                           children: [
-                            Icon(Icons.category, size: 11, color: accentOrange),
+                            Icon(Icons.category, size: 11, color: orangeColor),
                             const SizedBox(width: 3),
                             Expanded(
                               child: Text(
                                 group['categoryName'] ?? '',
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.grey.shade600,
+                                  color: textSecondaryColor,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1023,7 +1094,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                         icon: Icons.link_rounded,
                         label: isArabic ? 'رابط' : 'Link',
                         onTap: () => _openGroupLink(group['link'] ?? ''),
-                        color: primaryBlue,
+                        color: primaryColor,
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -1031,7 +1102,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                       child: _buildMiniButton(
                         icon: Icons.edit_rounded,
                         label: isArabic ? 'تعديل' : 'Edit',
-                        onTap: () => _editGroup(group, isArabic, isDark),
+                        onTap: () => _editGroup(group, isArabic, isDark, primaryColor),
                         color: Colors.green,
                       ),
                     ),
@@ -1085,6 +1156,10 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
       bool isDark,
       Color cardBg,
       Color textColor,
+      Color textSecondaryColor,
+      Color primaryColor,
+      Color orangeColor,
+      Color blueColor,
       ) {
     final isLocked = group['isSendingLocked'] == true;
     final isVisible = group['isVisible'] == true;
@@ -1094,12 +1169,12 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
         color: cardBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isLocked ? accentOrange.withOpacity(0.3) : Colors.transparent,
+          color: isLocked ? orangeColor.withOpacity(0.3) : Colors.transparent,
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(isDark ? 0.1 : 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1109,7 +1184,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => _showGroupDetails(group, isArabic, isDark),
+          onTap: () => _showGroupDetails(group, isArabic, isDark, cardBg, textColor, textSecondaryColor, primaryColor, orangeColor),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -1119,8 +1194,8 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: isLocked
-                          ? [accentOrange, Colors.deepOrange]
-                          : [primaryBlue, lightBlue],
+                          ? [orangeColor, Colors.deepOrange]
+                          : [primaryColor, blueColor],
                     ),
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -1149,21 +1224,21 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                       Row(
                         children: [
                           if (group['countryName']?.toString().isNotEmpty == true) ...[
-                            Icon(Icons.location_on, size: 12, color: primaryBlue),
+                            Icon(Icons.location_on, size: 12, color: primaryColor),
                             const SizedBox(width: 3),
                             Text(
                               group['countryName'] ?? '',
-                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                              style: TextStyle(fontSize: 11, color: textSecondaryColor),
                             ),
                             const SizedBox(width: 10),
                           ],
                           if (group['categoryName']?.toString().isNotEmpty == true) ...[
-                            Icon(Icons.category, size: 12, color: accentOrange),
+                            Icon(Icons.category, size: 12, color: orangeColor),
                             const SizedBox(width: 3),
                             Expanded(
                               child: Text(
                                 group['categoryName'] ?? '',
-                                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                style: TextStyle(fontSize: 11, color: textSecondaryColor),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -1190,7 +1265,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                 const SizedBox(width: 8),
                 IconButton(
                   icon: const Icon(Icons.link_rounded, size: 20),
-                  color: primaryBlue,
+                  color: primaryColor,
                   padding: const EdgeInsets.all(8),
                   constraints: const BoxConstraints(),
                   onPressed: () => _openGroupLink(group['link'] ?? ''),
@@ -1200,7 +1275,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                   color: Colors.green,
                   padding: const EdgeInsets.all(8),
                   constraints: const BoxConstraints(),
-                  onPressed: () => _editGroup(group, isArabic, isDark),
+                  onPressed: () => _editGroup(group, isArabic, isDark, primaryColor),
                 ),
               ],
             ),
@@ -1210,7 +1285,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     );
   }
 
-  Widget _buildPagination(bool isArabic, bool isDark) {
+  Widget _buildPagination(bool isArabic, bool isDark, Color primaryColor, Color blueColor) {
     final totalPages = (filteredGroups.length / groupsPerPage).ceil();
     if (totalPages <= 1) return const SizedBox.shrink();
 
@@ -1222,7 +1297,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
           IconButton(
             icon: Icon(
               isArabic ? Icons.chevron_right : Icons.chevron_left,
-              color: currentPage > 0 ? primaryBlue : Colors.grey.shade400,
+              color: currentPage > 0 ? primaryColor : Colors.grey.shade400,
             ),
             onPressed: currentPage > 0
                 ? () => setState(() => currentPage--)
@@ -1232,7 +1307,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [primaryBlue, lightBlue]),
+              gradient: LinearGradient(colors: [primaryColor, blueColor]),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -1248,7 +1323,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
           IconButton(
             icon: Icon(
               isArabic ? Icons.chevron_left : Icons.chevron_right,
-              color: currentPage < totalPages - 1 ? primaryBlue : Colors.grey.shade400,
+              color: currentPage < totalPages - 1 ? primaryColor : Colors.grey.shade400,
             ),
             onPressed: currentPage < totalPages - 1
                 ? () => setState(() => currentPage++)
@@ -1259,10 +1334,10 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     );
   }
 
-  Widget _buildFloatingActions(bool isArabic, bool isDark) {
+  Widget _buildFloatingActions(bool isArabic, bool isDark, Color primaryColor) {
     return FloatingActionButton(
-      onPressed: () => _addNewGroup(isArabic, isDark),
-      backgroundColor: primaryBlue,
+      onPressed: () => _addNewGroup(isArabic, isDark, primaryColor),
+      backgroundColor: primaryColor,
       child: const Icon(Icons.add_rounded, color: Colors.white),
     );
   }
@@ -1280,207 +1355,219 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     }
   }
 
-  void _showGroupDetails(Map<String, dynamic> group, bool isArabic, bool isDark) {
+  void _showGroupDetails(Map<String, dynamic> group, bool isArabic, bool isDark, Color cardBg, Color textColor, Color textSecondaryColor, Color primaryColor, Color orangeColor) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildGroupDetailsSheet(group, isArabic, isDark),
+      builder: (context) => _buildGroupDetailsSheet(group, isArabic, isDark, cardBg, textColor, textSecondaryColor, primaryColor, orangeColor),
     );
   }
 
-  Widget _buildGroupDetailsSheet(Map<String, dynamic> group, bool isArabic, bool isDark) {
-    final cardBg = isDark ? darkCardColor : cardColor;
-    final textColor = isDark ? Colors.white : Colors.black87;
+  Widget _buildGroupDetailsSheet(Map<String, dynamic> group, bool isArabic, bool isDark, Color cardBg, Color textColor, Color textSecondaryColor, Color primaryColor, Color orangeColor) {
     final isLocked = group['isSendingLocked'] == true;
     final isVisible = group['isVisible'] == true;
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 8),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isLocked ? [accentOrange, Colors.deepOrange] : [primaryBlue, lightBlue],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    isLocked ? Icons.lock_rounded : Icons.group_rounded,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        group['name'] ?? '',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                        ),
-                      ),
-                      Text(
-                        isArabic ? 'تفاصيل الجروب' : 'Group Details',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: ListView(
+            Padding(
               padding: const EdgeInsets.all(16),
-              children: [
-                _buildDetailRow(
-                  Icons.public_rounded,
-                  isArabic ? 'الدولة' : 'Country',
-                  group['countryName'] ?? (isArabic ? 'غير محدد' : 'Not specified'),
-                  primaryBlue,
-                ),
-                const SizedBox(height: 12),
-                _buildDetailRow(
-                  Icons.category_rounded,
-                  isArabic ? 'المجال' : 'Category',
-                  group['categoryName'] ?? (isArabic ? 'غير محدد' : 'Not specified'),
-                  accentOrange,
-                ),
-                const SizedBox(height: 12),
-                _buildDetailRow(
-                  Icons.link_rounded,
-                  isArabic ? 'رابط الانضمام' : 'Join Link',
-                  group['link'] ?? (isArabic ? 'لا يوجد رابط' : 'No link'),
-                  Colors.blue,
-                  isCopyable: true,
-                ),
-                const SizedBox(height: 20),
-                const Divider(),
-                const SizedBox(height: 12),
-                Text(
-                  isArabic ? 'الإعدادات' : 'Settings',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isLocked ? [orangeColor, Colors.deepOrange] : [primaryColor, AppColors.lightBlue],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      isLocked ? Icons.lock_rounded : Icons.group_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                _buildSwitchTile(
-                  icon: Icons.visibility_rounded,
-                  title: isArabic ? 'إظهار الجروب' : 'Show Group',
-                  value: isVisible,
-                  activeColor: Colors.green,
-                  onChanged: (value) async {
-                    await _toggleVisibility(group);
-                    Navigator.pop(context);
-                  },
-                  isDark: isDark,
-                ),
-                const SizedBox(height: 8),
-                _buildSwitchTile(
-                  icon: Icons.lock_rounded,
-                  title: isArabic ? 'قفل الإرسال' : 'Lock Sending',
-                  value: isLocked,
-                  activeColor: accentOrange,
-                  onChanged: (value) async {
-                    await _toggleLock(group);
-                    Navigator.pop(context);
-                  },
-                  isDark: isDark,
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          group['name'] ?? '',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
+                        ),
+                        Text(
+                          isArabic ? 'تفاصيل الجروب' : 'Group Details',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: textSecondaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close_rounded, color: textColor),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
-              border: Border(top: BorderSide(color: Colors.grey.shade300)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
+            const Divider(height: 1),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildDetailRow(
+                    Icons.public_rounded,
+                    isArabic ? 'الدولة' : 'Country',
+                    group['countryName'] ?? (isArabic ? 'غير محدد' : 'Not specified'),
+                    primaryColor,
+                    textSecondaryColor: textSecondaryColor,
+                    textColor: textColor,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDetailRow(
+                    Icons.category_rounded,
+                    isArabic ? 'المجال' : 'Category',
+                    group['categoryName'] ?? (isArabic ? 'غير محدد' : 'Not specified'),
+                    orangeColor,
+                    textSecondaryColor: textSecondaryColor,
+                    textColor: textColor,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDetailRow(
+                    Icons.link_rounded,
+                    isArabic ? 'رابط الانضمام' : 'Join Link',
+                    group['link'] ?? (isArabic ? 'لا يوجد رابط' : 'No link'),
+                    Colors.blue,
+                    isCopyable: true,
+                    textSecondaryColor: textSecondaryColor,
+                    textColor: textColor,
+                  ),
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const SizedBox(height: 12),
+                  Text(
+                    isArabic ? 'الإعدادات' : 'Settings',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSwitchTile(
+                    icon: Icons.visibility_rounded,
+                    title: isArabic ? 'إظهار الجروب' : 'Show Group',
+                    value: isVisible,
+                    activeColor: Colors.green,
+                    onChanged: (value) async {
+                      await _toggleVisibility(group);
                       Navigator.pop(context);
-                      _editGroup(group, isArabic, isDark);
                     },
-                    icon: const Icon(Icons.edit_rounded, size: 18),
-                    label: Text(isArabic ? 'تعديل' : 'Edit'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                    isDark: isDark,
+                    cardBg: cardBg,
+                    textColor: textColor,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSwitchTile(
+                    icon: Icons.lock_rounded,
+                    title: isArabic ? 'قفل الإرسال' : 'Lock Sending',
+                    value: isLocked,
+                    activeColor: orangeColor,
+                    onChanged: (value) async {
+                      await _toggleLock(group);
+                      Navigator.pop(context);
+                    },
+                    isDark: isDark,
+                    cardBg: cardBg,
+                    textColor: textColor,
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
+                border: Border(top: BorderSide(color: Colors.grey.shade300)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _editGroup(group, isArabic, isDark, primaryColor);
+                      },
+                      icon: const Icon(Icons.edit_rounded, size: 18),
+                      label: Text(isArabic ? 'تعديل' : 'Edit'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _deleteGroup(group, isArabic);
-                    },
-                    icon: const Icon(Icons.delete_rounded, size: 18),
-                    label: Text(isArabic ? 'حذف' : 'Delete'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _deleteGroup(group, isArabic, isDark, primaryColor);
+                      },
+                      icon: const Icon(Icons.delete_rounded, size: 18),
+                      label: Text(isArabic ? 'حذف' : 'Delete'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        )
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value, Color color, {bool isCopyable = false}) {
+  Widget _buildDetailRow(IconData icon, String label, String value, Color color, {
+    bool isCopyable = false,
+    required Color textSecondaryColor,
+    required Color textColor,
+  }) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1507,7 +1594,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                   label,
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey.shade600,
+                    color: textSecondaryColor,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -1550,6 +1637,8 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     required Color activeColor,
     required Function(bool) onChanged,
     required bool isDark,
+    required Color cardBg,
+    required Color textColor,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -1560,7 +1649,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
         secondary: Icon(icon, color: value ? activeColor : Colors.grey),
         title: Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: textColor),
         ),
         value: value,
         activeColor: activeColor,
@@ -1599,7 +1688,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     }
   }
 
-  void _editGroup(Map<String, dynamic> group, bool isArabic, bool isDark) {
+  void _editGroup(Map<String, dynamic> group, bool isArabic, bool isDark, Color primaryColor) {
     final nameController = TextEditingController(text: group['name']);
     final linkController = TextEditingController(text: group['link']);
     int? selectedCountryId = group['countryId'];
@@ -1626,7 +1715,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: primaryBlue.withOpacity(0.2),
+                  color: primaryColor.withOpacity(0.2),
                   blurRadius: 30,
                   offset: const Offset(0, 10),
                 ),
@@ -1640,7 +1729,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [primaryBlue, primaryBlue.withOpacity(0.8)],
+                      colors: [primaryColor, primaryColor.withOpacity(0.8)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -1702,6 +1791,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                           label: isArabic ? 'اسم الجروب' : 'Group Name',
                           icon: Icons.group_rounded,
                           isDark: isDark,
+                          primaryColor: primaryColor,
                         ),
                         const SizedBox(height: 16),
                         _buildModernTextField(
@@ -1709,6 +1799,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                           label: isArabic ? 'رابط الانضمام' : 'Join Link',
                           icon: Icons.link_rounded,
                           isDark: isDark,
+                          primaryColor: primaryColor,
                         ),
                         const SizedBox(height: 16),
                         _buildModernDropdown<int>(
@@ -1717,6 +1808,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                           icon: Icons.public_rounded,
                           items: allCountries,
                           isDark: isDark,
+                          primaryColor: primaryColor,
                           onChanged: (value) => setDialogState(() => selectedCountryId = value),
                         ),
                         const SizedBox(height: 16),
@@ -1726,6 +1818,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                           icon: Icons.category_rounded,
                           items: allCategories,
                           isDark: isDark,
+                          primaryColor: primaryColor,
                           onChanged: (value) => setDialogState(() => selectedCategoryId = value),
                         ),
                       ],
@@ -1771,7 +1864,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                         child: ElevatedButton(
                           onPressed: () async {
                             if (nameController.text.isEmpty) {
-                              _showErrorSnackBar(isArabic ? 'الرجاء إدخال اسم الجروب' : 'Please enter group name');
+                              _showErrorSnackBar(isArabic ? 'الرجاء إدخال اسم الجروب' : 'Please enter group name' );
                               return;
                             }
                             try {
@@ -1783,13 +1876,13 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                               });
                               await _loadData();
                               Navigator.pop(context);
-                              _showSuccessSnackBar(isArabic ? 'تم تحديث الجروب بنجاح' : 'Group updated successfully');
+                              _showSuccessSnackBar(isArabic ? 'تم تحديث الجروب بنجاح' : 'Group updated successfully' );
                             } catch (e) {
-                              _showErrorSnackBar(isArabic ? 'فشل في تحديث الجروب' : 'Failed to update group');
+                              _showErrorSnackBar(isArabic ? 'فشل في تحديث الجروب' : 'Failed to update group' );
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryBlue,
+                            backgroundColor: primaryColor,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             elevation: 0,
@@ -1824,7 +1917,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     );
   }
 
-  void _addNewGroup(bool isArabic, bool isDark) {
+  void _addNewGroup(bool isArabic, bool isDark, Color primaryColor) {
     final nameController = TextEditingController();
     final linkController = TextEditingController();
     int? selectedCountryId;
@@ -1851,7 +1944,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: primaryBlue.withOpacity(0.2),
+                  color: primaryColor.withOpacity(0.2),
                   blurRadius: 30,
                   offset: const Offset(0, 10),
                 ),
@@ -1865,7 +1958,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [primaryBlue, primaryBlue.withOpacity(0.8)],
+                      colors: [primaryColor, primaryColor.withOpacity(0.8)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -1927,6 +2020,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                           label: isArabic ? 'اسم الجروب' : 'Group Name',
                           icon: Icons.group_rounded,
                           isDark: isDark,
+                          primaryColor: primaryColor,
                         ),
                         const SizedBox(height: 16),
                         _buildModernTextField(
@@ -1934,6 +2028,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                           label: isArabic ? 'رابط الانضمام' : 'Join Link',
                           icon: Icons.link_rounded,
                           isDark: isDark,
+                          primaryColor: primaryColor,
                         ),
                         const SizedBox(height: 16),
                         _buildModernDropdown<int>(
@@ -1942,6 +2037,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                           icon: Icons.public_rounded,
                           items: allCountries,
                           isDark: isDark,
+                          primaryColor: primaryColor,
                           onChanged: (value) => setDialogState(() => selectedCountryId = value),
                         ),
                         const SizedBox(height: 16),
@@ -1951,6 +2047,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                           icon: Icons.category_rounded,
                           items: allCategories,
                           isDark: isDark,
+                          primaryColor: primaryColor,
                           onChanged: (value) => setDialogState(() => selectedCategoryId = value),
                         ),
                       ],
@@ -1996,7 +2093,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                         child: ElevatedButton(
                           onPressed: () async {
                             if (nameController.text.isEmpty) {
-                              _showErrorSnackBar(isArabic ? 'الرجاء إدخال اسم الجروب' : 'Please enter group name');
+                              _showErrorSnackBar(isArabic ? 'الرجاء إدخال اسم الجروب' : 'Please enter group name' );
                               return;
                             }
                             try {
@@ -2008,13 +2105,13 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                               });
                               await _loadData();
                               Navigator.pop(context);
-                              _showSuccessSnackBar(isArabic ? 'تم إضافة الجروب بنجاح' : 'Group added successfully');
+                              _showSuccessSnackBar(isArabic ? 'تم إضافة الجروب بنجاح' : 'Group added successfully' );
                             } catch (e) {
-                              _showErrorSnackBar(isArabic ? 'فشل في إضافة الجروب' : 'Failed to add group');
+                              _showErrorSnackBar(isArabic ? 'فشل في إضافة الجروب' : 'Failed to add group' );
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryBlue,
+                            backgroundColor: primaryColor,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             elevation: 0,
@@ -2055,6 +2152,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     required String label,
     required IconData icon,
     required bool isDark,
+    required Color primaryColor,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -2076,10 +2174,10 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
             margin: const EdgeInsets.all(8),
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: primaryBlue.withOpacity(0.1),
+              color: primaryColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: primaryBlue, size: 20),
+            child: Icon(icon, color: primaryColor, size: 20),
           ),
         ),
       ),
@@ -2093,6 +2191,7 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     required IconData icon,
     required List<Map<String, dynamic>> items,
     required bool isDark,
+    required Color primaryColor,
     required void Function(T?) onChanged,
   }) {
     return Container(
@@ -2116,10 +2215,10 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
             margin: const EdgeInsets.all(8),
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: primaryBlue.withOpacity(0.1),
+              color: primaryColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: primaryBlue, size: 20),
+            child: Icon(icon, color: primaryColor, size: 20),
           ),
         ),
         items: items.map((item) {
@@ -2132,20 +2231,29 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
       ),
     );
   }
-  void _deleteGroup(Map<String, dynamic> group, bool isArabic) {
+
+  void _deleteGroup(Map<String, dynamic> group, bool isArabic, bool isDark, Color primaryColor) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isArabic ? 'تأكيد الحذف' : 'Confirm Delete'),
+        backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+        title: Text(
+          isArabic ? 'تأكيد الحذف' : 'Confirm Delete',
+          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+        ),
         content: Text(
           isArabic
               ? 'هل أنت متأكد من حذف "${group['name']}"؟'
               : 'Are you sure you want to delete "${group['name']}"?',
+          style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(isArabic ? 'إلغاء' : 'Cancel'),
+            child: Text(
+              isArabic ? 'إلغاء' : 'Cancel',
+              style: TextStyle(color: isDark ? Colors.white70 : Colors.grey[700]),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -2153,13 +2261,15 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
                 await ApiService.deleteGroup(group['id']);
                 await _loadData();
                 Navigator.pop(context);
-                _showSuccessSnackBar(isArabic ? 'تم حذف الجروب بنجاح' : 'Group deleted successfully');
+                _showSuccessSnackBar(isArabic ? 'تم حذف الجروب بنجاح' : 'Group deleted successfully' );
               } catch (e) {
                 Navigator.pop(context);
-                _showErrorSnackBar(isArabic ? 'فشل في حذف الجروب' : 'Failed to delete group');
+                _showErrorSnackBar(isArabic ? 'فشل في حذف الجروب' : 'Failed to delete group' );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
             child: Text(isArabic ? 'حذف' : 'Delete'),
           ),
         ],
@@ -2167,11 +2277,14 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
     );
   }
 
-
   void _showAddCountryDialog(
       String title,
       bool isDark,
       bool isArabic,
+      Color cardBg,
+      Color textPrimaryColor,
+      Color textSecondaryColor,
+      Color primaryColor,
       ) {
     final nameArController = TextEditingController();
     final nameEnController = TextEditingController();
@@ -2182,39 +2295,53 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(title),
+          backgroundColor: cardBg,
+          title: Text(
+            title,
+            style: TextStyle(color: textPrimaryColor),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameArController,
+                  style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     labelText: isArabic ? 'اسم الدولة (عربي)' : 'Country Name (Arabic)',
+                    labelStyle: TextStyle(color: textSecondaryColor),
                   ),
                 ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: nameEnController,
+                  style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     labelText: isArabic ? 'اسم الدولة (إنجليزي)' : 'Country Name (English)',
+                    labelStyle: TextStyle(color: textSecondaryColor),
                   ),
                 ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: isoCodeController,
+                  style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     labelText: isArabic ? 'كود الدولة (اول حرفين كبار بالانجليزية)' : 'ISO Code',
                     hintText: 'SA',
+                    hintStyle: TextStyle(color: textSecondaryColor),
+                    labelStyle: TextStyle(color: textSecondaryColor),
                   ),
                   textCapitalization: TextCapitalization.characters,
                 ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: phoneCodeController,
+                  style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     labelText: isArabic ? 'كود الهاتف' : 'Phone Code',
                     hintText: '+966....',
+                    hintStyle: TextStyle(color: textSecondaryColor),
+                    labelStyle: TextStyle(color: textSecondaryColor),
                   ),
                   keyboardType: TextInputType.phone,
                 ),
@@ -2223,11 +2350,20 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
           ),
           actions: [
             TextButton(
-              child: Text(isArabic ? 'إلغاء' : 'Cancel'),
+              child: Text(
+                isArabic ? 'إلغاء' : 'Cancel',
+                style: TextStyle(color: textSecondaryColor),
+              ),
               onPressed: () => Navigator.pop(context),
             ),
             ElevatedButton(
-              child: Text(isArabic ? 'حفظ' : 'Save'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+              ),
+              child: Text(
+                isArabic ? 'حفظ' : 'Save',
+                style: TextStyle(color: Colors.white),
+              ),
               onPressed: () async {
                 if (nameArController.text.isEmpty ||
                     isoCodeController.text.isEmpty) {
@@ -2275,19 +2411,21 @@ class _OurGroupsManagementScreenState extends State<OurGroupsManagementScreen>
   }
 
   void _showSuccessSnackBar(String message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green,
+        backgroundColor: isDark ? AppColors.darkSuccess : AppColors.lightSuccess,
       ),
     );
   }
 
-  void _showErrorSnackBar(String message) {
+  void _showErrorSnackBar(String message ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: isDark ? AppColors.darkDanger : AppColors.lightDanger,
       ),
     );
   }

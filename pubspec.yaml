@@ -39,6 +39,11 @@ dependencies:
   youtube_player_flutter: ^8.1.1
   shimmer: ^3.0.0
   rive: ^0.12.0
+  pdf: ^3.10.7
+  printing: ^5.12.0
+
+
+
 dev_dependencies:
   intl_utils: ^2.5.0
   flutter_test:

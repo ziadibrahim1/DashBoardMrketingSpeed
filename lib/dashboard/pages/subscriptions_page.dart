@@ -6,6 +6,33 @@ import '../../core/SubscriptionService.dart';
 import '../../core/user_session.dart';
 import '../../providers/app_providers.dart';
 
+// ألوان مخصصة للوضعين
+class AppColors {
+  // Colors for Light Mode
+  static const Color lightPrimary = Color(0xFF1976D2);
+  static const Color lightSecondary = Color(0xFF42A5F5);
+  static const Color lightSuccess = Color(0xFF4CAF50);
+  static const Color lightWarning = Color(0xFFFF6F00);
+  static const Color lightDanger = Color(0xFFE53935);
+  static const Color lightSurface = Color(0xFFF8FAFC);
+  static const Color lightCardBg = Colors.white;
+  static const Color lightBorder = Color(0xFFE3F2FD);
+  static const Color lightTextPrimary = Color(0xFF1E293B);
+  static const Color lightTextSecondary = Color(0xFF64748B);
+
+  // Colors for Dark Mode (Green Theme)
+  static const Color darkPrimary = Color(0xFF2E7D32);
+  static const Color darkSecondary = Color(0xFF4CAF50);
+  static const Color darkSuccess = Color(0xFF66BB6A);
+  static const Color darkWarning = Color(0xFFFFB74D);
+  static const Color darkDanger = Color(0xFFEF5350);
+  static const Color darkSurface = Color(0xFF121212);
+  static const Color darkCardBg = Color(0xFF1E1E2E);
+  static const Color darkBorder = Color(0xFF2D2D3E);
+  static const Color darkTextPrimary = Color(0xFFE4E6EB);
+  static const Color darkTextSecondary = Color(0xFFB0B3B8);
+}
+
 class SubscriptionsPage extends StatefulWidget {
   const SubscriptionsPage({super.key});
 
@@ -70,6 +97,18 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    // Choose colors based on theme
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+    final secondaryColor = isDark ? AppColors.darkSecondary : AppColors.lightSecondary;
+    final successColor = isDark ? AppColors.darkSuccess : AppColors.lightSuccess;
+    final warningColor = isDark ? AppColors.darkWarning : AppColors.lightWarning;
+    final dangerColor = isDark ? AppColors.darkDanger : AppColors.lightDanger;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final cardBgColor = isDark ? AppColors.darkCardBg : AppColors.lightCardBg;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
     final subscriptionTypes = isArabic ? subscriptionTypesArabic : subscriptionTypesEnglish;
     final allTypeLabel = isArabic ? 'الكل' : 'All';
 
@@ -91,13 +130,17 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(isArabic, isDark),
+              _buildHeader(isArabic, isDark, primaryColor, secondaryColor),
               const SizedBox(height: 32),
-              _buildStatsCards(filtered, isArabic, isDark),
+              _buildStatsCards(filtered, isArabic, isDark, successColor, dangerColor, warningColor, primaryColor, textSecondaryColor),
               const SizedBox(height: 32),
-              _buildFiltersSection(isArabic, isDark, subscriptionTypes, allTypeLabel),
+              _buildFiltersSection(isArabic, isDark, subscriptionTypes, allTypeLabel, primaryColor, textPrimaryColor, textSecondaryColor, cardBgColor, borderColor),
               const SizedBox(height: 32),
-              _buildDataTable(paginated, filtered, totalPages, isArabic, isDark, subscriptionTypes),
+              _buildDataTable(
+                  paginated, filtered, totalPages, isArabic, isDark, subscriptionTypes,
+                  primaryColor, secondaryColor, successColor, dangerColor, warningColor,
+                  cardBgColor, borderColor, textPrimaryColor, textSecondaryColor
+              ),
             ],
           ),
         ),
@@ -105,20 +148,24 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
     );
   }
 
-  Widget _buildHeader(bool isArabic, bool isDark) {
+  Widget _buildHeader(bool isArabic, bool isDark, Color primaryColor, Color secondaryColor) {
+    final gradientColors = isDark
+        ? [Color(0xFF2E7D32), Color(0xFF1B5E20)] // Green gradient for dark mode
+        : [Color(0xFF4FB5F5), Color(0xFF1B367A)]; // Original gradient for light mode
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF4FB5F5),Color(0xFF1B367A)],
+        gradient: LinearGradient(
+          colors: gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1976D2).withOpacity(0.4),
+            color: primaryColor.withOpacity(0.4),
             blurRadius: 30,
             spreadRadius: 2,
             offset: const Offset(0, 8),
@@ -191,7 +238,16 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
     );
   }
 
-  Widget _buildStatsCards(List<SubscriptionModel> filtered, bool isArabic, bool isDark) {
+  Widget _buildStatsCards(
+      List<SubscriptionModel> filtered,
+      bool isArabic,
+      bool isDark,
+      Color successColor,
+      Color dangerColor,
+      Color warningColor,
+      Color primaryColor,
+      Color textSecondaryColor
+      ) {
     final active = filtered.where((s) => s.status == 'active').length;
     final expired = filtered.where((s) => s.status == 'expired').length;
     final frozen = filtered.where((s) => s.status == 'frozen').length;
@@ -204,32 +260,36 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
               isArabic ? 'اشتراكات نشطة' : 'Active Subscriptions',
               active.toString(),
               Icons.verified,
-              const Color(0xFF4CAF50),
+              successColor,
               isDark,
+              textSecondaryColor: textSecondaryColor,
             )),
             const SizedBox(width: 24),
             Expanded(child: _buildStatCard(
               isArabic ? 'اشتراكات منتهية' : 'Expired Subscriptions',
               expired.toString(),
               Icons.event_busy,
-              const Color(0xFFE53935),
+              dangerColor,
               isDark,
+              textSecondaryColor: textSecondaryColor,
             )),
             const SizedBox(width: 24),
             Expanded(child: _buildStatCard(
               isArabic ? 'اشتراكات مجمدة' : 'Frozen Subscriptions',
               frozen.toString(),
               Icons.pause_circle_outline,
-              const Color(0xFFFF6F00),
+              warningColor,
               isDark,
+              textSecondaryColor: textSecondaryColor,
             )),
             const SizedBox(width: 24),
             Expanded(child: _buildStatCard(
               isArabic ? 'إجمالي الاشتراكات' : 'Total Subscriptions',
               filtered.length.toString(),
               Icons.analytics,
-              const Color(0xFF1976D2),
+              primaryColor,
               isDark,
+              textSecondaryColor: textSecondaryColor,
             )),
           ],
         );
@@ -237,11 +297,18 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color, bool isDark) {
+  Widget _buildStatCard(
+      String title,
+      String value,
+      IconData icon,
+      Color color,
+      bool isDark,
+      {Color? textSecondaryColor}
+      ) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color.withOpacity(0.2), width: 2),
         boxShadow: [
@@ -285,7 +352,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
             title,
             style: TextStyle(
               fontSize: 15,
-              color: isDark ? Colors.grey[400] : Colors.grey[700],
+              color: textSecondaryColor,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -294,19 +361,29 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
     );
   }
 
-  Widget _buildFiltersSection(bool isArabic, bool isDark, List<String> subscriptionTypes, String allTypeLabel) {
+  Widget _buildFiltersSection(
+      bool isArabic,
+      bool isDark,
+      List<String> subscriptionTypes,
+      String allTypeLabel,
+      Color primaryColor,
+      Color textPrimaryColor,
+      Color textSecondaryColor,
+      Color cardBgColor,
+      Color borderColor
+      ) {
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: cardBgColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE3F2FD),
+          color: borderColor,
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -320,10 +397,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1976D2).withOpacity(0.1),
+                  color: primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.filter_list, color: Color(0xFF1976D2), size: 24),
+                child: Icon(Icons.filter_list, color: primaryColor, size: 24),
               ),
               const SizedBox(width: 12),
               Text(
@@ -331,7 +408,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : const Color(0xFF1E293B),
+                  color: textPrimaryColor,
                 ),
               ),
             ],
@@ -343,18 +420,19 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
                 flex: 3,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FBFF),
+                    color: isDark ? Colors.black.withOpacity(0.3) : Color(0xFFF8FBFF),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: const Color(0xFF1976D2).withOpacity(0.3),
+                      color: primaryColor.withOpacity(0.3),
                       width: 1.5,
                     ),
                   ),
                   child: TextField(
+                    style: TextStyle(color: textPrimaryColor),
                     decoration: InputDecoration(
                       labelText: isArabic ? 'ابحث باسم المستخدم أو البريد الإلكتروني' : 'Search by username or email',
-                      labelStyle: TextStyle(color: Colors.grey[600]),
-                      prefixIcon: const Icon(Icons.search, color: Color(0xFF1976D2), size: 24),
+                      labelStyle: TextStyle(color: textSecondaryColor),
+                      prefixIcon: Icon(Icons.search, color: primaryColor, size: 24),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     ),
@@ -373,14 +451,14 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FBFF),
+                    color: isDark ? Colors.black.withOpacity(0.3) : const Color(0xFFF8FBFF),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: const Color(0xFF1976D2).withOpacity(0.3),
+                      color: primaryColor.withOpacity(0.3),
                       width: 1.5,
                     ),
                   ),
-
+                  // يمكن إضافة DropdownButton هنا إذا لزم الأمر
                 ),
               ),
             ],
@@ -390,10 +468,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
             spacing: 12,
             runSpacing: 12,
             children: [
-              _buildFilterChip(isArabic ? 'جميع الحالات' : 'All Status', 'all', const Color(0xFF1976D2), isArabic, isDark),
-              _buildFilterChip(isArabic ? '✓ نشط' : '✓ Active', 'active', const Color(0xFF4CAF50), isArabic, isDark),
-              _buildFilterChip(isArabic ? '✕ منتهي' : '✕ Expired', 'expired', const Color(0xFFE53935), isArabic, isDark),
-              _buildFilterChip(isArabic ? '⊗ مجمد' : '⊗ Frozen', 'frozen', const Color(0xFFFF6F00), isArabic, isDark),
+              _buildFilterChip(isArabic ? 'جميع الحالات' : 'All Status', 'all', primaryColor, isArabic, isDark),
+              _buildFilterChip(isArabic ? '✓ نشط' : '✓ Active', 'active', AppColors.lightSuccess, isArabic, isDark),
+              _buildFilterChip(isArabic ? '✕ منتهي' : '✕ Expired', 'expired', AppColors.lightDanger, isArabic, isDark),
+              _buildFilterChip(isArabic ? '⊗ مجمد' : '⊗ Frozen', 'frozen', AppColors.lightWarning, isArabic, isDark),
             ],
           ),
         ],
@@ -418,7 +496,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
           gradient: selected
               ? LinearGradient(colors: [color, color.withOpacity(0.8)])
               : null,
-          color: selected ? null : (isDark ? const Color(0xFF0F172A) : Colors.grey[100]),
+          color: selected ? null : (isDark ? Colors.black.withOpacity(0.3) : Colors.grey[100]),
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
             color: selected ? color : (isDark ? Colors.grey[700]! : Colors.grey[300]!),
@@ -444,20 +522,34 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
     );
   }
 
-  Widget _buildDataTable(List<SubscriptionModel> paginated, List<SubscriptionModel> filtered,
-      int totalPages, bool isArabic, bool isDark, List<String> subscriptionTypes)
-  {
+  Widget _buildDataTable(
+      List<SubscriptionModel> paginated,
+      List<SubscriptionModel> filtered,
+      int totalPages,
+      bool isArabic,
+      bool isDark,
+      List<String> subscriptionTypes,
+      Color primaryColor,
+      Color secondaryColor,
+      Color successColor,
+      Color dangerColor,
+      Color warningColor,
+      Color cardBgColor,
+      Color borderColor,
+      Color textPrimaryColor,
+      Color textSecondaryColor
+      ) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: cardBgColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE3F2FD),
+          color: borderColor,
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -475,10 +567,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1976D2).withOpacity(0.1),
+                        color: primaryColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.table_chart, color: Color(0xFF1976D2), size: 24),
+                      child: Icon(Icons.table_chart, color: primaryColor, size: 24),
                     ),
                     const SizedBox(width: 12),
                     Text(
@@ -486,7 +578,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : const Color(0xFF1E293B),
+                        color: textPrimaryColor,
                       ),
                     ),
                   ],
@@ -494,13 +586,13 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
+                    gradient: LinearGradient(
+                      colors: [primaryColor, secondaryColor],
                     ),
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF1976D2).withOpacity(0.3),
+                        color: primaryColor.withOpacity(0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -529,7 +621,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
             Container(
               height: 400,
               alignment: Alignment.center,
-              child: const CircularProgressIndicator(),
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+              ),
             )
           else
             SingleChildScrollView(
@@ -544,39 +638,43 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
                   headingRowHeight: 60,
                   dataRowHeight: 72,
                   headingRowColor: MaterialStateProperty.all(
-                    isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FBFF),
+                    isDark ? Colors.black.withOpacity(0.3) : const Color(0xFFF8FBFF),
                   ),
                   columns: [
-                    DataColumn(label: _buildColumnHeader(isArabic ? 'المستخدم' : 'User', Icons.person_outline)),
-                    DataColumn(label: _buildColumnHeader(isArabic ? 'البريد الإلكتروني' : 'Email', Icons.email_outlined)),
-                    DataColumn(label: _buildColumnHeader(isArabic ? 'نوع الاشتراك' : 'Type', Icons.card_membership)),
-                    DataColumn(label: _buildColumnHeader(isArabic ? 'تاريخ البداية' : 'Start Date', Icons.calendar_today)),
-                    DataColumn(label: _buildColumnHeader(isArabic ? 'تاريخ النهاية' : 'End Date', Icons.event)),
-                    DataColumn(label: _buildColumnHeader(isArabic ? 'المتبقي' : 'Remining', Icons.account_balance_wallet)),
-                    DataColumn(label: _buildColumnHeader(isArabic ? 'الحالة' : 'Status', Icons.info_outline)),
-                    DataColumn(label: _buildColumnHeader(isArabic ? 'الإجراءات' : 'Actions', Icons.settings)),
+                    DataColumn(label: _buildColumnHeader(isArabic ? 'المستخدم' : 'User', Icons.person_outline, primaryColor)),
+                    DataColumn(label: _buildColumnHeader(isArabic ? 'البريد الإلكتروني' : 'Email', Icons.email_outlined, primaryColor)),
+                    DataColumn(label: _buildColumnHeader(isArabic ? 'نوع الاشتراك' : 'Type', Icons.card_membership, primaryColor)),
+                    DataColumn(label: _buildColumnHeader(isArabic ? 'تاريخ البداية' : 'Start Date', Icons.calendar_today, primaryColor)),
+                    DataColumn(label: _buildColumnHeader(isArabic ? 'تاريخ النهاية' : 'End Date', Icons.event, primaryColor)),
+                    DataColumn(label: _buildColumnHeader(isArabic ? 'المتبقي' : 'Remaining', Icons.account_balance_wallet, primaryColor)),
+                    DataColumn(label: _buildColumnHeader(isArabic ? 'الحالة' : 'Status', Icons.info_outline, primaryColor)),
+                    DataColumn(label: _buildColumnHeader(isArabic ? 'الإجراءات' : 'Actions', Icons.settings, primaryColor)),
                   ],
-                  rows: paginated.map((sub) => _buildDataRow(sub, isArabic, subscriptionTypes, isDark)).toList(),
+                  rows: paginated.map((sub) => _buildDataRow(
+                      sub, isArabic, subscriptionTypes, isDark,
+                      primaryColor, secondaryColor, successColor, dangerColor, warningColor,
+                      textPrimaryColor, textSecondaryColor
+                  )).toList(),
                 ),
               ),
             ),
           const Divider(height: 1, thickness: 1),
-          _buildPagination(totalPages, isArabic, isDark),
+          _buildPagination(totalPages, isArabic, isDark, primaryColor, secondaryColor, cardBgColor, borderColor, textPrimaryColor),
         ],
       ),
     );
   }
 
-  Widget _buildColumnHeader(String text, IconData icon) {
+  Widget _buildColumnHeader(String text, IconData icon, Color primaryColor) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: const Color(0xFF1976D2)),
+        Icon(icon, size: 18, color: primaryColor),
         const SizedBox(width: 8),
         Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1976D2),
+            color: primaryColor,
             fontSize: 14,
           ),
         ),
@@ -584,24 +682,36 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
     );
   }
 
-  DataRow _buildDataRow(SubscriptionModel sub, bool isArabic, List<String> subscriptionTypes, bool isDark) {
+  DataRow _buildDataRow(
+      SubscriptionModel sub,
+      bool isArabic,
+      List<String> subscriptionTypes,
+      bool isDark,
+      Color primaryColor,
+      Color secondaryColor,
+      Color successColor,
+      Color dangerColor,
+      Color warningColor,
+      Color textPrimaryColor,
+      Color textSecondaryColor
+      ) {
     Color statusColor;
     String statusText;
     IconData statusIcon;
 
     switch (sub.status) {
       case 'active':
-        statusColor = const Color(0xFF4CAF50);
+        statusColor = successColor;
         statusText = isArabic ? 'نشط' : 'Active';
         statusIcon = Icons.check_circle;
         break;
       case 'expired':
-        statusColor = const Color(0xFFE53935);
+        statusColor = dangerColor;
         statusText = isArabic ? 'منتهي' : 'Expired';
         statusIcon = Icons.cancel;
         break;
       case 'frozen':
-        statusColor = const Color(0xFFFF6F00);
+        statusColor = warningColor;
         statusText = isArabic ? 'مجمد' : 'Frozen';
         statusIcon = Icons.pause_circle;
         break;
@@ -615,8 +725,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
       color: MaterialStateProperty.resolveWith((states) {
         if (states.contains(MaterialState.hovered)) {
           return isDark
-              ? const Color(0xFF1976D2).withOpacity(0.05)
-              : const Color(0xFFE3F2FD).withOpacity(0.5);
+              ? primaryColor.withOpacity(0.05)
+              : Color(0xFFE3F2FD).withOpacity(0.5);
         }
         return null;
       }),
@@ -629,10 +739,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
                 height: 42,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF1976D2).withOpacity(0.8),
-                      const Color(0xFF42A5F5).withOpacity(0.8),
-                    ],
+                    colors: [primaryColor.withOpacity(0.8), secondaryColor.withOpacity(0.8)],
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -650,9 +757,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
               const SizedBox(width: 12),
               Text(
                 sub.user!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
+                  color: textPrimaryColor,
                 ),
               ),
             ],
@@ -661,9 +769,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
         DataCell(
           Row(
             children: [
-              Icon(Icons.email_outlined, size: 16, color: Colors.grey[600]),
+              Icon(Icons.email_outlined, size: 16, color: textSecondaryColor),
               const SizedBox(width: 6),
-              Text(sub.email, style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+              Text(sub.email, style: TextStyle(fontSize: 13, color: textPrimaryColor)),
             ],
           ),
         ),
@@ -672,18 +780,15 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF1976D2).withOpacity(0.1),
-                  const Color(0xFF42A5F5).withOpacity(0.1),
-                ],
+                colors: [primaryColor.withOpacity(0.1), secondaryColor.withOpacity(0.1)],
               ),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF1976D2).withOpacity(0.3), width: 1.5),
+              border: Border.all(color: primaryColor.withOpacity(0.3), width: 1.5),
             ),
             child: Text(
               sub.type!,
-              style: const TextStyle(
-                color: Color(0xFF1565C0),
+              style: TextStyle(
+                color: primaryColor,
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),
@@ -693,27 +798,27 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
         DataCell(
           Row(
             children: [
-              const Icon(Icons.login, size: 16, color: Color(0xFF4CAF50)),
+              Icon(Icons.login, size: 16, color: successColor),
               const SizedBox(width: 6),
-              Text(sub.startDate!, style: const TextStyle(fontSize: 13)),
+              Text(sub.startDate!, style: TextStyle(fontSize: 13, color: textPrimaryColor)),
             ],
           ),
         ),
         DataCell(
           Row(
             children: [
-              const Icon(Icons.logout, size: 16, color: Color(0xFFE53935)),
+              Icon(Icons.logout, size: 16, color: dangerColor),
               const SizedBox(width: 6),
-              Text(sub.endDate!, style: const TextStyle(fontSize: 13)),
+              Text(sub.endDate!, style: TextStyle(fontSize: 13, color: textPrimaryColor)),
             ],
           ),
         ),
         DataCell(
           Row(
             children: [
-              const Icon(Icons.account_balance_wallet, size: 16, color: Color(0xFFE53935)),
+              Icon(Icons.account_balance_wallet, size: 16, color: primaryColor),
               const SizedBox(width: 6),
-              Text(sub.RemainingCount!.toString(), style: const TextStyle(fontSize: 13)),
+              Text(sub.RemainingCount!.toString(), style: TextStyle(fontSize: 13, color: textPrimaryColor)),
             ],
           ),
         ),
@@ -748,19 +853,19 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
             children: [
               _buildActionButton(
                 Icons.edit_outlined,
-                const Color(0xFF1976D2),
+                primaryColor,
                 isArabic ? 'تعديل' : 'Edit',
-                    () => _showEditDialog(sub, isArabic),
+                    () => _showEditDialog(sub, isArabic, isDark, primaryColor),
               ),
               const SizedBox(width: 8),
               _buildActionButton(
                 Icons.refresh,
-                const Color(0xFF4CAF50),
+                successColor,
                 isArabic ? 'تجديد' : 'Renew',
-                    () => renewSubscription(sub),
+                    () => renewSubscription(sub, isArabic),
               ),
               const SizedBox(width: 8),
-              buildFreezeButton(sub, isArabic),
+              buildFreezeButton(sub, isArabic, successColor, dangerColor, textSecondaryColor),
             ],
           ),
         ),
@@ -789,12 +894,13 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
       ),
     );
   }
-  Widget buildFreezeButton(SubscriptionModel sub, bool isArabic) {
+
+  Widget buildFreezeButton(SubscriptionModel sub, bool isArabic, Color successColor, Color dangerColor, Color textSecondaryColor) {
     final isFrozen = sub.status == 'frozen';
 
     return _buildActionButton(
       isFrozen ? Icons.lock_open : Icons.block,
-      isFrozen ? Colors.green : const Color(0xFFE53935),
+      isFrozen ? successColor : dangerColor,
       isFrozen
           ? (isArabic ? 'فك التجميد' : 'Unfreeze')
           : (isArabic ? 'تجميد' : 'Freeze'),
@@ -822,11 +928,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
     );
   }
 
-  Widget _buildPagination(int totalPages, bool isArabic, bool isDark) {
+  Widget _buildPagination(int totalPages, bool isArabic, bool isDark, Color primaryColor, Color secondaryColor, Color cardBgColor, Color borderColor, Color textPrimaryColor) {
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FBFF),
+        color: isDark ? Colors.black.withOpacity(0.3) : const Color(0xFFF8FBFF),
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(20),
           bottomRight: Radius.circular(20),
@@ -843,7 +949,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1976D2),
+              backgroundColor: primaryColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -853,13 +959,13 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
+              gradient: LinearGradient(
+                colors: [primaryColor, secondaryColor],
               ),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF1976D2).withOpacity(0.3),
+                  color: primaryColor.withOpacity(0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -882,7 +988,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1976D2),
+              backgroundColor: primaryColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -893,7 +999,8 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
       ),
     );
   }
-  Future<void> renewSubscription(SubscriptionModel subscription) async {
+
+  Future<void> renewSubscription(SubscriptionModel subscription, bool isArabic) async {
     try {
       setState(() => loading = true);
 
@@ -905,32 +1012,32 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('تم تجديد الاشتراك بنجاح'),
-            backgroundColor: const Color(0xFF4CAF50),
+            content: Text(isArabic ? 'تم تجديد الاشتراك بنجاح' : 'Subscription renewed successfully'),
+            backgroundColor: AppColors.lightSuccess,
           ),
         );
       }
 
     }  catch (e) {
-  print('Renew error: $e');
+      print('Renew error: $e');
 
-  if (mounted) {
-  ScaffoldMessenger.of(context).showSnackBar(
-  SnackBar(
-  content: Text('خطأ: $e'),
-  backgroundColor: Colors.red,
-  ),
-  );
-  }
-  }
-  finally {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${isArabic ? 'خطأ' : 'Error'}: $e'),
+            backgroundColor: AppColors.lightDanger,
+          ),
+        );
+      }
+    }
+    finally {
       if (mounted) {
         setState(() => loading = false);
       }
     }
   }
 
-  void _showEditDialog(SubscriptionModel subscription, bool isArabic) {
+  void _showEditDialog(SubscriptionModel subscription, bool isArabic, bool isDark, Color primaryColor) {
     DateTime startDate = DateTime.parse(subscription.startDate!);
     DateTime endDate = DateTime.parse(subscription.endDate!);
     final userId = UserSession.userId;
@@ -944,7 +1051,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
           builder: (context, setDialogState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Text(isArabic ? 'إدارة الاشتراك' : 'Manage Subscription'),
+              backgroundColor: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
+              title: Text(
+                isArabic ? 'إدارة الاشتراك' : 'Manage Subscription',
+                style: TextStyle(color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -953,8 +1064,14 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
                     /// ================== DATES ==================
                     ListTile(
                       leading: const Icon(Icons.login, color: Color(0xFF4CAF50)),
-                      title: Text(isArabic ? 'تاريخ البداية' : 'Start Date'),
-                      subtitle: Text(dateFormat.format(startDate)),
+                      title: Text(
+                        isArabic ? 'تاريخ البداية' : 'Start Date',
+                        style: TextStyle(color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                      ),
+                      subtitle: Text(
+                        dateFormat.format(startDate),
+                        style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                      ),
                       onTap: () async {
                         final picked = await showDatePicker(
                           context: context,
@@ -970,8 +1087,14 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
 
                     ListTile(
                       leading: const Icon(Icons.logout, color: Color(0xFFE53935)),
-                      title: Text(isArabic ? 'تاريخ النهاية' : 'End Date'),
-                      subtitle: Text(dateFormat.format(endDate)),
+                      title: Text(
+                        isArabic ? 'تاريخ النهاية' : 'End Date',
+                        style: TextStyle(color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                      ),
+                      subtitle: Text(
+                        dateFormat.format(endDate),
+                        style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                      ),
                       onTap: () async {
                         final picked = await showDatePicker(
                           context: context,
@@ -985,20 +1108,34 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
                       },
                     ),
 
-                    const Divider(),
+                    Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
 
                     /// ================== GIFT DAYS ==================
                     ListTile(
                       leading: const Icon(Icons.card_giftcard, color: Colors.blue),
-                      title: Text(isArabic ? 'أيام هدية' : 'Gift Days'),
-                      subtitle: Text(isArabic
-                          ? 'تضاف إلى نهاية الاشتراك'
-                          : 'Added to subscription end date'),
+                      title: Text(
+                        isArabic ? 'أيام هدية' : 'Gift Days',
+                        style: TextStyle(color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                      ),
+                      subtitle: Text(
+                        isArabic
+                            ? 'تضاف إلى نهاية الاشتراك'
+                            : 'Added to subscription end date',
+                        style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                      ),
                       trailing: SizedBox(
                         width: 80,
                         child: TextField(
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(hintText: '0'),
+                          style: TextStyle(color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                          decoration: InputDecoration(
+                            hintText: '0',
+                            hintStyle: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                            ),
+                          ),
                           onChanged: (val) {
                             setDialogState(() {
                               giftDays = int.tryParse(val) ?? 0;
@@ -1011,15 +1148,29 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
                     /// ================== GIFT GROUPS ==================
                     ListTile(
                       leading: const Icon(Icons.group_add, color: Colors.green),
-                      title: Text(isArabic ? 'مجموعات هدية' : 'Gift Groups'),
-                      subtitle: Text(isArabic
-                          ? 'تضاف كباقة إضافية'
-                          : 'Extra groups as gift'),
+                      title: Text(
+                        isArabic ? 'مجموعات هدية' : 'Gift Groups',
+                        style: TextStyle(color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                      ),
+                      subtitle: Text(
+                        isArabic
+                            ? 'تضاف كباقة إضافية'
+                            : 'Extra groups as gift',
+                        style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                      ),
                       trailing: SizedBox(
                         width: 80,
                         child: TextField(
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(hintText: '0'),
+                          style: TextStyle(color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                          decoration: InputDecoration(
+                            hintText: '0',
+                            hintStyle: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                            ),
+                          ),
                           onChanged: (val) {
                             setDialogState(() {
                               giftGroups = int.tryParse(val) ?? 0;
@@ -1034,11 +1185,13 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text(isArabic ? 'إلغاء' : 'Cancel'),
+                  child: Text(
+                    isArabic ? 'إلغاء' : 'Cancel',
+                    style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: () async {
-
                     /// 🟢 1) تحديث التواريخ
                     if (giftDays > 0) {
                       endDate = endDate.add(Duration(days: giftDays));
@@ -1067,6 +1220,10 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
                     Navigator.pop(context);
                     loadData();
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                  ),
                   child: Text(isArabic ? 'حفظ' : 'Save'),
                 ),
               ],
@@ -1076,5 +1233,4 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> with SingleTicker
       },
     );
   }
-
 }

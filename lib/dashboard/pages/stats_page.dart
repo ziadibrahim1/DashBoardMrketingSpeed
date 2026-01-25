@@ -15,6 +15,33 @@ import '../../providers/app_providers.dart';
 import 'OurGroupsManagementScreen.dart';
 import 'select_user_screen.dart';
 
+// ألوان مخصصة للوضعين
+class AppColors {
+  // Colors for Light Mode
+  static const Color lightPrimary = Color(0xFF2563EB);
+  static const Color lightSecondary = Color(0xFF3B82F6);
+  static const Color lightSurface = Color(0xFFF0F4F8);
+  static const Color lightCardBg = Colors.white;
+  static const Color lightBorder = Color(0xFFE5E7EB);
+  static const Color lightTextPrimary = Color(0xFF1E293B);
+  static const Color lightTextSecondary = Color(0xFF64748B);
+  static const Color lightSuccess = Color(0xFF10B981);
+  static const Color lightDanger = Color(0xFFEF4444);
+  static const Color lightWarning = Color(0xFFF59E0B);
+
+  // Colors for Dark Mode (Green Theme)
+  static const Color darkPrimary = Color(0xFF2E7D32);
+  static const Color darkSecondary = Color(0xFF4CAF50);
+  static const Color darkSurface = Color(0xFF0A1628);
+  static const Color darkCardBg = Color(0xFF1E1E2E);
+  static const Color darkBorder = Color(0xFF2D2D3E);
+  static const Color darkTextPrimary = Color(0xFFE4E6EB);
+  static const Color darkTextSecondary = Color(0xFFB0B3B8);
+  static const Color darkSuccess = Color(0xFF66BB6A);
+  static const Color darkDanger = Color(0xFFF44336);
+  static const Color darkWarning = Color(0xFFFFB74D);
+}
+
 class StatsPage extends StatelessWidget {
   const StatsPage({super.key});
 
@@ -22,18 +49,22 @@ class StatsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context);
     final isArabic = localeProvider.locale.languageCode == 'ar';
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Choose colors based on theme
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final surfaceGradient1 = isDark ? AppColors.darkSurface : Color(0xFFF0F4F8);
+    final surfaceGradient2 = isDark ? Color(0xFF132A46) : Color(0xFFE3ECFF);
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0A1628) : const Color(0xFFF0F4F8),
+      backgroundColor: surfaceColor,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: isDark
-                ? [const Color(0xFF0A1628), const Color(0xFF132A46)]
-                : [const Color(0xFFF0F4F8), const Color(0xFFE3ECFF)],
+            colors: [surfaceGradient1, surfaceGradient2],
           ),
         ),
         child: Padding(
@@ -74,11 +105,24 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
   List<int> weeklyCounts = [];
   List<String> days = [];
   bool isLoadingChart = true;
-    List<String> daysEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    List<String> daysAr = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  List<String> daysEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  List<String> daysAr = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
   List<int> counts = [];
   bool isLoadingPie = true;
   List<CountryMessageStats> countryStats = [];
+
+  // Get colors based on theme
+  Color get primaryColor => widget.isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+  Color get secondaryColor => widget.isDark ? AppColors.darkSecondary : AppColors.lightSecondary;
+  Color get surfaceColor => widget.isDark ? AppColors.darkSurface : AppColors.lightSurface;
+  Color get cardColor => widget.isDark ? AppColors.darkCardBg : AppColors.lightCardBg;
+  Color get borderColor => widget.isDark ? AppColors.darkBorder : AppColors.lightBorder;
+  Color get textPrimaryColor => widget.isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+  Color get textSecondaryColor => widget.isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+  Color get successColor => widget.isDark ? AppColors.darkSuccess : AppColors.lightSuccess;
+  Color get dangerColor => widget.isDark ? AppColors.darkDanger : AppColors.lightDanger;
+  Color get warningColor => widget.isDark ? AppColors.darkWarning : AppColors.lightWarning;
+
   Future<void> loadWeeklyMessages() async {
     try {
       final res = await http.get(
@@ -107,6 +151,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
       });
     }
   }
+
   Future<void> loadData() async {
     final stats = await fetchCountryStats();
     setState(() {
@@ -132,6 +177,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
       return [];
     }
   }
+
   @override
   void initState() {
     super.initState();
@@ -212,7 +258,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                   ? (widget.isArabic ? 'تم تفعيل المنصة بنجاح' : 'Platform activated successfully')
                   : (widget.isArabic ? 'تم إيقاف المنصة بنجاح' : 'Platform deactivated successfully'),
             ),
-            backgroundColor: value ? Colors.green : Colors.orange,
+            backgroundColor: value ? successColor : warningColor,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
@@ -230,16 +276,17 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
           content: Text(
             widget.isArabic ? 'فشل في تغيير حالة المنصة' : 'Failed to change platform status',
           ),
-          backgroundColor: Colors.red,
+          backgroundColor: dangerColor,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     }
   }
+
   void _showRejectDialog(BuildContext context, GroupRequestModel request, bool isDark, bool isArabic) {
     final TextEditingController reasonController = TextEditingController();
-    final Color bgColor = isDark ? const Color(0xFF2C2C2C) : Colors.white;
+    final Color bgColor = isDark ? AppColors.darkCardBg : AppColors.lightCardBg;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -247,11 +294,11 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(Icons.report_problem_rounded, color: Colors.redAccent),
+            Icon(Icons.report_problem_rounded, color: dangerColor),
             SizedBox(width: 10),
             Text(
               isArabic ? "رفض الطلب" : "Reject Request",
-              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              style: TextStyle(color: textPrimaryColor),
             ),
           ],
         ),
@@ -261,16 +308,16 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
           children: [
             Text(
               isArabic ? "سبب الرفض (اختياري):" : "Reason for rejection (Optional):",
-              style: TextStyle(fontSize: 13, color: isDark ? Colors.grey[300] : Colors.grey[700]),
+              style: TextStyle(fontSize: 13, color: textSecondaryColor),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: reasonController,
               maxLines: 3,
-              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              style: TextStyle(color: textPrimaryColor),
               decoration: InputDecoration(
                 hintText: isArabic ? "اكتب السبب هنا..." : "Write the reason here...",
-                hintStyle: TextStyle(fontSize: 12, color: Colors.grey),
+                hintStyle: TextStyle(fontSize: 12, color: textSecondaryColor),
                 filled: true,
                 fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100],
                 border: OutlineInputBorder(
@@ -284,15 +331,18 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(isArabic ? "إلغاء" : "Cancel", style: TextStyle(color: Colors.grey)),
+            child: Text(
+                isArabic ? "إلغاء" : "Cancel",
+                style: TextStyle(color: textSecondaryColor)
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
-             await rejectGroupRequest(request.id,reasonController.text);
+              await rejectGroupRequest(request.id,reasonController.text);
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
+              backgroundColor: dangerColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: Text(isArabic ? "تأكيد الرفض" : "Confirm", style: TextStyle(color: Colors.white)),
@@ -301,6 +351,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
       ),
     );
   }
+
   Future<void> _launchURL(String urlString) async {
     final Uri url = Uri.parse(urlString);
     try {
@@ -362,6 +413,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
       }),
     );
   }
+
   Future<void> rejectGroupRequest(
       int requestId,
       String adminNote,
@@ -377,12 +429,6 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
       }),
     );
   }
-  Color get primaryBlue => widget.isDark ? const Color(0xFF4A9EFF) : const Color(0xFF2563EB);
-  Color get secondaryBlue => widget.isDark ? const Color(0xFF1E40AF) : const Color(0xFF3B82F6);
-  Color get accentBlue => widget.isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8);
-  Color get cardColor => widget.isDark ? const Color(0xFF1E293B) : Colors.white;
-  Color get textColor => widget.isDark ? Colors.white : const Color(0xFF1E293B);
-  Color get subtitleColor => widget.isDark ? Colors.white70 : Colors.grey[600]!;
 
   @override
   Widget build(BuildContext context) {
@@ -435,7 +481,9 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
             title: widget.isArabic ? 'جروباتنا' : 'Our Groups',
             subtitle: widget.isArabic ? 'عرض وإدارة الجروبات' : 'View & Manage Groups',
             icon: Icons.groups_rounded,
-            gradientColors: [primaryBlue, secondaryBlue],
+            gradientColors: widget.isDark
+                ? [AppColors.darkPrimary, AppColors.darkSecondary]
+                : [AppColors.lightPrimary, AppColors.lightSecondary],
             onTap: () {
               Navigator.push(
                 context,
@@ -451,6 +499,14 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
   }
 
   Widget _buildPlatformToggleCard() {
+    final activeGradientColors = widget.isDark
+        ? [Color(0xFF25D366), Color(0xFF128C7E)]
+        : [Color(0xFF25D366), Color(0xFF128C7E)];
+
+    final inactiveGradientColors = widget.isDark
+        ? [AppColors.darkDanger, Color(0xFFDC2626)]
+        : [Color(0xFFEF4444), Color(0xFFDC2626)];
+
     return Container(
       height: 140,
       padding: const EdgeInsets.all(24),
@@ -458,15 +514,12 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isPlatformActive
-              ? [const Color(0xFF25D366), const Color(0xFF128C7E)]
-              : [const Color(0xFFEF4444), const Color(0xFFDC2626)],
+          colors: isPlatformActive ? activeGradientColors : inactiveGradientColors,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: (isPlatformActive ? const Color(0xFF25D366) : const Color(0xFFEF4444))
-                .withOpacity(0.3),
+            color: (isPlatformActive ? Color(0xFF25D366) : dangerColor).withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 8),
           )
@@ -622,7 +675,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(primaryBlue),
+              valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
             ),
           );
         }
@@ -631,7 +684,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
           return Center(
             child: Text(
               'Error loading stats',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: dangerColor),
             ),
           );
         }
@@ -646,25 +699,25 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
               title: widget.isArabic ? 'رسائل الجروبات' : 'Group Messages',
               value: stats.groupMessages,
               icon: Icons.group_rounded,
-              color: const Color(0xFF3B82F6),
+              color: Color(0xFF3B82F6),
             ),
             _buildStatCard(
               title: widget.isArabic ? 'رسائل الدردشات' : 'Chat Messages',
               value: stats.chatMessages,
               icon: Icons.chat_bubble_rounded,
-              color: const Color(0xFF8B5CF6),
+              color: Color(0xFF8B5CF6),
             ),
             _buildStatCard(
               title: widget.isArabic ? 'رسائل الأعضاء' : 'Member Messages',
               value: stats.memberMessages,
               icon: Icons.person_rounded,
-              color: const Color(0xFF06B6D4),
+              color: Color(0xFF06B6D4),
             ),
             _buildStatCard(
               title: widget.isArabic ? 'جروباتنا الخاصة' : 'Our Private Groups',
               value: stats.privateGroups,
               icon: Icons.lock_rounded,
-              color: const Color(0xFF10B981),
+              color: Color(0xFF10B981),
             ),
           ],
         );
@@ -685,7 +738,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: widget.isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]!,
+          color: borderColor,
           width: 1,
         ),
         boxShadow: [
@@ -713,18 +766,18 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: successColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.trending_up, size: 14, color: Colors.green),
+                    Icon(Icons.trending_up, size: 14, color: successColor),
                     const SizedBox(width: 4),
                     Text(
                       '+12%',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.green,
+                        color: successColor,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -738,7 +791,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
             title,
             style: TextStyle(
               fontSize: 14,
-              color: subtitleColor,
+              color: textSecondaryColor,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -748,7 +801,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: textColor,
+              color: textPrimaryColor,
             ),
           ),
         ],
@@ -761,8 +814,8 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          flex: 6,
-          child:buildWeeklyChart()
+            flex: 6,
+            child: buildWeeklyChart()
         ),
         const SizedBox(width: 20),
         Expanded(
@@ -772,14 +825,22 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
       ],
     );
   }
+
   Widget buildWeeklyChart() {
     if (isLoadingChart) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+        ),
+      );
     }
 
     if (weeklyCounts.length < 7 || days.length < 7) {
-      return const Center(
-        child: Text('لا توجد بيانات كافية'),
+      return Center(
+        child: Text(
+          widget.isArabic ? 'لا توجد بيانات كافية' : 'Not enough data available',
+          style: TextStyle(color: textSecondaryColor),
+        ),
       );
     }
 
@@ -794,7 +855,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: widget.isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]!,
+          color: borderColor,
           width: 1,
         ),
         boxShadow: [
@@ -819,7 +880,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: textColor,
+                      color: textPrimaryColor,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -827,7 +888,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                     widget.isArabic ? 'عدد الرسائل اليومية' : 'Daily Messages Count',
                     style: TextStyle(
                       fontSize: 12,
-                      color: subtitleColor,
+                      color: textSecondaryColor,
                     ),
                   ),
                 ],
@@ -846,7 +907,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                       interval: 500,
                       getTitlesWidget: (value, _) => Text(
                         '${value.toInt()}',
-                        style: TextStyle(fontSize: 12, color: subtitleColor),
+                        style: TextStyle(fontSize: 12, color: textSecondaryColor),
                       ),
                     ),
                   ),
@@ -858,7 +919,11 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
                             days[value.toInt() % 7],
-                            style: TextStyle(fontSize: 12, color: subtitleColor, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: textSecondaryColor,
+                                fontWeight: FontWeight.w600
+                            ),
                           ),
                         );
                       },
@@ -876,7 +941,9 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                         gradient: LinearGradient(
                           begin: Alignment.bottomCenter,
                           end: Alignment.topCenter,
-                          colors: [secondaryBlue, primaryBlue],
+                          colors: widget.isDark
+                              ? [AppColors.darkSecondary, AppColors.darkPrimary]
+                              : [AppColors.lightSecondary, AppColors.lightPrimary],
                         ),
                         width: 32,
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
@@ -888,14 +955,14 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                   show: true,
                   drawVerticalLine: false,
                   getDrawingHorizontalLine: (value) => FlLine(
-                    color: Colors.white.withOpacity(0.1),
+                    color: widget.isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
                     strokeWidth: 1,
                   ),
                 ),
                 borderData: FlBorderData(show: false),
                 barTouchData: BarTouchData(
                   touchTooltipData: BarTouchTooltipData(
-                    tooltipBgColor: primaryBlue,
+                    tooltipBgColor: primaryColor,
                     getTooltipItem: (group, groupIndex, rod, rodIndex) {
                       return BarTooltipItem(
                         '${rod.toY.toInt()}\n',
@@ -926,11 +993,22 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: borderColor,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: widget.isDark ? Colors.black26 : Colors.grey.withOpacity(0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            )
+          ],
         ),
         child: Center(
           child: Text(
             isArabic ? 'لا توجد بيانات' : 'No data available',
-            style: TextStyle(color: subtitleColor),
+            style: TextStyle(color: textSecondaryColor),
           ),
         ),
       );
@@ -955,7 +1033,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: widget.isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]!,
+          color: borderColor,
           width: 1,
         ),
         boxShadow: [
@@ -974,7 +1052,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: textColor,
+              color: textPrimaryColor,
             ),
           ),
           const SizedBox(height: 4),
@@ -982,7 +1060,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
             isArabic ? 'حسب الدولة' : 'By Country',
             style: TextStyle(
               fontSize: 12,
-              color: subtitleColor,
+              color: textSecondaryColor,
             ),
           ),
           const SizedBox(height: 24),
@@ -1029,7 +1107,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                   Expanded(
                     child: Text(
                       isArabic ? stat.countryNameAr : stat.countryNameEn,
-                      style: TextStyle(fontSize: 12, color: subtitleColor),
+                      style: TextStyle(fontSize: 12, color: textSecondaryColor),
                     ),
                   ),
                   Text(
@@ -1037,7 +1115,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: textColor,
+                      color: textPrimaryColor,
                     ),
                   ),
                 ],
@@ -1048,6 +1126,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
       ),
     );
   }
+
   Widget _buildGroupRequestsTable(
       Color cardColor,
       Map<String, String> titles,
@@ -1060,7 +1139,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: widget.isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]!,
+          color: borderColor,
           width: 1,
         ),
         boxShadow: [
@@ -1085,15 +1164,15 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: textColor,
+                      color: textPrimaryColor,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    widget.isArabic ? 'إدارة طلبات الانضمام' : 'Manage Join Requests',
+                    isArabic ? 'إدارة طلبات الانضمام' : 'Manage Join Requests',
                     style: TextStyle(
                       fontSize: 12,
-                      color: subtitleColor,
+                      color: textSecondaryColor,
                     ),
                   ),
                 ],
@@ -1101,10 +1180,10 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: primaryBlue.withOpacity(0.1),
+                  color: primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.pending_actions_rounded, color: primaryBlue, size: 24),
+                child: Icon(Icons.pending_actions_rounded, color: primaryColor, size: 24),
               ),
             ],
           ),
@@ -1117,7 +1196,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                   child: Padding(
                     padding: const EdgeInsets.all(40),
                     child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(primaryBlue),
+                      valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                     ),
                   ),
                 );
@@ -1129,11 +1208,11 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                     padding: const EdgeInsets.all(40),
                     child: Column(
                       children: [
-                        Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        Icon(Icons.error_outline, size: 48, color: dangerColor),
                         const SizedBox(height: 16),
                         Text(
                           'Failed to load group requests',
-                          style: TextStyle(color: Colors.red),
+                          style: TextStyle(color: dangerColor),
                         ),
                       ],
                     ),
@@ -1149,11 +1228,11 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                     padding: const EdgeInsets.all(40),
                     child: Column(
                       children: [
-                        Icon(Icons.inbox_rounded, size: 48, color: subtitleColor),
+                        Icon(Icons.inbox_rounded, size: 48, color: textSecondaryColor),
                         const SizedBox(height: 16),
                         Text(
-                          widget.isArabic ? 'لا توجد طلبات' : 'No requests found',
-                          style: TextStyle(color: subtitleColor),
+                          isArabic ? 'لا توجد طلبات' : 'No requests found',
+                          style: TextStyle(color: textSecondaryColor),
                         ),
                       ],
                     ),
@@ -1163,9 +1242,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
 
               return Container(
                 decoration: BoxDecoration(
-                  border: Border.all(
-                    color: widget.isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]!,
-                  ),
+                  border: Border.all(color: borderColor),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ListView.separated(
@@ -1174,7 +1251,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                   itemCount: requests.length,
                   separatorBuilder: (_, __) => Divider(
                     height: 1,
-                    color: widget.isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200],
+                    color: borderColor,
                   ),
                   itemBuilder: (context, index) {
                     return _buildRequestRowFromApi(
@@ -1199,9 +1276,9 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
       bool isArabic,
       bool isDark,
       ) {
-    final Color themeColor = isDark ? Colors.greenAccent[400]! : primaryBlue;
-    final Color rejectColor = Colors.redAccent;
-    final Color bgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final themeColor = primaryColor;
+    final rejectColor = dangerColor;
+    final bgColor = cardColor;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -1235,7 +1312,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: textPrimaryColor,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1244,7 +1321,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                         "${request.category} • ${request.country}",
                         style: TextStyle(
                           fontSize: 10,
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          color: textSecondaryColor,
                         ),
                       ),
                     ],
@@ -1274,7 +1351,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                     ],
                   ),
                 if (request.status == 'rejected')
-                  Icon(Icons.cancel_presentation, color: Colors.red, size: 22),
+                  Icon(Icons.cancel_presentation, color: dangerColor, size: 22),
               ],
             ),
           ),
@@ -1283,7 +1360,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
     );
   }
 
-// ويدجت للأزرار الصغيرة لتقليل الارتفاع
+  // ويدجت للأزرار الصغيرة لتقليل الارتفاع
   Widget _buildIconButton({required IconData icon, required Color color, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
@@ -1318,17 +1395,17 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: primaryBlue.withOpacity(0.1),
+                      color: primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.approval_rounded, color: primaryBlue, size: 24),
+                    child: Icon(Icons.approval_rounded, color: primaryColor, size: 24),
                   ),
                   const SizedBox(width: 12),
                   Text(
                     widget.isArabic ? 'تأكيد إضافة الجروب' : 'Approve Group',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: textColor,
+                      color: textPrimaryColor,
                     ),
                   ),
                 ],
@@ -1344,19 +1421,19 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                   DropdownButtonFormField<int>(
                     decoration: InputDecoration(
                       labelText: widget.isArabic ? 'الدولة' : 'Country',
-                      labelStyle: TextStyle(color: subtitleColor),
-                      prefixIcon: Icon(Icons.location_on_rounded, color: primaryBlue),
+                      labelStyle: TextStyle(color: textSecondaryColor),
+                      prefixIcon: Icon(Icons.location_on_rounded, color: primaryColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
+                        borderSide: BorderSide(color: borderColor),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
+                        borderSide: BorderSide(color: borderColor),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: primaryBlue, width: 2),
+                        borderSide: BorderSide(color: primaryColor, width: 2),
                       ),
                       filled: true,
                       fillColor: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
@@ -1365,7 +1442,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                     items: countries.map<DropdownMenuItem<int>>((c) {
                       return DropdownMenuItem<int>(
                         value: c['id'],
-                        child: Text(c['name'], style: TextStyle(color: textColor)),
+                        child: Text(c['name'], style: TextStyle(color: textPrimaryColor)),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -1376,19 +1453,19 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                   DropdownButtonFormField<int>(
                     decoration: InputDecoration(
                       labelText: widget.isArabic ? 'المجال' : 'Category',
-                      labelStyle: TextStyle(color: subtitleColor),
-                      prefixIcon: Icon(Icons.category_rounded, color: primaryBlue),
+                      labelStyle: TextStyle(color: textSecondaryColor),
+                      prefixIcon: Icon(Icons.category_rounded, color: primaryColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
+                        borderSide: BorderSide(color: borderColor),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
+                        borderSide: BorderSide(color: borderColor),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: primaryBlue, width: 2),
+                        borderSide: BorderSide(color: primaryColor, width: 2),
                       ),
                       filled: true,
                       fillColor: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
@@ -1397,7 +1474,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                     items: categories.map<DropdownMenuItem<int>>((c) {
                       return DropdownMenuItem<int>(
                         value: c['id'],
-                        child: Text(c['name'], style: TextStyle(color: textColor)),
+                        child: Text(c['name'], style: TextStyle(color: textPrimaryColor)),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -1415,7 +1492,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                   ),
                   child: Text(
                     widget.isArabic ? 'إلغاء' : 'Cancel',
-                    style: TextStyle(color: subtitleColor),
+                    style: TextStyle(color: textSecondaryColor),
                   ),
                 ),
                 ElevatedButton(
@@ -1433,7 +1510,7 @@ class _MainDashboardState extends State<_MainDashboard> with SingleTickerProvide
                     });
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryBlue,
+                    backgroundColor: primaryColor,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

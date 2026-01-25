@@ -4,6 +4,35 @@ import '../../Models/AdminUser.dart';
 import '../../providers/app_providers.dart';
 import 'SendMessageDialog.dart';
 
+// ألوان مخصصة للوضعين
+class AppColors {
+  // Colors for Light Mode
+  static const Color lightPrimary = Color(0xFF1B367A);
+  static const Color lightSecondary = Color(0xFF2164C5);
+  static const Color lightSuccess = Color(0xFF4CAF50);
+  static const Color lightWarning = Color(0xFFFF9800);
+  static const Color lightDanger = Color(0xFFF44336);
+  static const Color lightSurface = Color(0xFFF8FAFC);
+  static const Color lightCardBg = Colors.white;
+  static const Color lightBorder = Color(0xFFE2E8F0);
+  static const Color lightTextPrimary = Color(0xFF212121);
+  static const Color lightTextSecondary = Color(0xFF64748B);
+  static const Color lightGrey = Color(0xFF9E9E9E);
+
+  // Colors for Dark Mode (Green Theme)
+  static const Color darkPrimary = Color(0xFF2E7D32);
+  static const Color darkSecondary = Color(0xFF4CAF50);
+  static const Color darkSuccess = Color(0xFF66BB6A);
+  static const Color darkWarning = Color(0xFFFFB74D);
+  static const Color darkDanger = Color(0xFFEF5350);
+  static const Color darkSurface = Color(0xFF121212);
+  static const Color darkCardBg = Color(0xFF1E1E2E);
+  static const Color darkBorder = Color(0xFF2D2D3E);
+  static const Color darkTextPrimary = Color(0xFFE4E6EB);
+  static const Color darkTextSecondary = Color(0xFFB0B3B8);
+  static const Color darkGrey = Color(0xFF757575);
+}
+
 class AdminUsersScreen extends StatefulWidget {
   const AdminUsersScreen({super.key});
 
@@ -32,15 +61,18 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     super.dispose();
   }
 
-  Color statusColor(String status) {
+  Color statusColor(String status, BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     switch (status) {
       case 'active':
       case 'connected':
-        return const Color(0xFF2196F3);
+        return isDark ? AppColors.darkSecondary : AppColors.lightPrimary;
       case 'expired':
-        return const Color(0xFFFF9800);
+        return isDark ? AppColors.darkWarning : AppColors.lightWarning;
       default:
-        return const Color(0xFFF44336);
+        return isDark ? AppColors.darkDanger : AppColors.lightDanger;
     }
   }
 
@@ -78,14 +110,20 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
   void _showFilterSheet(BuildContext context) {
     final appLocalizations = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+    final cardBgColor = isDark ? AppColors.darkCardBg : AppColors.lightCardBg;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: cardBgColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -97,10 +135,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               children: [
                 Text(
                   appLocalizations.translate('filter_results'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1976D2),
+                    color: primaryColor,
                   ),
                 ),
                 IconButton(
@@ -111,7 +149,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     });
                     Navigator.pop(context);
                   },
-                  icon: const Icon(Icons.refresh, color: Color(0xFF1976D2)),
+                  icon: Icon(Icons.refresh, color: primaryColor),
                 ),
               ],
             ),
@@ -119,25 +157,43 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
             Text(
               appLocalizations.translate('subscription_status'),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF424242),
+                color: textPrimaryColor,
               ),
             ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               children: [
-                _buildFilterChip(appLocalizations.translate('all'), 'all', _subscriptionFilter, (val) {
-                  setState(() => _subscriptionFilter = val);
-                }),
-                _buildFilterChip(appLocalizations.translate('active'), 'active', _subscriptionFilter, (val) {
-                  setState(() => _subscriptionFilter = val);
-                }),
-                _buildFilterChip(appLocalizations.translate('expired'), 'expired', _subscriptionFilter, (val) {
-                  setState(() => _subscriptionFilter = val);
-                }),
+                _buildFilterChip(
+                    appLocalizations.translate('all'),
+                    'all',
+                    _subscriptionFilter,
+                        (val) {
+                      setState(() => _subscriptionFilter = val);
+                    },
+                    context
+                ),
+                _buildFilterChip(
+                    appLocalizations.translate('active'),
+                    'active',
+                    _subscriptionFilter,
+                        (val) {
+                      setState(() => _subscriptionFilter = val);
+                    },
+                    context
+                ),
+                _buildFilterChip(
+                    appLocalizations.translate('expired'),
+                    'expired',
+                    _subscriptionFilter,
+                        (val) {
+                      setState(() => _subscriptionFilter = val);
+                    },
+                    context
+                ),
               ],
             ),
 
@@ -145,25 +201,43 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
             Text(
               appLocalizations.translate('connection_status'),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF424242),
+                color: textPrimaryColor,
               ),
             ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               children: [
-                _buildFilterChip(appLocalizations.translate('all'), 'all', _connectionFilter, (val) {
-                  setState(() => _connectionFilter = val);
-                }),
-                _buildFilterChip(appLocalizations.translate('connected'), 'connected', _connectionFilter, (val) {
-                  setState(() => _connectionFilter = val);
-                }),
-                _buildFilterChip(appLocalizations.translate('disconnected'), 'disconnected', _connectionFilter, (val) {
-                  setState(() => _connectionFilter = val);
-                }),
+                _buildFilterChip(
+                    appLocalizations.translate('all'),
+                    'all',
+                    _connectionFilter,
+                        (val) {
+                      setState(() => _connectionFilter = val);
+                    },
+                    context
+                ),
+                _buildFilterChip(
+                    appLocalizations.translate('connected'),
+                    'connected',
+                    _connectionFilter,
+                        (val) {
+                      setState(() => _connectionFilter = val);
+                    },
+                    context
+                ),
+                _buildFilterChip(
+                    appLocalizations.translate('disconnected'),
+                    'disconnected',
+                    _connectionFilter,
+                        (val) {
+                      setState(() => _connectionFilter = val);
+                    },
+                    context
+                ),
               ],
             ),
 
@@ -174,7 +248,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1976D2),
+                  backgroundColor: primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -194,27 +268,44 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, String value, String currentValue, Function(String) onTap) {
+  Widget _buildFilterChip(
+      String label,
+      String value,
+      String currentValue,
+      Function(String) onTap,
+      BuildContext context
+      ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
     final isSelected = currentValue == value;
+
     return FilterChip(
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onTap(value),
-      backgroundColor: Colors.grey[100],
-      selectedColor: const Color(0xFF1976D2).withOpacity(0.15),
+      backgroundColor: isDark ? Colors.grey[800] : Colors.grey[100],
+      selectedColor: primaryColor.withOpacity(0.15),
       labelStyle: TextStyle(
-        color: isSelected ? const Color(0xFF1976D2) : Colors.grey[700],
+        color: isSelected ? primaryColor : (isDark ? Colors.white70 : Colors.grey[700]),
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
       ),
-      checkmarkColor: const Color(0xFF1976D2),
+      checkmarkColor: primaryColor,
       side: BorderSide(
-        color: isSelected ? const Color(0xFF1976D2) : Colors.grey[300]!,
+        color: isSelected ? primaryColor : (isDark ? Colors.grey[600]! : Colors.grey[300]!),
       ),
     );
   }
 
   void openMessagesLog(BuildContext context, AdminUser user) {
     final appLocalizations = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+    final secondaryColor = isDark ? AppColors.darkSecondary : AppColors.lightSecondary;
+    final cardBgColor = isDark ? AppColors.darkCardBg : AppColors.lightCardBg;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     showModalBottomSheet(
       context: context,
@@ -223,17 +314,17 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       builder: (_) {
         return Container(
           height: MediaQuery.of(context).size.height * 0.8,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: cardBgColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: FutureBuilder<List<MessageLog>>(
             future: api.getUserMessages(user.id),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
+                return Center(
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1976D2)),
+                    valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                   ),
                 );
               }
@@ -244,13 +335,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(24),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+                        colors: [primaryColor, secondaryColor],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,14 +409,14 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                           Icon(
                             Icons.mail_outline,
                             size: 64,
-                            color: Colors.grey[300],
+                            color: isDark ? Colors.grey[600] : Colors.grey[300],
                           ),
                           const SizedBox(height: 16),
                           Text(
                             appLocalizations.translate('no_messages'),
                             style: TextStyle(
                               fontSize: 16,
-                              color: Colors.grey[600],
+                              color: textSecondaryColor,
                             ),
                           ),
                         ],
@@ -337,21 +428,24 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (_, i) {
                         final m = messages[i];
+                        final sentColor = m.status == 'sent' ? primaryColor : (isDark ? AppColors.darkDanger : AppColors.lightDanger);
+
                         return Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.grey[50],
+                            color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey[200]!),
+                            border: Border.all(color: isDark ? Colors.grey[700]! : Colors.grey[200]!),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 m.message,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 15,
                                   height: 1.5,
+                                  color: textPrimaryColor,
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -363,9 +457,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                       vertical: 6,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: m.status == 'sent'
-                                          ? const Color(0xFF1976D2).withOpacity(0.1)
-                                          : Colors.red.withOpacity(0.1),
+                                      color: sentColor.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
@@ -373,32 +465,30 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                           ? appLocalizations.translate('sent')
                                           : appLocalizations.translate('failed'),
                                       style: TextStyle(
-                                        color: m.status == 'sent'
-                                            ? const Color(0xFF1976D2)
-                                            : Colors.red,
+                                        color: sentColor,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  Icon(Icons.person_outline, size: 14, color: Colors.grey[600]),
+                                  Icon(Icons.person_outline, size: 14, color: textSecondaryColor),
                                   const SizedBox(width: 4),
                                   Text(
                                     m.recipient,
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: Colors.grey[600],
+                                      color: textSecondaryColor,
                                     ),
                                   ),
                                   const Spacer(),
-                                  Icon(Icons.access_time, size: 14, color: Colors.grey[400]),
+                                  Icon(Icons.access_time, size: 14, color: textSecondaryColor),
                                   const SizedBox(width: 4),
                                   Text(
                                     '${m.createdAt}',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey[500],
+                                      color: textSecondaryColor,
                                     ),
                                   ),
                                 ],
@@ -444,10 +534,21 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final appLocalizations = AppLocalizations.of(context);
 
+    // Choose colors based on theme
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+    final secondaryColor = isDark ? AppColors.darkSecondary : AppColors.lightSecondary;
+    final successColor = isDark ? AppColors.darkSuccess : AppColors.lightSuccess;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final cardBgColor = isDark ? AppColors.darkCardBg : AppColors.lightCardBg;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: surfaceColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -456,15 +557,15 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               padding: const EdgeInsets.all(12),
               child: Container(
                 decoration: BoxDecoration(
-                  gradient:  LinearGradient(
-                    colors: [Colors.blue.shade700, Colors.blue.shade900],
+                  gradient: LinearGradient(
+                    colors: [primaryColor, secondaryColor],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF1976D2).withOpacity(0.3),
+                      color: primaryColor.withOpacity(0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -517,18 +618,19 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                 onChanged: (value) {
                                   setState(() => _searchQuery = value);
                                 },
+                                style: TextStyle(color: textPrimaryColor),
                                 decoration: InputDecoration(
                                   hintText: appLocalizations.translate('search_user'),
-                                  hintStyle: TextStyle(fontSize: 14, color: Colors.grey[400]),
-                                  prefixIcon: const Icon(
+                                  hintStyle: TextStyle(fontSize: 14, color: textSecondaryColor),
+                                  prefixIcon: Icon(
                                     Icons.search,
-                                    color: Color(0xFF1976D2),
+                                    color: primaryColor,
                                     size: 20,
                                   ),
                                   suffixIcon: _searchQuery.isNotEmpty
                                       ? IconButton(
                                     iconSize: 18,
-                                    icon: const Icon(Icons.clear),
+                                    icon: Icon(Icons.clear, color: textSecondaryColor),
                                     onPressed: () {
                                       setState(() {
                                         _searchController.clear();
@@ -565,9 +667,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                               iconSize: 20,
                               icon: Stack(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.filter_list,
-                                    color: Color(0xFF1976D2),
+                                    color: primaryColor,
                                   ),
                                   if (_subscriptionFilter != 'all' ||
                                       _connectionFilter != 'all')
@@ -577,8 +679,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                       child: Container(
                                         width: 8,
                                         height: 8,
-                                        decoration: const BoxDecoration(
-                                          color: Colors.red,
+                                        decoration: BoxDecoration(
+                                          color: isDark ? AppColors.darkDanger : AppColors.lightDanger,
                                           shape: BoxShape.circle,
                                         ),
                                       ),
@@ -602,9 +704,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 future: usersFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
+                    return Center(
                       child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1976D2)),
+                        valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                       ),
                     );
                   }
@@ -619,14 +721,14 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                           Icon(
                             Icons.person_off_outlined,
                             size: 64,
-                            color: Colors.grey[300],
+                            color: textSecondaryColor,
                           ),
                           const SizedBox(height: 12),
                           Text(
                             appLocalizations.translate('no_results'),
                             style: TextStyle(
                               fontSize: 16,
-                              color: Colors.grey[600],
+                              color: textPrimaryColor,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -635,7 +737,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                             appLocalizations.translate('try_changing_search'),
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey[500],
+                              color: textSecondaryColor,
                             ),
                           ),
                         ],
@@ -654,11 +756,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
                       return Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: cardBgColor,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
+                              color: Colors.black.withOpacity(isDark ? 0.1 : 0.04),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -674,8 +776,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                     width: 44,
                                     height: 44,
                                     decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+                                      gradient: LinearGradient(
+                                        colors: [primaryColor, secondaryColor],
                                       ),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -697,10 +799,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                       children: [
                                         Text(
                                           user.name,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.bold,
-                                            color: Color(0xFF212121),
+                                            color: textPrimaryColor,
                                           ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -709,7 +811,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                           user.email,
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: Colors.grey[600],
+                                            color: textSecondaryColor,
                                           ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -725,7 +827,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                           vertical: 4,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: statusColor(user.subscriptionStatus).withOpacity(0.1),
+                                          color: statusColor(user.subscriptionStatus, context).withOpacity(0.1),
                                           borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: Row(
@@ -735,7 +837,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                               width: 6,
                                               height: 6,
                                               decoration: BoxDecoration(
-                                                color: statusColor(user.subscriptionStatus),
+                                                color: statusColor(user.subscriptionStatus, context),
                                                 shape: BoxShape.circle,
                                               ),
                                             ),
@@ -745,7 +847,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                               style: TextStyle(
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.w600,
-                                                color: statusColor(user.subscriptionStatus),
+                                                color: statusColor(user.subscriptionStatus, context),
                                               ),
                                             ),
                                           ],
@@ -758,7 +860,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                           vertical: 4,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: statusColor(user.connectionStatus).withOpacity(0.1),
+                                          color: statusColor(user.connectionStatus, context).withOpacity(0.1),
                                           borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: Row(
@@ -768,7 +870,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                               width: 6,
                                               height: 6,
                                               decoration: BoxDecoration(
-                                                color: statusColor(user.connectionStatus),
+                                                color: statusColor(user.connectionStatus, context),
                                                 shape: BoxShape.circle,
                                               ),
                                             ),
@@ -778,7 +880,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                               style: TextStyle(
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.w600,
-                                                color: statusColor(user.connectionStatus),
+                                                color: statusColor(user.connectionStatus, context),
                                               ),
                                             ),
                                           ],
@@ -798,13 +900,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                         vertical: 8,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.grey[50],
+                                        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
                                         borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(color: Colors.grey[200]!),
+                                        border: Border.all(color: isDark ? Colors.grey[700]! : Colors.grey[200]!),
                                       ),
                                       child: Row(
                                         children: [
-                                          Icon(Icons.phone_android, size: 14, color: Colors.grey[600]),
+                                          Icon(Icons.phone_android, size: 14, color: textSecondaryColor),
                                           const SizedBox(width: 6),
                                           Expanded(
                                             child: Text(
@@ -813,7 +915,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                                   : appLocalizations.translate('not_available'),
                                               style: TextStyle(
                                                 fontSize: 11,
-                                                color: Colors.grey[700],
+                                                color: textSecondaryColor,
                                                 fontWeight: FontWeight.w500,
                                               ),
                                               overflow: TextOverflow.ellipsis,
@@ -830,7 +932,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                 children: [
                                   Expanded(
                                     child: Material(
-                                      color: const Color(0xFF1976D2).withOpacity(0.1),
+                                      color: primaryColor.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(10),
                                       child: InkWell(
                                         onTap: () => openMessagesLog(context, user),
@@ -840,18 +942,18 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                           child: Row(
                                             mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
-                                              const Icon(
+                                              Icon(
                                                 Icons.history,
                                                 size: 16,
-                                                color: Color(0xFF1976D2),
+                                                color: primaryColor,
                                               ),
                                               const SizedBox(width: 6),
                                               Text(
                                                 appLocalizations.translate('log'),
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontSize: 13,
                                                   fontWeight: FontWeight.w600,
-                                                  color: Color(0xFF1976D2),
+                                                  color: primaryColor,
                                                 ),
                                               ),
                                             ],
@@ -864,8 +966,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                   Expanded(
                                     child: Material(
                                       color: canSend
-                                          ? const Color(0xFF4CAF50).withOpacity(0.1)
-                                          : Colors.grey[100],
+                                          ? successColor.withOpacity(0.1)
+                                          : (isDark ? Colors.grey[800] : Colors.grey[100]),
                                       borderRadius: BorderRadius.circular(10),
                                       child: InkWell(
                                         onTap: canSend ? () => openSendDialog(context, user) : null,
@@ -878,7 +980,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                               Icon(
                                                 Icons.send,
                                                 size: 16,
-                                                color: canSend ? const Color(0xFF4CAF50) : Colors.grey,
+                                                color: canSend ? successColor : (isDark ? Colors.grey[600] : Colors.grey),
                                               ),
                                               const SizedBox(width: 6),
                                               Text(
@@ -886,7 +988,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                                 style: TextStyle(
                                                   fontSize: 13,
                                                   fontWeight: FontWeight.w600,
-                                                  color: canSend ? const Color(0xFF4CAF50) : Colors.grey,
+                                                  color: canSend ? successColor : (isDark ? Colors.grey[600] : Colors.grey),
                                                 ),
                                               ),
                                             ],
@@ -912,6 +1014,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     );
   }
 }
+
 class AppLocalizations {
   final BuildContext context;
 

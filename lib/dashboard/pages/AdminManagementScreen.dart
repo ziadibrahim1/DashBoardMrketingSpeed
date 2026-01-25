@@ -70,6 +70,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     {'key': 'AdminChatHistoryScreen', 'ar': 'شاشة سجل المحادثات', 'en': 'Admin Chat History Screen'},
     {'key': 'SendNotificationPage', 'ar': 'صفحة إرسال الإشعارات', 'en': 'Send Notification Page'},
     {'key': 'NotificationHistoryPage', 'ar': 'صفحة سجل الإشعارات', 'en': 'Notification History Page'},
+    {'key': 'ReportsScreen', 'ar': 'صفحة التقارير', 'en': 'Reports Screen  '},
   ];
 
   // ✅ دوال للحصول على الألوان حسب الثيم
@@ -121,6 +122,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
           'AdminChatHistoryScreen': e['adminChatHistoryScreen'] ?? 0,
           'SendNotificationPage': e['sendNotificationPage'] ?? 0,
           'NotificationHistoryPage': e['notificationHistoryPage'] ?? 0,
+          'ReportsScreen': e['reportsScreen'] ?? 0,
         }).toList();
       });
     }
@@ -497,6 +499,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     request.fields['Role'] = admin['Role']?.toString() ?? "";
     request.fields['ImagePath'] = admin['ImagePath']?.toString() ?? "";
     request.fields['NotificationHistoryPage'] = admin['NotificationHistoryPage'].toString();
+    request.fields['ReportsScreen'] = admin['ReportsScreen'].toString();
     request.fields['SendNotificationPage'] = (admin['SendNotificationPage']).toString();
     request.fields['AdminChatHistoryScreen'] = (admin['AdminChatHistoryScreen']).toString();
     request.fields['AdminLiveChatDashboard'] = (admin['AdminLiveChatDashboard']).toString();
@@ -633,6 +636,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     'select_users': {'ar': 'تحديد مستخدمين', 'en': 'Select Users'},
     'cancel_selection': {'ar': 'إلغاء التحديد', 'en': 'Cancel Selection'},
     'selected_count': {'ar': 'تم تحديد {}', 'en': '{} selected'},
+    'ReportsScreen': {'ar': 'التقارير', 'en': 'Reports'},
   };
 
   String t(String key, String langCode) {
@@ -731,17 +735,23 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     final emailController = TextEditingController(text: existingAdmin?['email']);
     final bankController = TextEditingController(text: existingAdmin?['bank']);
     final ibanController = TextEditingController(text: existingAdmin?['iban']);
-
     Set<String> pagePermissions = {};
 
     if (existingAdmin != null) {
       for (var page in availablePages) {
-        if (existingAdmin[page['key']] == 1 || existingAdmin[page['key']] == '1') {
+        final permissionValue = existingAdmin[page['key']];
+        if (permissionValue == 1 ||
+            permissionValue == '1' ||
+            permissionValue == true ||
+            permissionValue == 'true' ||
+            permissionValue.toString() == '1' ||
+            permissionValue.toString().toLowerCase() == 'true') {
           pagePermissions.add(page['key']!);
         }
       }
-    }
 
+      print('Loaded permissions for ${existingAdmin['email']}: $existingAdmin');
+    }
     File? selectedImage;
     bool hasUnsavedChanges = false;
 
@@ -995,9 +1005,9 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                         }
 
                         if (existingAdmin == null) {
-                          newAdmin['password'] = newPasswordController.text.trim().isEmpty
+                          newAdmin['password'] = passwordController.text.trim().isEmpty
                               ? "123456"
-                              : newPasswordController.text.trim();
+                              : passwordController.text.trim();
                         } else if (passwordController.text.trim().isNotEmpty) {
                           newAdmin['password'] = passwordController.text.trim();
                         }

@@ -26,13 +26,6 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
   late AnimationController _animationController;
   final TextEditingController _searchController = TextEditingController();
 
-  // Premium Blue Gradient Palette
-  final Color primaryBlue = const Color(0xFF1E40AF);
-  final Color secondaryBlue = const Color(0xFF3B82F6);
-  final Color accentBlue = const Color(0xFF60A5FA);
-  final Color lightBlue = const Color(0xFFDEEBFF);
-  final Color ultraLightBlue = const Color(0xFFF0F7FF);
-
   @override
   void initState() {
     super.initState();
@@ -99,26 +92,50 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
     setState(() => isLoading = false);
   }
 
+  // دالة للحصول على الألوان بناءً على الوضع
+  ColorScheme _getColors(BuildContext context, bool isDark) {
+    if (isDark) {
+      // ألوان خضراء للوضع الداكن
+      return ColorScheme.dark(
+        primary: const Color(0xFF4CAF50),
+        secondary: const Color(0xFF66BB6A),
+        surface: const Color(0xFF121212),
+        background: const Color(0xFF0F172A),
+        onPrimary: Colors.white,
+      );
+    } else {
+      // نفس الألوان الزرقاء للوضع الفاتح
+      return ColorScheme.light(
+        primary: const Color(0xFF1E40AF),
+        secondary: const Color(0xFF3B82F6),
+        surface: const Color(0xFFF8FAFC),
+        background: const Color(0xFFF8FAFC),
+        onPrimary: Colors.white,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final locale = Provider.of<LocaleProvider>(context);
     final isArabic = locale.locale.languageCode == 'ar';
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = _getColors(context, isDark);
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       body: SafeArea(
         child: Column(
           children: [
-            _buildModernAppBar(isArabic, isDark),
+            _buildModernAppBar(isArabic, isDark, colors),
             Expanded(
               child: CustomScrollView(
                 physics: const BouncingScrollPhysics(),
                 slivers: [
-                  _buildEnhancedStatsGrid(isArabic, isDark),
-                  _buildAdvancedSearchBar(isArabic, isDark),
-                  _buildPremiumRewardsList(isArabic, isDark),
-                  _buildModernPagination(isArabic, isDark),
+                  _buildEnhancedStatsGrid(isArabic, isDark, colors),
+                  _buildAdvancedSearchBar(isArabic, isDark, colors),
+                  _buildPremiumRewardsList(isArabic, isDark, colors),
+                  _buildModernPagination(isArabic, isDark, colors),
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 ],
               ),
@@ -130,21 +147,22 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
   }
 
   // Modern Floating App Bar
-  Widget _buildModernAppBar(bool isArabic, bool isDark) {
+  Widget _buildModernAppBar(bool isArabic, bool isDark, ColorScheme colors) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF4FB5F5),
-            Color(0xFF1B367A)],
+          colors: isDark
+              ? [const Color(0xFF2E7D32), const Color(0xFF1B5E20)]
+              : [const Color(0xFF4FB5F5), const Color(0xFF1B367A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: primaryBlue.withOpacity(0.3),
+            color: colors.primary.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -217,7 +235,7 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
   }
 
   // Enhanced Stats Grid with Glassmorphism
-  Widget _buildEnhancedStatsGrid(bool isArabic, bool isDark) {
+  Widget _buildEnhancedStatsGrid(bool isArabic, bool isDark, ColorScheme colors) {
     final totalGrants = filteredLogs.length;
     final uniqueReferrers = filteredLogs.map((e) => e.referrer).toSet().length;
     final totalPoints = filteredLogs.fold<int>(0, (s, e) => s + e.granted);
@@ -237,21 +255,27 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
               label: isArabic ? 'إجمالي العمليات' : 'Total Grants',
               value: totalGrants.toString(),
               icon: Icons.assignment_turned_in_rounded,
-              gradient: [const Color(0xFF1E40AF), const Color(0xFF3B82F6)],
+              gradient: isDark
+                  ? [const Color(0xFF2E7D32), const Color(0xFF4CAF50)]
+                  : [const Color(0xFF1E40AF), const Color(0xFF3B82F6)],
               isDark: isDark,
             ),
             _buildGlassStatCard(
               label: isArabic ? 'المستخدمين النشطين' : 'Active Users',
               value: uniqueReferrers.toString(),
               icon: Icons.groups_rounded,
-              gradient: [const Color(0xFF235C88), const Color(0xFF79ADFB)],
+              gradient: isDark
+                  ? [const Color(0xFF1B5E20), const Color(0xFF388E3C)]
+                  : [const Color(0xFF235C88), const Color(0xFF79ADFB)],
               isDark: isDark,
             ),
             _buildGlassStatCard(
               label: isArabic ? 'مجموع النقاط' : 'Total Points',
               value: totalPoints.toString(),
               icon: Icons.diamond_rounded,
-              gradient: [const Color(0xFF2790DB), const Color(0xEF87BDE4)],
+              gradient: isDark
+                  ? [const Color(0xFF43A047), const Color(0xFF66BB6A)]
+                  : [const Color(0xFF2790DB), const Color(0xEF87BDE4)],
               isDark: isDark,
             ),
           ],
@@ -342,7 +366,7 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
   }
 
   // Advanced Search Bar with Gradient Border
-  Widget _buildAdvancedSearchBar(bool isArabic, bool isDark) {
+  Widget _buildAdvancedSearchBar(bool isArabic, bool isDark, ColorScheme colors) {
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
@@ -353,12 +377,12 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
             border: Border.all(
               color: isDark
                   ? Colors.white.withOpacity(0.1)
-                  : primaryBlue.withOpacity(0.1),
+                  : colors.primary.withOpacity(0.1),
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: primaryBlue.withOpacity(0.08),
+                color: colors.primary.withOpacity(0.08),
                 blurRadius: 20,
                 offset: const Offset(0, 4),
               ),
@@ -372,7 +396,7 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [primaryBlue, secondaryBlue],
+                      colors: [colors.primary, colors.secondary],
                     ),
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -418,11 +442,11 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [primaryBlue.withOpacity(0.15), accentBlue.withOpacity(0.15)],
+                    colors: [colors.primary.withOpacity(0.15), colors.primary.withOpacity(0.15)],
                   ),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: primaryBlue.withOpacity(0.3),
+                    color: colors.primary.withOpacity(0.3),
                     width: 1,
                   ),
                 ),
@@ -431,14 +455,14 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
                   children: [
                     Icon(
                       Icons.filter_list_rounded,
-                      color: primaryBlue,
+                      color: colors.primary,
                       size: 16,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       '${filteredLogs.length}',
                       style: TextStyle(
-                        color: primaryBlue,
+                        color: colors.primary,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -454,7 +478,7 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
   }
 
   // Premium Rewards List with Enhanced Cards
-  Widget _buildPremiumRewardsList(bool isArabic, bool isDark) {
+  Widget _buildPremiumRewardsList(bool isArabic, bool isDark, ColorScheme colors) {
     if (isLoading) {
       return SliverFillRemaining(
         child: Center(
@@ -465,12 +489,12 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [primaryBlue.withOpacity(0.1), accentBlue.withOpacity(0.1)],
+                    colors: [colors.primary.withOpacity(0.1), colors.primary.withOpacity(0.1)],
                   ),
                   shape: BoxShape.circle,
                 ),
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(primaryBlue),
+                  valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
                   strokeWidth: 3,
                 ),
               ),
@@ -498,13 +522,13 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : lightBlue,
+                  color: isDark ? const Color(0xFF1E293B) : Color(0xFFDEEBFF),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.inbox_rounded,
                   size: 64,
-                  color: primaryBlue.withOpacity(0.5),
+                  color: colors.primary.withOpacity(0.5),
                 ),
               ),
               const SizedBox(height: 24),
@@ -539,13 +563,13 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : lightBlue,
+                  color: isDark ? const Color(0xFF1E293B) : Color(0xFFDEEBFF),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.search_off_rounded,
                   size: 64,
-                  color: primaryBlue.withOpacity(0.5),
+                  color: colors.primary.withOpacity(0.5),
                 ),
               ),
               const SizedBox(height: 24),
@@ -604,7 +628,7 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
                     ),
                   ),
                 ),
-                child: _buildEnhancedRewardCard(log, isArabic, isDark),
+                child: _buildEnhancedRewardCard(log, isArabic, isDark, colors),
               ),
             );
           },
@@ -615,7 +639,7 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
   }
 
   // Enhanced Reward Card with Modern Design
-  Widget _buildEnhancedRewardCard(FeatureGrant log, bool isArabic, bool isDark) {
+  Widget _buildEnhancedRewardCard(FeatureGrant log, bool isArabic, bool isDark, ColorScheme colors) {
     final referrer = log.referrer.isNotEmpty ? log.referrer : '-';
     final email = log.email.isNotEmpty ? log.email : '-';
     final feature = log.feature.isNotEmpty ? log.feature : '-';
@@ -631,14 +655,14 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
         border: Border.all(
           color: isDark
               ? Colors.white.withOpacity(0.05)
-              : primaryBlue.withOpacity(0.1),
+              : colors.primary.withOpacity(0.1),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
             color: isDark
                 ? Colors.black.withOpacity(0.2)
-                : primaryBlue.withOpacity(0.06),
+                : colors.primary.withOpacity(0.06),
             blurRadius: 15,
             offset: const Offset(0, 4),
           ),
@@ -660,14 +684,14 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
                       height: 56,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [primaryBlue, secondaryBlue],
+                          colors: [colors.primary, colors.secondary],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: primaryBlue.withOpacity(0.3),
+                            color: colors.primary.withOpacity(0.3),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -723,12 +747,12 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [primaryBlue, secondaryBlue],
+                          colors: [colors.primary, colors.secondary],
                         ),
                         borderRadius: BorderRadius.circular(14),
                         boxShadow: [
                           BoxShadow(
-                            color: primaryBlue.withOpacity(0.3),
+                            color: colors.primary.withOpacity(0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -763,12 +787,12 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
                   decoration: BoxDecoration(
                     color: isDark
                         ? Colors.white.withOpacity(0.03)
-                        : lightBlue.withOpacity(0.3),
+                        : Color(0xFFDEEBFF).withOpacity(0.3),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: isDark
                           ? Colors.white.withOpacity(0.05)
-                          : primaryBlue.withOpacity(0.1),
+                          : colors.primary.withOpacity(0.1),
                     ),
                   ),
                   child: Column(
@@ -780,13 +804,13 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  primaryBlue.withOpacity(0.15),
-                                  accentBlue.withOpacity(0.15)
+                                  colors.primary.withOpacity(0.15),
+                                  colors.primary.withOpacity(0.15)
                                 ],
                               ),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: primaryBlue.withOpacity(0.3),
+                                color: colors.primary.withOpacity(0.3),
                               ),
                             ),
                             child: Row(
@@ -795,13 +819,13 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
                                 Icon(
                                   Icons.local_offer_rounded,
                                   size: 14,
-                                  color: primaryBlue,
+                                  color: colors.primary,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
                                   feature,
                                   style: TextStyle(
-                                    color: primaryBlue,
+                                    color: colors.primary,
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -875,7 +899,7 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
   }
 
   // Modern Pagination with Gradient
-  Widget _buildModernPagination(bool isArabic, bool isDark) {
+  Widget _buildModernPagination(bool isArabic, bool isDark, ColorScheme colors) {
     if (totalPages <= 1) return const SliverToBoxAdapter(child: SizedBox(height: 20));
 
     return SliverToBoxAdapter(
@@ -889,11 +913,11 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
             border: Border.all(
               color: isDark
                   ? Colors.white.withOpacity(0.1)
-                  : primaryBlue.withOpacity(0.1),
+                  : colors.primary.withOpacity(0.1),
             ),
             boxShadow: [
               BoxShadow(
-                color: primaryBlue.withOpacity(0.08),
+                color: colors.primary.withOpacity(0.08),
                 blurRadius: 15,
                 offset: const Offset(0, 4),
               ),
@@ -910,18 +934,19 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
                   loadData();
                 },
                 isDark: isDark,
+                colors: colors,
               ),
               const SizedBox(width: 20),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [primaryBlue, secondaryBlue],
+                    colors: [colors.primary, colors.secondary],
                   ),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: primaryBlue.withOpacity(0.3),
+                      color: colors.primary.withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -968,6 +993,7 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
                   loadData();
                 },
                 isDark: isDark,
+                colors: colors,
               ),
             ],
           ),
@@ -981,6 +1007,7 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
     required bool enabled,
     required VoidCallback onTap,
     required bool isDark,
+    required ColorScheme colors,
   }) {
     return Material(
       color: Colors.transparent,
@@ -992,7 +1019,7 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
           decoration: BoxDecoration(
             gradient: enabled
                 ? LinearGradient(
-              colors: [primaryBlue.withOpacity(0.15), accentBlue.withOpacity(0.15)],
+              colors: [colors.primary.withOpacity(0.15), colors.primary.withOpacity(0.15)],
             )
                 : null,
             color: enabled
@@ -1001,14 +1028,14 @@ class _ReferralRewardsPageState extends State<ReferralRewardsPage>
             borderRadius: BorderRadius.circular(12),
             border: enabled
                 ? Border.all(
-              color: primaryBlue.withOpacity(0.3),
+              color: colors.primary.withOpacity(0.3),
               width: 1.5,
             )
                 : null,
           ),
           child: Icon(
             icon,
-            color: enabled ? primaryBlue : Colors.grey[400],
+            color: enabled ? colors.primary : Colors.grey[400],
             size: 22,
           ),
         ),
