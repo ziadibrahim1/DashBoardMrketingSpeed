@@ -51,6 +51,8 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
   late TextEditingController emailController;
   late TextEditingController phoneController;
   late TextEditingController statusController;
+  late TextEditingController cityController;
+  late TextEditingController countryController;
 
   @override
   void initState() {
@@ -61,6 +63,8 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
     emailController = TextEditingController(text: widget.user.email);
     phoneController = TextEditingController(text: widget.user.phone);
     statusController = TextEditingController(text: widget.user.status);
+    cityController = TextEditingController(text: widget.user.city);
+    countryController = TextEditingController(text: widget.user.country);
   }
 
   @override
@@ -70,6 +74,8 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
     emailController.dispose();
     phoneController.dispose();
     statusController.dispose();
+    cityController.dispose();
+    countryController.dispose();
     super.dispose();
   }
 
@@ -200,6 +206,33 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
                         textSecondaryColor: textSecondaryColor,
                         icon: Icons.phone_outlined,
                       ),
+                      const SizedBox(height: 4),
+                      _buildTwoColumnRow([
+                        _buildEnhancedInputField(
+                          isRTL ? "المدينه" : "City",
+                          cityController,
+                          isDark,
+                          enabled: isEditing,
+                          cardBgColor: cardBgColor,
+                          borderColor: borderColor,
+                          accentColor: accentColor,
+                          textPrimaryColor: textPrimaryColor,
+                          textSecondaryColor: textSecondaryColor,
+                          icon: Icons.location_city_outlined,
+                        ),
+                        _buildEnhancedInputField(
+                          isRTL ? "الدوله" : "Country",
+                          countryController,
+                          isDark,
+                          enabled: isEditing,
+                          cardBgColor: cardBgColor,
+                          borderColor: borderColor,
+                          accentColor: accentColor,
+                          textPrimaryColor: textPrimaryColor,
+                          textSecondaryColor: textSecondaryColor,
+                          icon: Icons.flag,
+                        ),
+                      ]),
                     ],
                   ),
 

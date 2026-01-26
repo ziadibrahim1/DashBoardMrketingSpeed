@@ -4,6 +4,8 @@ class UserModel {
   final String email;
   final String status;
   final String phone;
+  final String city;
+  final String country;
 
   final int totalMessages;
   final int subscriptionDaysLeft;
@@ -34,6 +36,8 @@ class UserModel {
     required this.suggestionsCount,
     required this.suggestionRepliesCount,
     required this.subscriptions,
+     this.city = '',
+     this.country = '',
   });
 
 
@@ -57,6 +61,9 @@ class UserModel {
       subscriptionsCount: json['subscriptionCount'] ?? 0,
       suggestionsCount: json['suggestionsCount'] ?? 0,
       suggestionRepliesCount: json['suggestionRepliesCount'] ?? 0,
+      city: json['city'] ?? '',
+      country: json['country'] ?? '',
+
 
       subscriptions: subsJson
           .map((e) => UserSubscription.fromJson(e))
