@@ -28,21 +28,18 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
   Set<int> selectedAdmins = {};
   bool isMultiSelectMode = false;
 
-  // ✅ الألوان للوضع الفاتح (نفس الألوان الحالية)
   static const Color primaryBlueLight = Color(0xFF1B367A);
   static const Color lightBlueLight = Color(0xFF4FB5F5);
   static const Color darkBlueLight = Color(0xFF0D47A1);
   static const Color accentBlueLight = Color(0xFF64B5F6);
   static const Color bgLightMode = Color(0xFFF5F9FF);
 
-  // ✅ الألوان للوضع الداكن (أخضر)
   static const Color primaryGreenDark = Color(0xFF10B981);
   static const Color lightGreenDark = Color(0xFF216532);
   static const Color darkGreenDark = Color(0xFF059669);
   static const Color accentGreenDark = Color(0xFF6EE7B7);
   static const Color bgDarkMode = Color(0xFF1F2937);
 
-  // ألوان مشتركة
   static const Color cardLight = Color(0xFFFFFFFF);
   static const Color textDark = Color(0xFF1A237E);
   static const Color inactiveRed = Color(0xFFE53935);
@@ -70,8 +67,237 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     {'key': 'NotificationHistoryPage', 'ar': 'سجل الإشعارات', 'en': 'Notification History'},
     {'key': 'ReportsScreen', 'ar': 'التقارير', 'en': 'Reports'},
   ];
+  Future<bool> sendVerificationCode(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse("${AppConfig.apiBase}/api/admin/verify/send-code"),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'Email': email}),
+      );
 
-  // ✅ دوال للحصول على الألوان حسب الثيم
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+  Future<bool> verifyCode(String email, String code) async {
+    try {
+      final response = await http.post(
+        Uri.parse("${AppConfig.apiBase}/api/admin/verify/confirm"),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'Email': email, 'Code': code}),
+      );
+
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        return result['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+  Future<bool> showEmailVerificationDialog(String email, String langCode, bool isDark) async {
+    final verificationCodeController = TextEditingController();
+    bool isLoading = false;
+    bool codeSent = false;
+    int resendCountdown = 0;
+    Timer? countdownTimer;
+
+    final primaryColor = _getPrimaryColor(isDark);
+    final cardColor = _getCardColor(isDark);
+    final textColor = _getTextColor(isDark);
+
+    void startCountdown(StateSetter setDialogState) {
+      resendCountdown = 60;
+      countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setDialogState(() {
+          if (resendCountdown > 0) {
+            resendCountdown--;
+          } else {
+            timer.cancel();
+          }
+        });
+      });
+    }
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Directionality(
+          textDirection: langCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+          child: AlertDialog(
+            backgroundColor: cardColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                Icon(Icons.email_outlined, color: primaryColor, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    t('email_verification', langCode),
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  t('verification_message', langCode).replaceFirst('{}', email),
+                  style: TextStyle(color: textColor, fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                if (!codeSent)
+                  ElevatedButton.icon(
+                    onPressed: isLoading ? null : () async {
+                      setDialogState(() => isLoading = true);
+                      final sent = await sendVerificationCode(email);
+                      setDialogState(() {
+                        isLoading = false;
+                        codeSent = sent;
+                        if (sent) {
+                          startCountdown(setDialogState);
+                          _showSnackBar(t('code_sent', langCode), successGreen);
+                        } else {
+                          _showSnackBar(t('code_send_failed', langCode), inactiveRed);
+                        }
+                      });
+                    },
+                    icon: isLoading
+                        ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                        : const Icon(Icons.send),
+                    label: Text(t('send_code', langCode)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  )
+                else ...[
+                  TextField(
+                    controller: verificationCodeController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 8,
+                      color: textColor,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: '000000',
+                      hintStyle: TextStyle(color: textColor.withOpacity(0.3)),
+                      counterText: '',
+                      filled: true,
+                      fillColor: isDark ? Colors.grey[800] : Colors.grey[100],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: primaryColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: primaryColor, width: 2),
+                      ),
+                    ),
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton.icon(
+                        onPressed: resendCountdown > 0 || isLoading ? null : () async {
+                          setDialogState(() => isLoading = true);
+                          final sent = await sendVerificationCode(email);
+                          setDialogState(() {
+                            isLoading = false;
+                            if (sent) {
+                              startCountdown(setDialogState);
+                              _showSnackBar(t('code_resent', langCode), successGreen);
+                            } else {
+                              _showSnackBar(t('code_send_failed', langCode), inactiveRed);
+                            }
+                          });
+                        },
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: Text(
+                          resendCountdown > 0
+                              ? '${t('resend_code', langCode)} ($resendCountdown)'
+                              : t('resend_code', langCode),
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  countdownTimer?.cancel();
+                  Navigator.pop(context, false);
+                },
+                child: Text(t('cancel', langCode)),
+              ),
+              if (codeSent)
+                ElevatedButton.icon(
+                  onPressed: isLoading ? null : () async {
+                    if (verificationCodeController.text.length != 6) {
+                      _showSnackBar(t('invalid_code_length', langCode), inactiveRed);
+                      return;
+                    }
+
+                    setDialogState(() => isLoading = true);
+                    final verified = await verifyCode(email, verificationCodeController.text);
+                    setDialogState(() => isLoading = false);
+
+                    if (verified) {
+                      countdownTimer?.cancel();
+                      _showSnackBar(t('email_verified', langCode), successGreen);
+                      Navigator.pop(context, true);
+                    } else {
+                      _showSnackBar(t('invalid_code', langCode), inactiveRed);
+                    }
+                  },
+                  icon: isLoading
+                      ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                      : const Icon(Icons.check),
+                  label: Text(t('verify', langCode)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: successGreen,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    countdownTimer?.cancel();
+    return result ?? false;
+  }
+
   Color _getPrimaryColor(bool isDark) => isDark ? primaryGreenDark : primaryBlueLight;
   Color _getLightColor(bool isDark) => isDark ? lightGreenDark : lightBlueLight;
   Color _getDarkColor(bool isDark) => isDark ? darkGreenDark : darkBlueLight;
@@ -503,7 +729,6 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     request.fields['StatsPage'] = (admin['StatsPage']).toString();
     request.fields['VideoManagerScreen'] = (admin['VideoManagerScreen']).toString();
     request.fields['PaymentManagementSection'] = (admin['PaymentManagementSection']).toString();
-    request.fields['ApiDashboardScreen'] = (admin['ApiDashboardScreen']).toString();
     request.fields['WithdrawalsScreen'] = (admin['WithdrawalsScreen']).toString();
     request.fields['SupervisorsMarketersPage'] = (admin['SupervisorsMarketersPage']).toString();
     request.fields['SuggestionsManagementPage'] = (admin['SuggestionsManagementPage']).toString();
@@ -511,7 +736,6 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     request.fields['SocialAccountsPage'] = (admin['SocialAccountsPage']).toString();
     request.fields['PackagesPage'] = (admin['PackagesPage']).toString();
     request.fields['AdminManagementScreen'] = (admin['AdminManagementScreen']).toString();
-    request.fields['PlatformManagementPage'] = (admin['PlatformManagementPage']).toString();
     request.fields['SubscriptionsPage'] = (admin['SubscriptionsPage']).toString();
     request.fields['AdminUsersScreen'] = (admin['AdminUsersScreen']).toString();
     request.fields['UsersPage'] = (admin['UsersPage']).toString();
@@ -526,6 +750,8 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     final response = await request.send();
     if (response.statusCode == 200 || response.statusCode == 201) {
       await fetchAdmins();
+    } else{
+       print('Failed to save admin${response.statusCode} Body : ${await response.stream.bytesToString()}');
     }
   }
 
@@ -564,6 +790,17 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     },
     'required_fields': {'ar': 'يرجى تعبئة الحقول المطلوبة', 'en': 'Please fill required fields'},
     'upload_image': {'ar': 'تحميل صورة', 'en': 'Upload Image'},
+    'phone_required': {'ar': 'رقم الهاتف مطلوب', 'en': 'Phone number is required'},
+    'phone_05_length_error': {'ar': 'رقم الهاتف يجب أن يكون 10 أرقام عند البدء ب 05', 'en': 'Phone must be 10 digits when starting with 05'},
+    'phone_966_length_error': {'ar': 'رقم الهاتف يجب أن يكون 12 رقم عند البدء ب 966', 'en': 'Phone must be 12 digits when starting with 966'},
+    'phone_start_error': {'ar': 'رقم الهاتف يجب أن يبدأ ب 05 أو 966', 'en': 'Phone must start with 05 or 966'},
+    'phone_format_error': {'ar': 'صيغة رقم الهاتف غير صحيحة', 'en': 'Invalid phone format'},
+    'email_required': {'ar': 'البريد الإلكتروني مطلوب', 'en': 'Email is required'},
+    'email_invalid': {'ar': 'البريد الإلكتروني غير صحيح', 'en': 'Invalid email address'},
+    'iban_start_error': {'ar': 'رقم الحساب البنكي يجب أن يبدأ ب SA', 'en': 'IBAN must start with SA'},
+    'iban_length_error': {'ar': 'رقم الحساب البنكي يجب أن يكون 24 حرف', 'en': 'IBAN must be 24 characters'},
+    'iban_format_error': {'ar': 'صيغة رقم الحساب البنكي غير صحيحة', 'en': 'Invalid IBAN format'},
+    'at_least_one_permission': {'ar': 'يجب منح صلاحية واحدة على الأقل', 'en': 'At least one permission must be granted'},
     'permissions': {'ar': 'الصلاحيات', 'en': 'Permissions'},
     'first_name': {'ar': 'الاسم الأول', 'en': 'First Name'},
     'middle_name': {'ar': 'الاسم الثاني', 'en': 'Middle Name'},
@@ -576,6 +813,18 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
     'iban': {'ar': 'رقم الحساب البنكي', 'en': 'IBAN'},
     'role': {'ar': 'الدور', 'en': 'Role'},
     'status': {'ar': 'الحالة', 'en': 'Status'},
+    'email_verification': {'ar': 'التحقق من البريد الإلكتروني', 'en': 'Email Verification'},
+    'verification_message': {'ar': 'سيتم إرسال رمز التحقق إلى: {}', 'en': 'Verification code will be sent to: {}'},
+    'send_code': {'ar': 'إرسال الرمز', 'en': 'Send Code'},
+    'resend_code': {'ar': 'إعادة إرسال الرمز', 'en': 'Resend Code'},
+    'verify': {'ar': 'تحقق', 'en': 'Verify'},
+    'code_sent': {'ar': 'تم إرسال الرمز بنجاح', 'en': 'Code sent successfully'},
+    'code_resent': {'ar': 'تم إعادة إرسال الرمز', 'en': 'Code resent'},
+    'code_send_failed': {'ar': 'فشل إرسال الرمز', 'en': 'Failed to send code'},
+    'invalid_code': {'ar': 'رمز غير صحيح', 'en': 'Invalid code'},
+    'invalid_code_length': {'ar': 'يجب أن يكون الرمز 6 أرقام', 'en': 'Code must be 6 digits'},
+    'email_verified': {'ar': 'تم التحقق من البريد الإلكتروني بنجاح', 'en': 'Email verified successfully'},
+    'email_not_verified': {'ar': 'لم يتم التحقق من البريد الإلكتروني', 'en': 'Email not verified'},
     'no_admins': {'ar': 'لا يوجد مسؤولين.', 'en': 'No admins found.'},
     'delete_admin_msg': {'ar': 'تم حذف المسؤول.', 'en': 'Admin deleted.'},
     'admin_deleted_permanently': {'ar': 'تم حذف الحساب نهائياً', 'en': 'Account permanently deleted'},
@@ -706,12 +955,112 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
   }
 
   final newPasswordController = TextEditingController();
+// دوال التحقق من صحة البيانات
+  String? validatePhone(String phone, String langCode) {
+    final trimmedPhone = phone.trim();
 
+    if (trimmedPhone.isEmpty) {
+      return langCode == 'ar'
+          ? 'رقم الهاتف مطلوب'
+          : 'Phone number is required';
+    }
+
+    // إزالة المسافات والرموز الخاصة
+    final cleanPhone = trimmedPhone.replaceAll(RegExp(r'[^\d+]'), '');
+
+    // التحقق من أن الرقم يبدأ بـ 05 أو 966
+    if (cleanPhone.startsWith('05')) {
+      if (cleanPhone.length != 10) {
+        return langCode == 'ar'
+            ? 'رقم الهاتف الذي يبدأ بـ 05 يجب أن يكون 10 أرقام'
+            : 'Phone number starting with 05 must be 10 digits';
+      }
+    } else if (cleanPhone.startsWith('966')) {
+      if (cleanPhone.length != 12) {
+        return langCode == 'ar'
+            ? 'رقم الهاتف الذي يبدأ بـ 966 يجب أن يكون 12 رقم'
+            : 'Phone number starting with 966 must be 12 digits';
+      }
+    } else {
+      return langCode == 'ar'
+          ? 'رقم الهاتف يجب أن يبدأ بـ 05 أو 966'
+          : 'Phone number must start with 05 or 966';
+    }
+
+    return null; // لا يوجد خطأ
+  }
+
+  String? validateEmail(String email, String langCode) {
+    final trimmedEmail = email.trim();
+
+    if (trimmedEmail.isEmpty) {
+      return langCode == 'ar'
+          ? 'البريد الإلكتروني مطلوب'
+          : 'Email is required';
+    }
+
+    // التحقق من صيغة البريد الإلكتروني
+    final emailRegex = RegExp(
+        r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    );
+
+    if (!emailRegex.hasMatch(trimmedEmail)) {
+      return langCode == 'ar'
+          ? 'البريد الإلكتروني غير صحيح'
+          : 'Invalid email format';
+    }
+
+    return null; // لا يوجد خطأ
+  }
+
+  String? validateIBAN(String iban, String langCode) {
+    final trimmedIban = iban.trim().toUpperCase().replaceAll(' ', '');
+
+    // IBAN اختياري، لكن إذا تم إدخاله يجب أن يكون صحيحاً
+    if (trimmedIban.isEmpty) {
+      return null; // مسموح أن يكون فارغاً
+    }
+
+    // التحقق من أن IBAN يبدأ بـ SA
+    if (!trimmedIban.startsWith('SA')) {
+      return langCode == 'ar'
+          ? 'رقم الحساب البنكي (IBAN) يجب أن يبدأ بـ SA'
+          : 'IBAN must start with SA';
+    }
+
+    // التحقق من طول IBAN
+    if (trimmedIban.length != 24) {
+      return langCode == 'ar'
+          ? 'رقم الحساب البنكي (IBAN) يجب أن يكون 24 حرف/رقم'
+          : 'IBAN must be 24 characters';
+    }
+
+    // التحقق من أن باقي الأحرف أرقام فقط بعد SA
+    final ibanDigits = trimmedIban.substring(2);
+    if (!RegExp(r'^\d{22}$').hasMatch(ibanDigits)) {
+      return langCode == 'ar'
+          ? 'رقم الحساب البنكي (IBAN) يجب أن يحتوي على SA متبوعة بـ 22 رقم'
+          : 'IBAN must contain SA followed by 22 digits';
+    }
+
+    return null; // لا يوجد خطأ
+  }
+
+  String? validatePermissions(Set<String> permissions, String langCode) {
+    if (permissions.isEmpty) {
+      return langCode == 'ar'
+          ? 'يجب منح صلاحية واحدة على الأقل'
+          : 'At least one permission must be granted';
+    }
+
+    return null; // لا يوجد خطأ
+  }
   void _addOrEditAdmin({
     Map<String, dynamic>? existingAdmin,
     int? index,
     required String langCode,
-  }) {
+  })
+  {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = _getPrimaryColor(isDark);
     final lightColor = _getLightColor(isDark);
@@ -813,13 +1162,41 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                         const SizedBox(height: 16),
                         _buildSectionTitle(t('basic_info', langCode), Icons.info_outline, isDark),
                         const SizedBox(height: 12),
-                        _buildModernField(firstNameController, t('first_name', langCode), Icons.person, setModalState, isDark, readOnly: !isAdminRole),
-                        _buildModernField(middleNameController, t('middle_name', langCode), Icons.person_outline, setModalState, isDark, readOnly: !isAdminRole),
-                        _buildModernField(lastNameController, t('last_name', langCode), Icons.person, setModalState, isDark, readOnly: !isAdminRole),
-                        _buildModernField(phoneController, t('phone', langCode), Icons.phone, setModalState, isDark, readOnly: !isAdminRole),
-                        _buildModernField(emailController, t('email', langCode), Icons.email, setModalState, isDark, readOnly: !isAdminRole),
-                        _buildModernField(countryController, t('country', langCode), Icons.public, setModalState, isDark, readOnly: !isAdminRole),
-                        _buildModernField(cityController, t('city', langCode), Icons.location_city, setModalState, isDark, readOnly: !isAdminRole),
+                        _buildModernField(
+                          firstNameController,
+                          t('first_name', langCode),
+                          Icons.person,
+                          setModalState,
+                          isDark,
+                          readOnly: !isAdminRole,
+                          langCode: langCode,
+                        ),_buildModernField(middleNameController, t('middle_name', langCode), Icons.person_outline, setModalState, isDark, readOnly: !isAdminRole,
+                            langCode: langCode),
+                        _buildModernField(lastNameController, t('last_name', langCode), Icons.person, setModalState, isDark, readOnly: !isAdminRole,
+                            langCode: langCode),
+                        _buildModernField(
+                          phoneController,
+                          t('phone', langCode),
+                          Icons.phone,
+                          setModalState,
+                          isDark,
+                          readOnly: !isAdminRole,
+                          fieldType: 'phone',
+                          langCode: langCode,
+                        ),
+                        _buildModernField(
+                          emailController,
+                          t('email', langCode),
+                          Icons.email,
+                          setModalState,
+                          isDark,
+                          readOnly: !isAdminRole,
+                          fieldType: 'email',
+                          langCode: langCode,
+                        ),_buildModernField(countryController, t('country', langCode), Icons.public, setModalState, isDark, readOnly: !isAdminRole,
+                            langCode: langCode),
+                        _buildModernField(cityController, t('city', langCode), Icons.location_city, setModalState, isDark, readOnly: !isAdminRole,
+                            langCode: langCode),
 
                         _buildModernField(
                           passwordController,
@@ -828,13 +1205,23 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                           setModalState,
                           isDark,
                           obscureText: true,
+                            langCode: langCode
                         ),
                         const SizedBox(height: 24),
                         _buildSectionTitle(t('financial_info', langCode), Icons.account_balance, isDark),
                         const SizedBox(height: 12),
-                        _buildModernField(bankController, t('bank', langCode), Icons.account_balance, setModalState, isDark, readOnly: !isAdminRole),
-                        _buildModernField(ibanController, t('iban', langCode), Icons.credit_card, setModalState, isDark, readOnly: !isAdminRole),
-
+                        _buildModernField(bankController, t('bank', langCode), Icons.account_balance, setModalState, isDark, readOnly: !isAdminRole,
+                            langCode: langCode),
+                        _buildModernField(
+                          ibanController,
+                          t('iban', langCode),
+                          Icons.credit_card,
+                          setModalState,
+                          isDark,
+                          readOnly: !isAdminRole,
+                          fieldType: 'iban',
+                          langCode: langCode,
+                        ),
                         const SizedBox(height: 24),
                         Center(
                           child: ElevatedButton.icon(
@@ -973,12 +1360,54 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                     ),
                     child: Text(t('cancel', langCode)),
                   ),
+
                   if (isAdminRole)
                     ElevatedButton.icon(
                       onPressed: () async {
-                        if (firstNameController.text.trim().isEmpty || emailController.text.trim().isEmpty) {
+
+                        if (firstNameController.text.trim().isEmpty) {
                           _showSnackBar(t('required_fields', langCode), inactiveRed);
                           return;
+                        }
+
+                        final emailError = validateEmail(emailController.text, langCode);
+                        if (emailError != null) {
+                          _showSnackBar(emailError, inactiveRed);
+                          return;
+                        }
+
+                        final phoneError = validatePhone(phoneController.text, langCode);
+                        if (phoneError != null) {
+                          _showSnackBar(phoneError, inactiveRed);
+                          return;
+                        }
+
+                        if (ibanController.text.trim().isNotEmpty) {
+                          final ibanError = validateIBAN(ibanController.text, langCode);
+                          if (ibanError != null) {
+                            _showSnackBar(ibanError, inactiveRed);
+                            return;
+                          }
+                        }
+
+                        final permissionError = validatePermissions(pagePermissions, langCode);
+                        if (permissionError != null) {
+                          _showSnackBar(permissionError, inactiveRed);
+                          return;
+                        }
+
+
+                        if (existingAdmin == null) {
+                          final verified = await showEmailVerificationDialog(
+                            emailController.text.trim(),
+                            langCode,
+                            isDark,
+                          );
+
+                          if (!verified) {
+                            _showSnackBar(t('email_not_verified', langCode), inactiveRed);
+                            return;
+                          }
                         }
 
                         final newAdmin = {
@@ -990,7 +1419,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                           'Country': countryController.text.trim(),
                           'City': cityController.text.trim(),
                           'Bank': bankController.text.trim(),
-                          'Iban': ibanController.text.trim(),
+                          'Iban': ibanController.text.trim().toUpperCase(), // تحويل IBAN إلى أحرف كبيرة
                           'Role': "user",
                           'ImagePath': selectedImage != null ? selectedImage!.path : "",
                         };
@@ -1007,17 +1436,21 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                         } else if (passwordController.text.trim().isNotEmpty) {
                           newAdmin['password'] = passwordController.text.trim();
                         }
-
+                        print (newAdmin);
+                        print (existingAdmin?['id']);
                         await saveAdmin(newAdmin, id: existingAdmin?['id']);
                         if (isEditingSelf) {
                           final refreshUrl = Uri.parse("${AppConfig.apiBase}/api/dashboard-users/oneUser/${currentUserId}");
                           final refreshRes = await http.get(refreshUrl);
+
                           if (refreshRes.statusCode == 200) {
                             final freshData = jsonDecode(refreshRes.body);
                             Map<String, bool> pageAccess = {};
+
                             for (var page in availablePages) {
                               pageAccess[page['key']!] = freshData[page['key']!.toLowerCase()] == 1;
                             }
+
                             final updatedSessionUser = {
                               'id': freshData['id'],
                               'email': freshData['email'],
@@ -1025,16 +1458,21 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                               'role': freshData['role'],
                               'pagePermissions': pageAccess,
                             };
+
                             UserSession.saveUser(updatedSessionUser);
                           }
                         }
 
                         if (mounted) Navigator.pop(context);
+
                         _showSnackBar(
-                          existingAdmin == null ? t('admin_added', langCode) : t('admin_updated', langCode),
+                          existingAdmin == null
+                              ? t('admin_added', langCode)
+                              : t('admin_updated', langCode),
                           successGreen,
                         );
                       },
+
                       icon: const Icon(Icons.save),
                       label: Text(t('save', langCode)),
                       style: ElevatedButton.styleFrom(
@@ -1086,44 +1524,159 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
       TextEditingController controller,
       String label,
       IconData icon,
-      void Function(void Function()) setModalState,
+      StateSetter setModalState,
       bool isDark, {
-        bool readOnly = false,
         bool obscureText = false,
+        bool readOnly = false,
+        String? fieldType,
+        required String langCode,
       }) {
     final primaryColor = _getPrimaryColor(isDark);
-    final lightColor = _getLightColor(isDark);
     final cardColor = _getCardColor(isDark);
     final textColor = _getTextColor(isDark);
 
+    // تحديد نوع لوحة المفاتيح والفلاتر حسب نوع الحقل
+    TextInputType? keyboardType;
+    List<TextInputFormatter>? inputFormatters;
+    int? maxLength;
+
+    // تحديد الإعدادات حسب نوع الحقل
+    if (fieldType == 'phone') {
+      keyboardType = TextInputType.phone;
+      maxLength = 12;
+      inputFormatters = [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(12),
+      ];
+    } else if (fieldType == 'email') {
+      keyboardType = TextInputType.emailAddress;
+      inputFormatters = [
+        FilteringTextInputFormatter.deny(RegExp(r'\s')), // منع المسافات
+      ];
+    } else if (fieldType == 'iban') {
+      keyboardType = TextInputType.text;
+      maxLength = 24;
+      inputFormatters = [
+        FilteringTextInputFormatter.allow(RegExp(r'[sSaA0-9]')),
+        LengthLimitingTextInputFormatter(24),
+        TextInputFormatter.withFunction((oldValue, newValue) {
+          // تحويل النص لأحرف كبيرة
+          String text = newValue.text.toUpperCase();
+          return TextEditingValue(
+            text: text,
+            selection: TextSelection.collapsed(offset: text.length),
+          );
+        }),
+      ];
+    }
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextField(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
         controller: controller,
-        readOnly: readOnly,
         obscureText: obscureText,
-        style: TextStyle(color: textColor, fontSize: 15),
+        readOnly: readOnly,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        maxLength: maxLength,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+        style: TextStyle(color: textColor, fontSize: 15, fontWeight: FontWeight.w600),
+        onChanged: (value) {
+          setModalState(() {
+            // تحديث الحالة فقط - بدون hasUnsavedChanges
+          });
+        },
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: primaryColor.withOpacity(0.8)),
-          prefixIcon: Icon(icon, color: primaryColor, size: 20),
+          counterText: maxLength != null ? '' : null,
+          prefixIcon: Icon(icon, color: primaryColor.withOpacity(0.7), size: 20),
+          suffixIcon: obscureText
+              ? IconButton(
+            icon: Icon(
+              Icons.visibility_off_rounded,
+              size: 20,
+              color: primaryColor.withOpacity(0.7),
+            ),
+            onPressed: () {
+              // يمكنك إضافة وظيفة إظهار/إخفاء كلمة المرور هنا
+            },
+          )
+              : null,
           filled: true,
-          fillColor: cardColor,
+          fillColor: readOnly ? cardColor.withOpacity(0.5) : cardColor,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: lightColor.withOpacity(0.5)),
+            borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: primaryColor, width: 2),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.red, width: 1),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.red, width: 2),
+          ),
+          labelStyle: TextStyle(color: textColor.withOpacity(0.6), fontSize: 13),
+          contentPadding: const EdgeInsets.symmetric(vertical: 18),
         ),
-        onChanged: (_) => setModalState(() {}),
+        validator: (v) {
+          if (v == null || v.trim().isEmpty) {
+            return langCode == 'ar' ? 'هذا الحقل مطلوب' : 'Required';
+          }
+
+          // التحقق من رقم الهاتف
+          if (fieldType == 'phone') {
+            if (v.startsWith('05')) {
+              if (v.length != 10) {
+                return langCode == 'ar' ? 'يجب أن يكون 10 أرقام' : 'Must be 10 digits';
+              }
+            } else if (v.startsWith('966')) {
+              if (v.length != 12) {
+                return langCode == 'ar' ? 'يجب أن يكون 12 رقم' : 'Must be 12 digits';
+              }
+            } else {
+              return langCode == 'ar' ? 'يجب أن يبدأ بـ 05 أو 966' : 'Start with 05 or 966';
+            }
+          }
+
+          // التحقق من البريد الإلكتروني
+          if (fieldType == 'email') {
+            final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+            if (!emailRegex.hasMatch(v.trim())) {
+              return langCode == 'ar' ? 'البريد الإلكتروني غير صحيح' : 'Invalid email format';
+            }
+          }
+
+          // التحقق من رقم الحساب البنكي (IBAN)
+          if (fieldType == 'iban') {
+            if (!v.toUpperCase().startsWith('SA')) {
+              return langCode == 'ar' ? 'يجب أن يبدأ بـ SA' : 'Must start with SA';
+            }
+            if (v.length != 24) {
+              return langCode == 'ar' ? 'يجب أن يتكون من SA + 22 رقم' : 'Must be SA + 22 digits';
+            }
+            // التحقق من أن باقي الأحرف أرقام فقط بعد SA
+            final ibanDigits = v.substring(2);
+            if (!RegExp(r'^\d{22}$').hasMatch(ibanDigits)) {
+              return langCode == 'ar'
+                  ? 'بعد SA يجب أن تكون 22 رقم فقط'
+                  : 'After SA must be 22 digits only';
+            }
+          }
+
+          return null;
+        },
       ),
     );
   }
-
   @override
   void initState() {
     super.initState();
@@ -1522,7 +2075,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> with Sing
                               ? [accentColor.withOpacity(0.3), accentColor.withOpacity(0.1)]
                               : isActive
                               ? [cardColor, cardColor]
-                              : [Colors.red.shade50, Colors.red.shade50],
+                              :isDark?[Colors.grey.shade700, Colors.grey.shade900]: [Colors.red.shade50, Colors.red.shade50],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
