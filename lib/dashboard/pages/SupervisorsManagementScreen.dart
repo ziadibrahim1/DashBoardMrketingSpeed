@@ -210,7 +210,8 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
               'isActive': newUser.status == UserStatus.active,
               'Password': newUser.password,
               'PointPrice': newUser.pointPrice,
-              'AmountDue': newUser.totalDueAmount,
+              'AmountDue': newUser.AmountDue,
+              'TotalDueAmount': newUser.totalDueAmount,
             },
           );
         } else {
@@ -226,7 +227,7 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
             Age: newUser.age!,
             Bank: newUser.bank,
             AccountNumber: newUser.accountNumber,
-            AmountDue: newUser.totalDueAmount,
+            AmountDue: newUser.AmountDue.toInt(),
             PointPrice: newUser.pointPrice,
             isWithdrawalPending: false,
           );
@@ -278,7 +279,7 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
             Bank: newUser.bank,
             AccountNumber: newUser.accountNumber,
             PointPrice: newUser.pointPrice,
-            TotalDueAmount: newUser.totalDueAmount,
+            TotalDueAmount: newUser.totalDueAmount??0,
             PointsAccumulated: newUser.points,
           );
         }
@@ -696,7 +697,7 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
 
   Widget buildSupervisorDetails(Supervisor sup, Map<String, Color> colors) {
     final textColor = colors['text']!;
-    final double totalDue = sup.totalDueAmount * sup.pointPrice;
+    final double totalDue = sup.totalDueAmount.toDouble() ;
     final bool hasDue = totalDue > 0;
 
     return Column(
@@ -787,10 +788,10 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
                             buildDetailRow(tr('البريد الإلكتروني', 'Email'),
                                 sup.email, Colors.white, colors),
                             buildDetailRow(tr('النقاط', 'Points'),
-                                sup.totalDueAmount.toString(), Colors.white, colors),
+                                sup.AmountDue.toString(), Colors.white, colors),
                             buildDetailRow(
                                 tr('المستحق', 'Due Amount'),
-                                (sup.totalDueAmount * sup.pointPrice)
+                                (sup.totalDueAmount)
                                     .toString(),
                                 Colors.white,
                                 colors),
@@ -1106,7 +1107,7 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
                 marketer.pointPrice.toStringAsFixed(2), textColor, colors),
             buildDetailRow(
                 tr('إجمالي المبلغ المستحق', 'Total Due Amount'),
-                (marketer.points * marketer.pointPrice).toStringAsFixed(2),
+                (marketer.totalDueAmount).toStringAsFixed(2),
                 Colors.green.shade600,
                 colors),
             const SizedBox(height: 15),
@@ -1185,7 +1186,7 @@ class _SupervisorsMarketersPageState extends State<SupervisorsMarketersPage> {
   }
 
   Widget buildWithdrawButton(Marketer marketer, Map<String, Color> colors) {
-    final double totalDue = marketer.points * marketer.pointPrice;
+    final double totalDue = marketer.totalDueAmount;
     final bool hasDue = totalDue > 0;
 
     return SizedBox(

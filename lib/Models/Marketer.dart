@@ -1,7 +1,8 @@
 class Supervisor extends User {
   int id;
   List<Marketer> marketers;
-  int totalDueAmount;
+  double totalDueAmount;
+  int AmountDue;
   double pointPrice;
   bool isWithdrawalPending;
 
@@ -20,6 +21,7 @@ class Supervisor extends User {
     required String password,
     this.totalDueAmount = 0,
     this.pointPrice = 0,
+    this.AmountDue = 0,
     UserStatus status = UserStatus.active,
     required this.isWithdrawalPending,
     this.marketers = const [],
@@ -35,8 +37,9 @@ class Supervisor extends User {
     email: email,
     password: password,
     status: status,
-    points: totalDueAmount,
+    points: totalDueAmount.toInt(),
     pointPrice: pointPrice,
+    totalDueAmount: totalDueAmount.toDouble(),
 
   );
 
@@ -58,8 +61,9 @@ class Supervisor extends User {
       password: '',
       isWithdrawalPending: json['isWithdrawalPending'],
       status: json['isActive'] == true ? UserStatus.active : UserStatus.frozen,
-      totalDueAmount: (json['amountDue'] ?? 0).toDouble(),
+      totalDueAmount: (json['totalDueAmount'] ?? 0).toDouble(),
       pointPrice: (json['pointPrice'] ?? 0).toDouble(),
+      AmountDue: json['amountDue'] ?? 0,
       marketers: (json['marketers'] as List? ?? []).map((e) => Marketer.fromJson(e)).toList(),
 
     );
@@ -76,6 +80,7 @@ class Marketer extends User {
   String discountCode;
   String reviewLink;
   double totalDueAmount;
+  int AmountDue;
   double? age;
   bool isWithdrawalPending;
 
@@ -97,6 +102,7 @@ class Marketer extends User {
     required this.discountCode ,
     this.reviewLink = '',
     this.totalDueAmount = 0,
+    this.AmountDue = 0,
     UserStatus status = UserStatus.active,
     required this.isWithdrawalPending,
 
@@ -111,6 +117,9 @@ class Marketer extends User {
     email: email,
     password: password,
     status: status,
+    points: points,
+    pointPrice: pointPrice,
+    totalDueAmount: totalDueAmount,
   );
 
   factory Marketer.fromJson(Map<String, dynamic> json) {
@@ -132,6 +141,7 @@ class Marketer extends User {
       points: json['pointsAccumulated'] ?? 0,
       pointPrice: json['pointPrice'] ?? 0,
       discountCode: json['promoCode'] ?? '',
+      totalDueAmount: (json['totalDueAmount'] ?? 0).toDouble(),
       status: json['isActive'] == true ? UserStatus.active : UserStatus.frozen,
       isWithdrawalPending: json['isWithdrawalPending'] ,
     );
@@ -152,6 +162,8 @@ abstract class User {
   double? age;
   int points;
   double pointPrice;
+  double totalDueAmount;
+
 
 
 
@@ -169,6 +181,7 @@ abstract class User {
     this.age = 0,
     this.points = 0,
     this.pointPrice = 0,
+    this.totalDueAmount = 0,
   });
 }
 

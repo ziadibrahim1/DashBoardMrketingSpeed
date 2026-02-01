@@ -798,7 +798,7 @@ class _AddEditUserWidgetState extends State<AddEditUserWidget> {
           marketers: widget.user is Supervisor ? (widget.user as Supervisor).marketers : [],
           isWithdrawalPending: widget.addSuper ? false : (widget.user as Supervisor).isWithdrawalPending,
           pointPrice: double.tryParse(_pointPriceController.text) ?? 0,
-          totalDueAmount: int.tryParse(_pointsController.text) ?? 0,
+          totalDueAmount: double.tryParse(_pointsController.text) ?? 0,
         ),
       );
     } else {
